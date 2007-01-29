@@ -1,0 +1,18 @@
+Greasemonkey 0.6 Todo
+======================================
+* Fastback compatibility
+* Firefox 1.0.x compatibility
+* Catalog ways that old scripts fail, workarounds
+* monkey menu?
+* Lots of new APIs
+
+
+Greasemonkey 0.7
+=====================================
+* Kill 1.0.x compat
+* Lose config.xml -- live updating from @include
+* Make New User Script work better
+* Auto-update
+* Reinvestigate early injection with deer park toys
+
+
