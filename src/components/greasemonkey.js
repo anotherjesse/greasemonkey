@@ -193,7 +193,7 @@ var greasemonkeyService = {
                            url, 
                            sandbox);
       } catch (e) {
-        var e2 = new Error(e.message);
+        var e2 = new Error(typeof e == "string" ? e : e.message);
         e2.fileName = script.filename;
         e2.lineNumber = 0;
         GM_logError(e2);
