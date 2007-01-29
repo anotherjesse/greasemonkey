@@ -1,7 +1,6 @@
 Greasemonkey 0.6 Todo
 ======================================
 * Fastback compatibility
-* Firefox 1.0.x compatibility
 * Catalog ways that old scripts fail, workarounds
 * monkey menu?
 * Lots of new APIs
