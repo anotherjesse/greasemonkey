@@ -76,6 +76,8 @@ GM_BrowserUI.chromeLoad = function(e) {
   this.contextMenu = document.getElementById("contentAreaContextMenu"); 
   this.statusImage = document.getElementById("gm-status-image");
   this.statusLabel = document.getElementById("gm-status-label");
+  this.statusPopup = document.getElementById("gm-status-popup");
+  this.statusEnabledItem = document.getElementById("gm-status-enabled-item");
   this.toolsMenu = document.getElementById("menu_ToolsPopup");
 
   // seamonkey compat
@@ -332,9 +334,8 @@ GM_BrowserUI.isMyWindow = function(domWindow) {
  * The Greasemonkey status icon has been clicked.
  */
 GM_BrowserUI.monkeyClicked = function(aEvent) {
-  //this may not work well with a mac using
-  //'command click' for the context
-  if (1==aEvent.which) GM_setEnabled(!GM_getEnabled());
+  this.statusPopup.showPopup(this.statusImage, -1, -1, "context", "topright", 
+                             "bottomright");
 }
 
 function GM_showPopup(aEvent) {
@@ -343,7 +344,10 @@ function GM_showPopup(aEvent) {
 	var popup=aEvent.target, separator=null;
 	var url=getBrowser().contentWindow.document.location.href;
 
-	//remove all the scripts from the list
+  // set the enabled/disabled state
+  GM_BrowserUI.statusEnabledItem.setAttribute("checked", GM_getEnabled());
+
+	// remove all the scripts from the list
 	while (true) {
 		el=popup.childNodes[0];
 		if ('menuseparator'==el.tagName) {
@@ -353,7 +357,7 @@ function GM_showPopup(aEvent) {
 		el.parentNode.removeChild(el);
 	}
 
-	//build the new list of scripts
+	// build the new list of scripts
 	for (var i=0, script=null; script=config.scripts[i]; i++) {
 		var status=script.enabled?'enabled':'disabled';
 		if ('enabled'==status) {
