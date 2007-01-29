@@ -233,10 +233,26 @@ function getScriptFile(fileName) {
 }
 
 function getScriptDir() {
+  var dir = getNewScriptDir();
+
+  if (dir.exists()) {
+    return dir;
+  } else {
+    return getOldScriptDir();
+  }
+}
+
+function getNewScriptDir() {
   var file = Components.classes["@mozilla.org/file/directory_service;1"]
                        .getService(Components.interfaces.nsIProperties)
                        .get("ProfD", Components.interfaces.nsILocalFile);
   file.append("gm_scripts");
+  return file;
+}
+
+function getOldScriptDir() {
+  var file = getContentDir();
+  file.append("scripts");
   return file;
 }
 
@@ -351,6 +367,12 @@ function GM_setEnabled(enabled) {
  * thingers which will be interpolated with additional parameters passed.
  */
 function log(message) {
+  if (GM_prefRoot.getValue("logChrome", false)) {
+    logf.apply(null, arguments);
+  }
+}
+
+function logf(message) {
   for (var i = 1; i < arguments.length; i++) {
     message = message.replace(/\%s/, arguments[i]);
   }
