@@ -144,7 +144,13 @@ GM_BrowserUI.contentLoad = function(e) {
 
   if (GM_deepWrappersEnabled(window)) {
     // when deep wrappers are enabled, e.target is already a deep xpcnw
-    unsafeWin = e.target.defaultView.wrappedJSObject;
+    unsafeWin = e.target.defaultView;
+
+    // in DPa2, there was a bug that made this *not* a deep wrapper.
+    if (unsafeWin.wrappedJSObject) {
+      unsafeWin = unsafeWin.wrappedJSObject;
+    }
+
     href = e.target.location.href;
   } else {
     // otherwise we need to wrap it manually
