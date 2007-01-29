@@ -111,7 +111,7 @@ GM_BrowserUI.chromeLoad = function(e) {
  * gmIBrowserWindow.registerMenuCommand
  */
 GM_BrowserUI.registerMenuCommand = function(menuCommand) {
-  if (this.isMyWindow(domWindow)) {
+  if (this.isMyWindow(menuCommand.window)) {
     var commander = this.getCommander(menuCommand.window);
 
     commander.registerMenuCommand(menuCommand.name,
