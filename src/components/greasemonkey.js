@@ -188,7 +188,7 @@ var greasemonkeyService = {
 
       try {
         this.evalInSandbox("(function(){\n" +
-                           getContents(getScriptFileURI(script.filename).spec) +
+                           getContents(getScriptFileURI(script.filename)) +
                            "\n})()",
                            url, 
                            sandbox);

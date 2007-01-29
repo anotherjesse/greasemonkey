@@ -1,35 +1,4 @@
-/*
-=== START LICENSE ===
 
-Copyright 2004-2005 Aaron Boodman
-
-Contributors:
-Jeremy Dunck, Nikolas Coukouma, Matthew Gray.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy 
-of this software and associated documentation files (the "Software"), to deal 
-in the Software without restriction, including without limitation the rights 
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
-copies of the Software, and to permit persons to whom the Software is 
-furnished to do so, subject to the following conditions:
-
-Note that this license applies only to the Greasemonkey extension source 
-files, not to the user scripts which it runs. User scripts are licensed 
-separately by their authors.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
-SOFTWARE.
-
-=== END LICENSE ===
-
-The above copyright notice and this permission notice shall be included in all 
-copies or substantial portions of the Software.
-*/
 
 // TODO: properly scope this nastiness
 const GUID = "{e4a8a97b-f2ed-450b-b12d-ee082ba24781}";
@@ -192,7 +161,7 @@ function getContents(aURL, charset){
     .createInstance(Components.interfaces.nsIScriptableUnicodeConverter);
   unicodeConverter.charset = charset;
 
-  var channel=ioService.newChannel(aURL,null,null);
+  var channel=ioService.newChannelFromURI(aURL);
   var input=channel.open();
   scriptableStream.init(input);
   var str=scriptableStream.read(input.available());
@@ -388,14 +357,16 @@ function loggify(obj, name) {
 }
 
 function gen_loggify_wrapper(meth, objName, methName) {
-  return function() {
-    var retVal;
-    var args = new Array(arguments.length);
-    for (var i = 0; i < args.length; i++) {
-      args[i] = arguments[i];
+return function() {
+     var retVal;
+    //var args = new Array(arguments.length);
+    var argString = "";
+    for (var i = 0; i < arguments.length; i++) {
+      //args[i] = arguments[i];
+      argString += arguments[i] + (((i+1)<arguments.length)? ", " : "");
     }
     
-    log("> %s.%s(%s)", objName, methName, args.join(", "));
+    log("> %s.%s(%s)", objName, methName, argString);//args.join(", "));
     
     try {
       return retVal = meth.apply(this, arguments);
