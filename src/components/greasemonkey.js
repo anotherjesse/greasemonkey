@@ -2,15 +2,16 @@ const CLASSNAME = "GM_GreasemonkeyService";
 const CONTRACTID = "@greasemonkey.mozdev.org/greasemonkey-service;1";
 const CID = Components.ID("{77bf3650-1cd6-11da-8cd6-0800200c9a66}");
 
-const ifaces = Components.interfaces;
+const Cc = Components.classes;
+const Ci = Components.interfaces;
 
-const appSvc = Components.classes["@mozilla.org/appshell/appShellService;1"]
-                         .getService(ifaces.nsIAppShellService);
+const appSvc = Cc["@mozilla.org/appshell/appShellService;1"]
+                 .getService(Ci.nsIAppShellService);
 
 function alert(msg) {
-  Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
-            .getService(ifaces.nsIPromptService)
-            .alert(null, "message from your mom", msg);
+  Cc["@mozilla.org/embedcomp/prompt-service;1"]
+    .getService(Ci.nsIPromptService)
+    .alert(null, "message from your mom", msg);
 }
 
 
@@ -21,12 +22,12 @@ var greasemonkeyService = {
 
   // nsISupports
   QueryInterface: function(aIID) {
-    if (!aIID.equals(ifaces.nsIObserver) &&
-        !aIID.equals(ifaces.nsISupports) &&
-        !aIID.equals(ifaces.nsIWebProgressListener) &&
-        !aIID.equals(ifaces.nsISupportsWeakReference) &&
-        !aIID.equals(ifaces.gmIGreasemonkeyService) &&
-        !aIID.equals(ifaces.nsIWindowMediatorListener))
+    if (!aIID.equals(Ci.nsIObserver) &&
+        !aIID.equals(Ci.nsISupports) &&
+        !aIID.equals(Ci.nsIWebProgressListener) &&
+        !aIID.equals(Ci.nsISupportsWeakReference) &&
+        !aIID.equals(Ci.gmIGreasemonkeyService) &&
+        !aIID.equals(Ci.nsIWindowMediatorListener))
       throw Components.results.NS_ERROR_NO_INTERFACE;
 
     return this;
@@ -80,33 +81,33 @@ var greasemonkeyService = {
 
 
   startup: function() {
-    Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
-              .getService(Components.interfaces.mozIJSSubScriptLoader)
-              .loadSubScript("chrome://global/content/XPCNativeWrapper.js");
+    Cc["@mozilla.org/moz/jssubscript-loader;1"]
+      .getService(Ci.mozIJSSubScriptLoader)
+      .loadSubScript("chrome://global/content/XPCNativeWrapper.js");
 
-    Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
-              .getService(Components.interfaces.mozIJSSubScriptLoader)
-              .loadSubScript("chrome://greasemonkey/content/prefmanager.js");
+    Cc["@mozilla.org/moz/jssubscript-loader;1"]
+      .getService(Ci.mozIJSSubScriptLoader)
+      .loadSubScript("chrome://greasemonkey/content/prefmanager.js");
 
-    Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
-              .getService(Components.interfaces.mozIJSSubScriptLoader)
-              .loadSubScript("chrome://greasemonkey/content/utils.js");
+    Cc["@mozilla.org/moz/jssubscript-loader;1"]
+      .getService(Ci.mozIJSSubScriptLoader)
+      .loadSubScript("chrome://greasemonkey/content/utils.js");
 
-    Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
-              .getService(Components.interfaces.mozIJSSubScriptLoader)
-              .loadSubScript("chrome://greasemonkey/content/config.js");
+    Cc["@mozilla.org/moz/jssubscript-loader;1"]
+      .getService(Ci.mozIJSSubScriptLoader)
+      .loadSubScript("chrome://greasemonkey/content/config.js");
 
-    Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
-              .getService(Components.interfaces.mozIJSSubScriptLoader)
-              .loadSubScript("chrome://greasemonkey/content/convert2RegExp.js");
+    Cc["@mozilla.org/moz/jssubscript-loader;1"]
+      .getService(Ci.mozIJSSubScriptLoader)
+      .loadSubScript("chrome://greasemonkey/content/convert2RegExp.js");
 
-    Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
-              .getService(Components.interfaces.mozIJSSubScriptLoader)
-              .loadSubScript("chrome://greasemonkey/content/miscapis.js");
+    Cc["@mozilla.org/moz/jssubscript-loader;1"]
+      .getService(Ci.mozIJSSubScriptLoader)
+      .loadSubScript("chrome://greasemonkey/content/miscapis.js");
 
-    Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
-              .getService(Components.interfaces.mozIJSSubScriptLoader)
-              .loadSubScript("chrome://greasemonkey/content/xmlhttprequester.js");
+    Cc["@mozilla.org/moz/jssubscript-loader;1"]
+      .getService(Ci.mozIJSSubScriptLoader)
+      .loadSubScript("chrome://greasemonkey/content/xmlhttprequester.js");
 
     loggify(this, "GM_GreasemonkeyService");
   },
@@ -165,8 +166,8 @@ var greasemonkeyService = {
       sandbox.document = sandbox.window.document;
       sandbox.unsafeWindow = unsafeContentWin;
 
-      // patch missing properties on xpcnw
-      sandbox.XPathResult = Components.interfaces.nsIDOMXPathResult;
+      // hack XPathResult since that is so commonly used
+      sandbox.XPathResult = Ci.nsIDOMXPathResult;
 
       // add our own APIs
       sandbox.GM_addStyle = function(css) { GM_addStyle(sandbox.document, css) };
@@ -180,7 +181,7 @@ var greasemonkeyService = {
                                                 "registerMenuCommand", 
                                                 unsafeContentWin);
 
-      sandbox.__proto__ = sandbox.window;
+      sandbox.__proto__ = safeWin;
 
       try {
         this.evalInSandbox("(function(){\n" +
@@ -189,10 +190,7 @@ var greasemonkeyService = {
                            url, 
                            sandbox);
       } catch (e) {
-        var e2 = new Error(typeof e == "string" ? e : e.message);
-        e2.fileName = script.filename;
-        e2.lineNumber = 0;
-        GM_logError(e2);
+        GM_logError(e);
       }
     }
   },
@@ -245,7 +243,7 @@ var greasemonkeyService = {
 var Module = new Object();
 
 Module.registerSelf = function(compMgr, fileSpec, location, type) {
-  compMgr = compMgr.QueryInterface(Components.interfaces.nsIComponentRegistrar);
+  compMgr = compMgr.QueryInterface(Ci.nsIComponentRegistrar);
   compMgr.registerFactoryLocation(CID,
                                   CLASSNAME,
                                   CONTRACTID,
@@ -253,8 +251,8 @@ Module.registerSelf = function(compMgr, fileSpec, location, type) {
                                   location,
                                   type);
 
-  var catMgr = Components.classes["@mozilla.org/categorymanager;1"]
-                         .getService(ifaces.nsICategoryManager);
+  var catMgr = Cc["@mozilla.org/categorymanager;1"]
+                 .getService(Ci.nsICategoryManager);
 
   catMgr.addCategoryEntry("http-startup-category",
                           CLASSNAME,
@@ -268,7 +266,7 @@ Module.getClassObject = function(compMgr, cid, iid) {
     throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
   }
   
-  if (!iid.equals(Components.interfaces.nsIFactory)) {
+  if (!iid.equals(Ci.nsIFactory)) {
     throw Components.results.NS_ERROR_NO_INTERFACE;
   }
 

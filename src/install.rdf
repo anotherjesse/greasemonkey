@@ -7,7 +7,7 @@
   <Description about="urn:mozilla:install-manifest">
 
     <em:name>Greasemonkey</em:name>
-    <em:id>greasemonkey@youngpup.net</em:id>
+    <em:id>{e4a8a97b-f2ed-450b-b12d-ee082ba24781}</em:id>
     <em:version>0.6.4</em:version>
     <em:description>A User Script Manager for Firefox</em:description>
     <em:creator>Aaron Boodman; http://youngpup.net/</em:creator>
@@ -22,12 +22,13 @@
     <em:contributor>Anthony Lieuallen; http://arantius.com</em:contributor>
     <em:homepageURL>http://greasemonkey.mozdev.org/</em:homepageURL>
     <em:optionsURL>chrome://greasemonkey/content/manage.xul</em:optionsURL>
+    <em:iconURL>chrome://greasemonkey/content/status_on.gif</em:iconURL>
 
     <em:targetApplication>
       <Description>
         <em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
-        <em:minVersion>1.4</em:minVersion>
-        <em:maxVersion>1.7</em:maxVersion>
+        <em:minVersion>1.5</em:minVersion>
+        <em:maxVersion>1.5.0.*</em:maxVersion>
       </Description>
     </em:targetApplication> 
 

@@ -47,15 +47,17 @@ function GM_unlisten(source, event, listener, opt_capture) {
 /**
  * Utility to create an error message in the log without throwing an error.
  */
-function GM_logError(e) {
+function GM_logError(e, opt_warn) {
   var consoleService = Components.classes['@mozilla.org/consoleservice;1']
     .getService(Components.interfaces.nsIConsoleService);
 
   var consoleError = Components.classes['@mozilla.org/scripterror;1']
     .createInstance(Components.interfaces.nsIScriptError);
 
+  var flags = opt_warn ? 1 : 0;
+
   consoleError.init(e.message, e.fileName, e.lineNumber, e.lineNumber,
-                    e.columnNumber, 0, null);
+                    e.columnNumber, flags, null);
 
   consoleService.logMessage(consoleError);
 }
