@@ -1,7 +1,7 @@
 Greasemonkey 0.6 Todo
 ======================================
 * Fastback compatibility
-* Catalog ways that old scripts fail, workarounds
+* versioning: use old scripts folder if exists, else use new one
 * monkey menu?
 * Lots of new APIs
 
