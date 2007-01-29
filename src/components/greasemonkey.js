@@ -214,8 +214,10 @@ var greasemonkeyService = {
   },
 
   openInTab: function(unsafeContentWin, url) {
+    var unsafeTop = new XPCNativeWrapper(unsafeContentWin, "top").top;
+
     for (var i = 0; i < this.browserWindows.length; i++) {
-      this.browserWindows[i].openInTab(unsafeContentWin, url);
+      this.browserWindows[i].openInTab(unsafeTop, url);
     }
   },
 
