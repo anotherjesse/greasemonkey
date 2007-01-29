@@ -118,7 +118,8 @@ ScriptDownloader.prototype.installFromSource = function(source, url) {
       targetFile.moveTo(newDir, script.filename)
       config.scripts.push(script);
       config.save();
-      GM_BrowserUI.showStatus(script.filename + " installed successfully.", true);
+      GM_BrowserUI.hideStatus();
+      alert(script.filename + " installed successfully.");
     }
     catch (e) {
       config.scripts = oldScripts;

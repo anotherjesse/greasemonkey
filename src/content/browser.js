@@ -10,8 +10,9 @@ var GM_BrowserUI = new Object();
  * nsISupports.QueryInterface
  */
 GM_BrowserUI.QueryInterface = function(aIID) {
-  if (!aIID.equals(Components.interfaces.nsISupport) &&
-      !aIID.equals(Components.interfaces.gmIBrowserWindow))
+  if (!aIID.equals(Components.interfaces.nsISupports) &&
+      !aIID.equals(Components.interfaces.gmIBrowserWindow) &&
+      !aIID.equals(Components.interfaces.nsISupportsWeakReference))
     throw Components.results.NS_ERROR_NO_INTERFACE;
 
   return this;
@@ -62,6 +63,15 @@ GM_BrowserUI.chromeLoad = function(e) {
   GM_listen(this.contextMenu, "popupshowing", GM_hitch(this, "contextMenuShowing"));
   GM_listen(this.toolsMenu, "popupshowing", GM_hitch(this, "toolsMenuShowing"));	
 
+  // listen for clicks on the install bar
+  Components.classes["@mozilla.org/observer-service;1"]
+            .getService(Components.interfaces.nsIObserverService)
+            .addObserver(this, "install-userscript", true);
+
+  // we use this to determine if we are the active window sometimes
+  this.winWat = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
+                          .getService(Components.interfaces.nsIWindowWatcher);
+
   // this gives us onLocationChange
   document.getElementById("content").addProgressListener(this,
     Components.interfaces.nsIWebProgress.NOTIFY_LOCATION);
@@ -99,7 +109,6 @@ GM_BrowserUI.openInTab = function(domWindow, url) {
     document.getElementById("content").addTab(url);
   }
 }
-
 
 /**
  * Gets called when a DOMContentLoaded event occurs somewhere in the browser.
@@ -143,6 +152,46 @@ GM_BrowserUI.contentLoad = function(e) {
     this.gmSvc.domContentLoaded({ wrappedJSObject: unsafeWin });
   
     GM_listen(unsafeWin, "pagehide", GM_hitch(this, "contentUnload"));
+  }
+
+  if (GM_getEnabled() && href.match(/\.user\.js($|\?)/i)) {
+    // find the browser the user script is loading in
+    for (var i = 0, browser; browser = this.tabBrowser.browsers[i]; i++) {
+      if (browser.contentWindow == unsafeWin) {
+        var pick = Math.round(Math.random() * (GM_BrowserUI.greetz.length - 1));
+        var greeting = GM_BrowserUI.greetz[pick];
+
+        this.tabBrowser.showMessage(
+          browser,
+          "chrome://greasemonkey/content/status_on.gif",
+          greeting + " This is a Greasemonkey User Script. " + 
+                     "Click Install to start using it.",
+          "Install",
+          null /* default doc shell */,
+          "install-userscript",
+          null /* no popuup */,
+          "top",
+          true /* show close button */,
+          "I" /* access key */);
+
+        break;
+      }
+    }
+  }
+}
+
+/**
+ * Implements nsIObserve.observe. Right now we're only observing our own
+ * install-userscript, which happens when the install bar is clicked.
+ */
+GM_BrowserUI.observe = function(subject, topic, data) {
+  if (topic == "install-userscript") {
+    if (window == this.winWat.activeWindow) {
+      new ScriptDownloader().installFromURL(
+        this.tabBrowser.selectedBrowser.contentWindow.location.href);
+    }
+  } else {
+    throw new Error("Unexpected topic received: {" + topic + "}");
   }
 }
 
@@ -306,61 +355,51 @@ GM_BrowserUI.isMyWindow = function(domWindow) {
 function GM_showPopup(aEvent) {
 	var config = new Config(getScriptFile("config.xml"));
 	config.load();
-	var popup=aEvent.target, separator=null;
-	var url=getBrowser().contentWindow.document.location.href;
+	var popup = aEvent.target;
+	var url = getBrowser().contentWindow.document.location.href;
 
   // set the enabled/disabled state
   GM_BrowserUI.statusEnabledItem.setAttribute("checked", GM_getEnabled());
 
 	// remove all the scripts from the list
-	while (true) {
-		el=popup.childNodes[0];
-		if ('menuseparator'==el.tagName) {
-			separator=el;
-			break;
-		}
-		el.parentNode.removeChild(el);
+  for (var i = popup.childNodes.length - 1; i >= 0; i--) {
+    if (popup.childNodes[i].hasAttribute("value")) {
+      popup.removeChild(popup.childNodes[i]);
+    }
 	}
 
+  var foundScript = false;
+
 	// build the new list of scripts
-	for (var i=0, script=null; script=config.scripts[i]; i++) {
-		var status=script.enabled?'enabled':'disabled';
-		if ('enabled'==status) {
-			//this whole loop could really stand to be cleaner
-			//and/or modularized with the place it was copied from
-			incloop: for (var j = 0; j < script.includes.length; j++) {
-				var pattern = convert2RegExp(script.includes[j]);
-				if (pattern.test(url)) {
-					for (var k = 0; k < script.excludes.length; k++) {
-						pattern = convert2RegExp(script.excludes[k]);
-						if (pattern.test(url)) {
-							break incloop;
-						}
-					}
-					status='injected';
-					break incloop;
-				}
-			}
-		}
-		var mi=document.createElement('menuitem');
-		mi.setAttribute('label', script.name);
-		mi.setAttribute('value', i);
-		mi.setAttribute('type', 'checkbox');
-		mi.setAttribute('checked', script.enabled?'true':'false');
-		if ('injected'==status) mi.style.fontWeight='bold';
-		popup.insertBefore(mi, separator);
+	for (var i = 0, script = null; script = config.scripts[i]; i++) {
+    incloop: for (var j = 0; j < script.includes.length; j++) {
+      var pattern = convert2RegExp(script.includes[j]);
+      if (pattern.test(url)) {
+        for (var k = 0; k < script.excludes.length; k++) {
+          pattern = convert2RegExp(script.excludes[k]);
+          if (pattern.test(url)) {
+            break incloop;
+          }
+        }
+
+        foundInjectedScript = true;
+
+        var mi = document.createElement('menuitem');
+        mi.setAttribute('label', script.name);
+        mi.setAttribute('value', i);
+        mi.setAttribute('type', 'checkbox');
+        mi.setAttribute('checked', script.enabled.toString());
+
+        popup.insertBefore(mi, document.getElementById("gm-status-no-scripts-sep"));
+
+        break incloop;
+      }
+    }
 	}
-	if (0==i) {
-		//there were no scripts!
-		var mi=document.createElement('menuitem');
-		mi.setAttribute('label', 'No scripts installed!');
-		mi.setAttribute('value', -1);
-		mi.setAttribute('type', 'checkbox');
-		mi.setAttribute('checked', 'false');
-		mi.style.color='grey';
-		popup.insertBefore(mi, separator);
-	}
+
+  document.getElementById("gm-status-no-scripts").collapsed = foundInjectedScript;
 }
+
 function GM_popupClicked(aEvent) {
 	var config = new Config(getScriptFile("config.xml"));
 	config.load();
@@ -451,6 +490,15 @@ GM_BrowserUI.hideStatusAnimationEnd = function() {
   this.hideAnimation = null;
   this.statusLabel.collapsed = true;
 }
+
+GM_BrowserUI.greetz = [
+  "Huzzah!",
+  "Toodles...",
+  "Howdy!",
+  "Sup...",
+  "Greetings, fellow traveler.",
+  "G'Day!"
+  ];
 
 // necessary for webProgressListener implementation
 GM_BrowserUI.onProgressChange = function(webProgress,b,c,d,e,f){}

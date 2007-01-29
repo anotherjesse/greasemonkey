@@ -27,12 +27,20 @@
                change for the Seamonkey copy below -->
     <menupopup id="menu_ToolsPopup">
         <menuseparator id="userscript-tools-sep" insertafter="menu_preferences" />
+        <menuitem accesskey="U" label="Manage User Scripts..." oncommand="manageMenuItemClicked(event)"/>
         <menuitem id="userscript-tools-new" accesskey="N" label="New User Script" oncommand="GM_BrowserUI.newUserScript()"/>
         <menuitem id="userscript-tools-install" accesskey="S" label="Install This User Script..." oncommand="installMenuItemClicked(event)"/>
+        <menuseparator />
+        <menu id="userscript-commands-sb" accesskey="r" 
+          label="User Script Commands" disabled="false" 
+          onpopupshowing='event.preventBubble()'>
+          <menupopup/>
+        </menu>
     </menupopup>
 
     <!-- Seamonkey ID is a bit different. Keep this the same as above -->
     <menupopup id="taskPopup">
+        <menuitem accesskey="U" label="Manage User Scripts..." oncommand="manageMenuItemClicked(event)"/>
         <menuseparator id="userscript-tools-sep" insertafter="menu_preferences" />
         <menuitem id="userscript-tools-new" accesskey="N" label="New User Script" oncommand="GM_BrowserUI.newUserScript()"/>
         <menuitem id="userscript-tools-install" accesskey="S" label="Install This User Script..." oncommand="installMenuItemClicked(event)"/>
@@ -41,19 +49,16 @@
     <statusbar id="status-bar">
         <statusbarpanel id="gm-status" insertafter="livemark-button">
             <label id="gm-status-label" collapsed="true" crop="end" style="width:0px" />
-            <image id="gm-status-image" width="16" height="16" popup='gm-status-popup'/>
-            <popup id='gm-status-popup' position='before_end' 
+            <image id="gm-status-image" width="16" height="16" onclick="if (!event.button) GM_setEnabled(!GM_getEnabled())"  context='gm-status-popup'/>
+            <popup id='gm-status-popup' position='before_end'
               onpopupshowing='GM_showPopup(event); event.preventBubble();'
               oncommand='GM_popupClicked(event); event.preventBubble();'>
-              <menuseparator />
-              <menu id="userscript-commands-sb" accesskey="r" 
-                label="User Script Commands" disabled="false" 
-                onpopupshowing='event.preventBubble()'>
-                <menupopup/>
-              </menu>
-              <menuseparator/>
               <menuitem accesskey="U" label="Manage User Scripts..." 
                 oncommand="manageMenuItemClicked(event)"/>
+              <menuseparator/>
+              <menuitem id="gm-status-no-scripts" label="No scripts installed!" 
+                style="color:grey"/>
+              <menuseparator id="gm-status-no-scripts-sep"/>
               <menuitem id="gm-status-enabled-item" accesskey="E" label="Enabled" 
                 type="checkbox" oncommand="GM_setEnabled(!GM_getEnabled())"/>
             </popup>

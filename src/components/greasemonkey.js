@@ -159,9 +159,6 @@ var greasemonkeyService = {
       storage = new GM_ScriptStorage(script);
       xmlhttpRequester = new GM_xmlhttpRequester(unsafeContentWin, appSvc.hiddenDOMWindow);
 
-      //TODO(aa): pending https://bugzilla.mozilla.org/show_bug.cgi?id=307005
-      //sandbox.__proto__ = new XPCNativeWrapper(unsafeContentWin);
-
       if (GM_deepWrappersEnabled(unsafeContentWin)) {
         sandbox.window = new XPCNativeWrapper(unsafeContentWin);
         sandbox.document = sandbox.window.document;
@@ -184,7 +181,7 @@ var greasemonkeyService = {
                                                 "registerMenuCommand", 
                                                 unsafeContentWin);
 
-      sandbox.__proto__ = unsafeContentWin;
+      sandbox.__proto__ = sandbox.window;
 
       try {
         this.evalInSandbox("(function(){\n" +

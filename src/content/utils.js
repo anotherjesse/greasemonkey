@@ -179,7 +179,7 @@ function getWriteStream(file) {
   var stream = Components.classes["@mozilla.org/network/file-output-stream;1"]
     .createInstance(Components.interfaces.nsIFileOutputStream);
 
-  stream.init(file, 0x02 | 0x08 | 0x20, 420, 0);
+  stream.init(file, 0x02 | 0x08 | 0x20, 420, -1);
 
   return stream;
 }
@@ -221,32 +221,20 @@ function getOldScriptDir() {
 }
 
 function getContentDir() {
-  var file = Components.classes["@mozilla.org/file/directory_service;1"]
-        .getService(Components.interfaces.nsIProperties)
-        .get("ProfD", Components.interfaces.nsILocalFile);
+  var reg = Components.classes["@mozilla.org/chrome/chrome-registry;1"]
+                      .getService(Components.interfaces.nsIChromeRegistry);
 
-  // Seamonkey case
-  file.append("chrome");
-  file.append("greasemonkey");
-  file.append("content");
+  var ioSvc = Components.classes["@mozilla.org/network/io-service;1"]
+                        .getService(Components.interfaces.nsIIOService);
 
-  if( file.exists() ) {
-    return file;
-  } else {
-    // Firefox case
-    file = Components.classes["@mozilla.org/file/directory_service;1"]
-          .getService(Components.interfaces.nsIProperties)
-          .get("ProfD", Components.interfaces.nsILocalFile);
+  var proto = Components.classes["@mozilla.org/network/protocol;1?name=file"]
+                        .getService(Components.interfaces.nsIFileProtocolHandler);
 
-    file.append("extensions");
-    file.append(GUID);
-    file.append("chrome");
-    file.append("greasemonkey");
-    file.append("content");
+  var chromeURL = ioSvc.newURI("chrome://greasemonkey/content", null, null);
+  var fileURL = reg.convertChromeURL(chromeURL);
+  var file = proto.getFileFromURLSpec(fileURL.spec).parent;
 
-    return file
-  }
-
+  return file
 }
 
 /**
@@ -254,7 +242,8 @@ function getContentDir() {
  * in FF 1.0.1. :(
  */
 function gmPrompt(msg, defVal, title) {
-  var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]       .getService(Components.interfaces.nsIPromptService);
+  var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]       
+                                .getService(Components.interfaces.nsIPromptService);
   var result = {value:defVal};
   
   if (promptService.prompt(null, title, msg, result, null, {value:0})) {
