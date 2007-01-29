@@ -122,7 +122,6 @@ var greasemonkeyService = {
       } catch(e) {
         // For some requests, not only is there no name, retrieving it throws
         // an error. Just ignore those.
-        GM_logError(e);
         return;
       }
 
