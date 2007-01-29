@@ -1,42 +1,11 @@
-/*
-=== START LICENSE ===
 
-Copyright 2004-2005 Aaron Boodman
-
-Contributors:
-Jeremy Dunck, Nikolas Coukouma, Matthew Gray.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy 
-of this software and associated documentation files (the "Software"), to deal 
-in the Software without restriction, including without limitation the rights 
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
-copies of the Software, and to permit persons to whom the Software is 
-furnished to do so, subject to the following conditions:
-
-Note that this license applies only to the Greasemonkey extension source 
-files, not to the user scripts which it runs. User scripts are licensed 
-separately by their authors.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
-SOFTWARE.
-
-=== END LICENSE ===
-
-The above copyright notice and this permission notice shall be included in all 
-copies or substantial portions of the Software.
-*/
 
 /**
  * Checks whether the version has changed since the last run and performs 
  * any necessary upgrades.
  */
 function GM_updateVersion() {
-  GM_log("> GM_updateVersion");
+  log("> GM_updateVersion");
 
   // this is the last version which has been run at least once
   var initialized = GM_prefRoot.getValue("version", "0.0");
@@ -50,82 +19,43 @@ function GM_updateVersion() {
   }
 
   // update the currently initialized version so we don't do this work again.
-  GM_prefRoot.setValue("version", "0.5.4");
+  GM_prefRoot.setValue("version", "0.6.4");
 
-  GM_log("< GM_updateVersion");
+  log("< GM_updateVersion");
 }
 
 /**
  * Copies the entire scripts directory to the new location, if it exists.
  */
 function GM_pointFourMigrate() {
-  GM_log("> GM_pointFourMigrate");
+  log("> GM_pointFourMigrate");
 
-  try {
-    // the following code was copied directly from the old getContentDir() and
-    // getScriptsDir() functions
-    var profDir = Components.classes["@mozilla.org/file/directory_service;1"]
-                            .getService(Components.interfaces.nsIProperties)
-                            .get("ProfD", Components.interfaces.nsILocalFile);
+  var oldDir = getOldScriptDir();
+  var newDir = getNewScriptDir();
 
-    var contentDir = getContentDir();
-    var newScriptsDir = getScriptDir();
-    var newConfigFile = getScriptFile("config.xml");
-
-    var oldScriptsDir = contentDir.clone();
-    oldScriptsDir.append("scripts");
-    var oldConfigFile = oldScriptsDir.clone();
-    oldConfigFile.append("config.xml");
+  if (!oldDir.exists() && !newDir.exists()) {
+    newDir.create(Components.interfaces.nsIFile.DIRECTORY_TYPE, 0755);
 
     var defaultConfigFile = getContentDir();
     defaultConfigFile.append("default-config.xml");
-
-    GM_log("old scripts dir exists: " + oldScriptsDir.exists());
-    GM_log("old config file exists: " + oldConfigFile.exists());
-    GM_log("new scripts dir exists: " + newScriptsDir.exists());
-
-    if (oldScriptsDir.exists() && oldConfigFile.exists()) {
-      if (!newScriptsDir.exists()) {
-        oldScriptsDir.copyTo(newScriptsDir.parent, newScriptsDir.leafName);
-
-        try {
-          //oldScriptsDir.remove(true);
-        } catch (e) {
-          // pffft.... :-)
-          // stupid permissions can bite me
-        }
-      }
-    } else {
-      if (!newScriptsDir.exists()) {
-        newScriptsDir.create(Components.interfaces.nsIFile.DIRECTORY_TYPE,
-                             0755);
-      }
-    
-      GM_log("new config file exists: " + newConfigFile.exists());
-
-      if (!newConfigFile.exists()) {
-        defaultConfigFile.copyTo(newConfigFile.parent, newConfigFile.leafName);
-        defaultConfigFile.permissions = 0644;
-      }
-    }
-  } catch (e) {
-    alert("Could not complete Greasemonkey 0.4 migration. Error:\n\n" + e);
-    throw e;
-  } finally {
-    GM_log("< GM_pointFourMigrate");
+  
+    defaultConfigFile.copyTo(newDir, "config.xml");
+    defaultConfigFile.permissions = 0644;
   }
+
+  log("< GM_pointFourMigrate");
 }
 
 /**
  * Migrates the configuration directory from the old format to the new one
  */
 function GM_pointThreeMigrate() {
-  GM_log("> GM_pointThreeMigrate");
+  log("> GM_pointThreeMigrate");
 
   // check to see whether there's any config to migrate
   var configExists = GM_getPointThreeScriptFile("config.xml").exists();
 
-  GM_log("config file exists: " + configExists);
+  log("config file exists: " + configExists);
   if (!configExists) {
     return;
   }
@@ -136,8 +66,8 @@ function GM_pointThreeMigrate() {
     var scriptDir = GM_getPointThreeScriptDir();
     var tempDir = getTempFile();
 
-    GM_log("script dir: " + scriptDir.path);
-    GM_log("temp dir: " + tempDir.path);
+    log("script dir: " + scriptDir.path);
+    log("temp dir: " + tempDir.path);
 
     scriptDir.copyTo(tempDir.parent, tempDir.leafName);
   
@@ -155,7 +85,7 @@ function GM_pointThreeMigrate() {
     doc.async = false;
     doc.load(configURI.spec);
   
-    GM_log("loaded existing config...");
+    log("loaded existing config...");
 
     var nodes = document.evaluate("/UserScriptConfig/Script", doc, null,
         XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -172,29 +102,29 @@ function GM_pointThreeMigrate() {
     new XMLSerializer().serializeToStream(doc, configStream, "utf-8");
     configStream.close();
 
-    GM_log("config saved.")
+    log("config saved.")
   
     // now, load config normally and reinitialize all scripts's filenames
     var config = new Config(GM_getPointThreeScriptFile("config.xml"));
     config.load();
   
-    GM_log("config reloaded, moving files.");
+    log("config reloaded, moving files.");
 
     for (var i = 0; (script = config.scripts[i]); i++) {  
       if (script.filename.match(/^\d+$/)) {
         scriptFile = GM_getPointThreeScriptFile(script.filename);
         config.initFilename(script);
-        GM_log("renaming script " + scriptFile.leafName + " to " + script.filename);
+        log("renaming script " + scriptFile.leafName + " to " + script.filename);
         scriptFile.moveTo(scriptFile.parent, script.filename);
       }
     }
   
-    GM_log("moving complete. saving configuration.")
+    log("moving complete. saving configuration.")
   
     // save the config file
     config.save();
   
-    GM_log("0.3 migration completed successfully!")
+    log("0.3 migration completed successfully!")
   } catch (e) {
     alert("Could not complete Greasemonkey 0.3 migration. Some changes may " + 
           "have been made to your scripts directory. See JS Console for " + 
@@ -202,7 +132,7 @@ function GM_pointThreeMigrate() {
           tempDir.path);
     throw e;
   } finally {
-    GM_log("< GM_pointThreeMigrate");
+    log("< GM_pointThreeMigrate");
   }
 }
 

@@ -1,35 +1,4 @@
-/*
-=== START LICENSE ===
 
-Copyright 2004-2005 Aaron Boodman
-
-Contributors:
-Jeremy Dunck, Nikolas Coukouma, Matthew Gray.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy 
-of this software and associated documentation files (the "Software"), to deal 
-in the Software without restriction, including without limitation the rights 
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
-copies of the Software, and to permit persons to whom the Software is 
-furnished to do so, subject to the following conditions:
-
-Note that this license applies only to the Greasemonkey extension source 
-files, not to the user scripts which it runs. User scripts are licensed 
-separately by their authors.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
-SOFTWARE.
-
-=== END LICENSE ===
-
-The above copyright notice and this permission notice shall be included in all 
-copies or substantial portions of the Software.
-*/
 
 // TODO: properly scope this nastiness
 const GUID = "{e4a8a97b-f2ed-450b-b12d-ee082ba24781}";
@@ -47,17 +16,22 @@ function GM_hitch(obj, meth) {
     throw "method '" + meth + "' does not exist on object '" + obj + "'";
   }
   
-  if (arguments.length > 2) {
-    var hitchArgs = [];
+  var staticArgs = Array.prototype.splice.call(arguments, 2, arguments.length);
 
-    for (var i = 2; i < arguments.length; i++) {
-      hitchArgs.push(arguments[i]);
+  return function() { 
+    // make a copy of staticArgs (don't modify it because it gets reused for
+    // every invocation).
+    var args = staticArgs.concat();
+
+    // add all the new arguments
+    for (var i = 0; i < arguments.length; i++) {
+      args.push(arguments[i]);
     }
 
-    return function() { return obj[meth].apply(obj, hitchArgs); };
-  } else {
-    return function() { return obj[meth].apply(obj, arguments); };
-  }
+    // invoke the original function with the correct this obj and the combined
+    // list of static and dynamic arguments.
+    return obj[meth].apply(obj, args);
+  };
 }
 
 function GM_listen(source, event, listener, opt_capture) {
@@ -73,23 +47,17 @@ function GM_unlisten(source, event, listener, opt_capture) {
 /**
  * Utility to create an error message in the log without throwing an error.
  */
-function GM_logError(e, force) {
-  GM_log("> GM_DocHandler.reportError");
+function GM_logError(e) {
+  var consoleService = Components.classes['@mozilla.org/consoleservice;1']
+    .getService(Components.interfaces.nsIConsoleService);
 
-  if (force || GM_prefRoot.getValue("logChrome", false)) {
-    var consoleService = Components.classes['@mozilla.org/consoleservice;1']
-      .getService(Components.interfaces.nsIConsoleService);
+  var consoleError = Components.classes['@mozilla.org/scripterror;1']
+    .createInstance(Components.interfaces.nsIScriptError);
 
-    var consoleError = Components.classes['@mozilla.org/scripterror;1']
-      .createInstance(Components.interfaces.nsIScriptError);
+  consoleError.init(e.message, e.fileName, e.lineNumber, e.lineNumber,
+                    e.columnNumber, 0, null);
 
-    consoleError.init(e.message, e.fileName, e.lineNumber, e.lineNumber,
-                      e.columnNumber, 0, null);
-
-    consoleService.logMessage(consoleError);
-  }
-
-  GM_log("< GM_DocHandler.reportError");
+  consoleService.logMessage(consoleError);
 }
 
 function GM_log(message, force) {
@@ -193,7 +161,7 @@ function getContents(aURL, charset){
     .createInstance(Components.interfaces.nsIScriptableUnicodeConverter);
   unicodeConverter.charset = charset;
 
-  var channel=ioService.newChannel(aURL,null,null);
+  var channel=ioService.newChannelFromURI(aURL);
   var input=channel.open();
   scriptableStream.init(input);
   var str=scriptableStream.read(input.available());
@@ -211,7 +179,7 @@ function getWriteStream(file) {
   var stream = Components.classes["@mozilla.org/network/file-output-stream;1"]
     .createInstance(Components.interfaces.nsIFileOutputStream);
 
-  stream.init(file, 0x02 | 0x08 | 0x20, 420, 0);
+  stream.init(file, 0x02 | 0x08 | 0x20, 420, -1);
 
   return stream;
 }
@@ -229,6 +197,16 @@ function getScriptFile(fileName) {
 }
 
 function getScriptDir() {
+  var dir = getNewScriptDir();
+
+  if (dir.exists()) {
+    return dir;
+  } else {
+    return getOldScriptDir();
+  }
+}
+
+function getNewScriptDir() {
   var file = Components.classes["@mozilla.org/file/directory_service;1"]
                        .getService(Components.interfaces.nsIProperties)
                        .get("ProfD", Components.interfaces.nsILocalFile);
@@ -236,33 +214,27 @@ function getScriptDir() {
   return file;
 }
 
+function getOldScriptDir() {
+  var file = getContentDir();
+  file.append("scripts");
+  return file;
+}
+
 function getContentDir() {
-  var file = Components.classes["@mozilla.org/file/directory_service;1"]
-        .getService(Components.interfaces.nsIProperties)
-        .get("ProfD", Components.interfaces.nsILocalFile);
+  var reg = Components.classes["@mozilla.org/chrome/chrome-registry;1"]
+                      .getService(Components.interfaces.nsIChromeRegistry);
 
-  // Seamonkey case
-  file.append("chrome");
-  file.append("greasemonkey");
-  file.append("content");
+  var ioSvc = Components.classes["@mozilla.org/network/io-service;1"]
+                        .getService(Components.interfaces.nsIIOService);
 
-  if( file.exists() ) {
-    return file;
-  } else {
-    // Firefox case
-    file = Components.classes["@mozilla.org/file/directory_service;1"]
-          .getService(Components.interfaces.nsIProperties)
-          .get("ProfD", Components.interfaces.nsILocalFile);
+  var proto = Components.classes["@mozilla.org/network/protocol;1?name=file"]
+                        .getService(Components.interfaces.nsIFileProtocolHandler);
 
-    file.append("extensions");
-    file.append(GUID);
-    file.append("chrome");
-    file.append("greasemonkey");
-    file.append("content");
+  var chromeURL = ioSvc.newURI("chrome://greasemonkey/content", null, null);
+  var fileURL = reg.convertChromeURL(chromeURL);
+  var file = proto.getFileFromURLSpec(fileURL.spec).parent;
 
-    return file
-  }
-
+  return file
 }
 
 /**
@@ -270,7 +242,8 @@ function getContentDir() {
  * in FF 1.0.1. :(
  */
 function gmPrompt(msg, defVal, title) {
-  var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]       .getService(Components.interfaces.nsIPromptService);
+  var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]       
+                                .getService(Components.interfaces.nsIPromptService);
   var result = {value:defVal};
   
   if (promptService.prompt(null, title, msg, result, null, {value:0})) {
@@ -310,10 +283,10 @@ function delayalert(s) {
     setTimeout(function() {alert(s);}, 1000);
 }
 
-function GM_deepWrappersEnabled() {
+function GM_deepWrappersEnabled(someXPCObject) {
   // the old school javacript wrappers had this property containing their
   // untrusted variable. the new ones don't.
-  return !(new XPCNativeWrapper(window).mUntrustedObject);
+  return !(new XPCNativeWrapper(someXPCObject).mUntrustedObject);
 }
 
 function GM_isGreasemonkeyable(url) {
@@ -321,7 +294,8 @@ function GM_isGreasemonkeyable(url) {
                .getService(Components.interfaces.nsIIOService)
                .extractScheme(url);
 
-  return scheme == "http" || scheme == "https" || scheme == "file";
+  return (scheme == "http" || scheme == "https" || scheme == "file") &&
+         !/hiddenWindow\.html$/.test(url);
 }
 
 function GM_isFileScheme(url) {
@@ -330,4 +304,66 @@ function GM_isFileScheme(url) {
                .extractScheme(url);
 
   return scheme == "file";
+}
+
+function GM_getEnabled() {
+  return GM_prefRoot.getValue("enabled", true);
+}
+
+function GM_setEnabled(enabled) {
+  GM_prefRoot.setValue("enabled", enabled);
+}
+
+
+/**
+ * Logs a message to the console. The message can have python style %s 
+ * thingers which will be interpolated with additional parameters passed.
+ */
+function log(message) {
+  if (GM_prefRoot.getValue("logChrome", false)) {
+    logf.apply(null, arguments);
+  }
+}
+
+function logf(message) {
+  for (var i = 1; i < arguments.length; i++) {
+    message = message.replace(/\%s/, arguments[i]);
+  }
+
+  dump(message + "\n");
+}
+
+/**
+ * Loggifies an object. Every method of the object will have it's entrance, 
+ * any parameters, any errors, and it's exit logged automatically.
+ */
+function loggify(obj, name) {
+  for (var p in obj) {
+    if (typeof obj[p] == "function") {
+      obj[p] = gen_loggify_wrapper(obj[p], name, p);
+    }
+  }
+}
+
+function gen_loggify_wrapper(meth, objName, methName) {
+return function() {
+     var retVal;
+    //var args = new Array(arguments.length);
+    var argString = "";
+    for (var i = 0; i < arguments.length; i++) {
+      //args[i] = arguments[i];
+      argString += arguments[i] + (((i+1)<arguments.length)? ", " : "");
+    }
+    
+    log("> %s.%s(%s)", objName, methName, argString);//args.join(", "));
+    
+    try {
+      return retVal = meth.apply(this, arguments);
+    } finally {
+      log("< %s.%s: %s", 
+          objName, 
+          methName, 
+          (typeof retVal == "undefined" ? "void" : retVal));
+    }
+  }
 }
