@@ -151,24 +151,18 @@ var greasemonkeyService = {
     var logger;
     var storage;
     var xmlhttpRequester;
+    var safeWin = new XPCNativeWrapper(unsafeContentWin);
 
     for (var i = 0; script = scripts[i]; i++) {
-      sandbox = this.getSandbox(url);
+      sandbox = new Components.utils.Sandbox(safeWin);
 
       logger = new GM_ScriptLogger(script);
       storage = new GM_ScriptStorage(script);
-      xmlhttpRequester = new GM_xmlhttpRequester(unsafeContentWin, appSvc.hiddenDOMWindow);
+      xmlhttpRequester = new GM_xmlhttpRequester(unsafeContentWin, 
+                                                 appSvc.hiddenDOMWindow);
 
-      if (GM_deepWrappersEnabled(unsafeContentWin)) {
-        sandbox.window = new XPCNativeWrapper(unsafeContentWin);
-        sandbox.document = sandbox.window.document;
-      } else {
-        sandbox.window = unsafeContentWin;
-        sandbox.document = new XPCNativeWrapper(unsafeContentWin, 
-                                                "document").document;
-      }
-
-      // provide a way for scripts to get to the real js window object
+      sandbox.window = safeWin;
+      sandbox.document = sandbox.window.document;
       sandbox.unsafeWindow = unsafeContentWin;
 
       // patch missing properties on xpcnw
@@ -222,21 +216,6 @@ var greasemonkeyService = {
 
     for (var i = 0; i < this.browserWindows.length; i++) {
       this.browserWindows[i].openInTab(unsafeTop, url);
-    }
-  },
-
-  getSandbox: function(codebase) {
-    // DP beta+
-    if (Components.utils && Components.utils.Sandbox) {
-      return new Components.utils.Sandbox(codebase);
-    // DP alphas
-    } else if (Components.utils && Components.utils.evalInSandbox) {
-      return Components.utils.evalInSandbox("", codebase);
-    // 1.0.x
-    } else if (Sandbox) {
-      return new Sandbox();
-    } else {
-      throw new Error("Could not create sandbox.");
     }
   },
 
