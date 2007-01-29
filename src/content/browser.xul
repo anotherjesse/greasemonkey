@@ -61,10 +61,6 @@ copies or substantial portions of the Software.
         <menuseparator id="userscript-tools-sep" insertafter="menu_preferences" />
         <menuitem id="userscript-tools-new" accesskey="N" label="New User Script" oncommand="GM_BrowserUI.newUserScript()"/>
         <menuitem id="userscript-tools-install" accesskey="S" label="Install This User Script..." oncommand="installMenuItemClicked(event)"/>
-        <menuitem id="userscript-tools-manage" accesskey="U" label="Manage User Scripts..." oncommand="manageMenuItemClicked(event)"/>
-        <menu id="userscript-commands" accesskey="r" label="User Script Commands" disabled="true">
-          <menupopup/>
-        </menu>
     </menupopup>
 
     <!-- Seamonkey ID is a bit different. Keep this the same as above -->
@@ -72,10 +68,6 @@ copies or substantial portions of the Software.
         <menuseparator id="userscript-tools-sep" insertafter="menu_preferences" />
         <menuitem id="userscript-tools-new" accesskey="N" label="New User Script" oncommand="GM_BrowserUI.newUserScript()"/>
         <menuitem id="userscript-tools-install" accesskey="S" label="Install This User Script..." oncommand="installMenuItemClicked(event)"/>
-        <menuitem id="userscript-tools-manage" accesskey="U" label="Manage User Scripts..." oncommand="manageMenuItemClicked(event)"/>
-        <menu id="userscript-commands" accesskey="r" label="User Script Commands" disabled="true">
-          <menupopup/>
-        </menu>
     </menupopup>
 
     <statusbar id="status-bar">
@@ -87,16 +79,16 @@ copies or substantial portions of the Software.
               onpopupshowing='GM_showPopup(event); event.preventBubble();'
               oncommand='GM_popupClicked(event); event.preventBubble();'>
               <menuseparator />
+              <menu id="userscript-commands-sb" accesskey="r" 
+                label="User Script Commands" disabled="false"
+                onpopupshowing='event.preventBubble()'>
+                <menupopup/>
+              </menu>
+              <menuseparator/>
               <menuitem accesskey="U" label="Manage User Scripts..." 
                 oncommand="manageMenuItemClicked(event)"/>
               <menuitem id="gm-status-enabled-item" accesskey="E" label="Enabled" 
                 type="checkbox" oncommand="GM_setEnabled(!GM_getEnabled())"/>
-              <!-- this does not work yet ...
-              <menu id="userscript-commands-sb" accesskey="r" 
-                label="User Script Commands" disabled="true">
-                <menupopup/>
-              </menu>
-              -->
             </popup>
          </statusbarpanel>
     </statusbar>
