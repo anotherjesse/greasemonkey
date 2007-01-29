@@ -4,7 +4,7 @@
 Copyright 2004-2005 Aaron Boodman
 
 Contributors:
-Jeremy Dunck, Nikolas Coukouma, Matthew Gray.
+Jeremy Dunck, Nikolas Coukouma, Matthew Gray, Mark Pilgrim.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy 
 of this software and associated documentation files (the "Software"), to deal 
@@ -60,4 +60,18 @@ function GM_ScriptLogger(script) {
 
 GM_ScriptLogger.prototype.log = function(message) {
   GM_log(this.prefix + message, true);
+}
+
+
+// Based on Mark Pilgrim's GM_addGlobalStyle from 
+// http://diveintogreasemonkey.org/patterns/add-css.html. Used by permission
+// under GPL: http://diveintogreasemonkey.org/license/gpl.html
+function GM_addStyle(doc, css) {
+  var head, style;
+  head = doc.getElementsByTagName('head')[0];
+  if (!head) { return; }
+  style = doc.createElement('style');
+  style.type = 'text/css';
+  style.innerHTML = css;
+  head.appendChild(style);
 }

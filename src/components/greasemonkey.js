@@ -173,6 +173,7 @@ var greasemonkeyService = {
 
       sandbox.unsafeWindow = unsafeContentWin;
 
+      sandbox.GM_addStyle = function(css) { GM_addStyle(sandbox.document, css) };
       sandbox.GM_log = GM_hitch(logger, "log");
       sandbox.GM_setValue = GM_hitch(storage, "setValue");
       sandbox.GM_getValue = GM_hitch(storage, "getValue");

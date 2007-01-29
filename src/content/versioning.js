@@ -50,7 +50,7 @@ function GM_updateVersion() {
   }
 
   // update the currently initialized version so we don't do this work again.
-  GM_prefRoot.setValue("version", "0.6.1.2");
+  GM_prefRoot.setValue("version", "0.6.1.3");
 
   log("< GM_updateVersion");
 }

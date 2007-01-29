@@ -88,7 +88,6 @@ GM_BrowserUI.chromeLoad = function(e) {
   GM_prefRoot.watch("enabled", this.enabledWatcher);
 
   // hook various events
-  GM_listen(this.statusImage, "mousedown", GM_hitch(this, "monkeyClicked"));
   GM_listen(this.appContent, "DOMContentLoaded", GM_hitch(this, "contentLoad"));
   GM_listen(this.contextMenu, "popupshowing", GM_hitch(this, "contextMenuShowing"));
   GM_listen(this.toolsMenu, "popupshowing", GM_hitch(this, "toolsMenuShowing"));	
@@ -332,10 +331,10 @@ GM_BrowserUI.isMyWindow = function(domWindow) {
 /**
  * The Greasemonkey status icon has been clicked.
  */
-GM_BrowserUI.monkeyClicked = function() {
+GM_BrowserUI.monkeyClicked = function(aEvent) {
   //this may not work well with a mac using
   //'command click' for the context
-  if (1==aEvent.which) this.setEnabled(!this.getEnabled());
+  if (1==aEvent.which) GM_setEnabled(!GM_getEnabled());
 }
 
 function GM_showPopup(aEvent) {
@@ -509,15 +508,8 @@ function installMenuItemClicked() {
   var sd = new ScriptDownloader();
   var unsafeDoc = new XPCNativeWrapper(window._content, "document").document;
   var unsafeLoc = new XPCNativeWrapper(window._content, "location").location;
-  var unsafePre = new XPCNativeWrapper(unsafeDoc, "getElementsByTagName()")
-                      .getElementsByTagName("PRE")[0];
 
-  new XPCNativeWrapper(unsafePre, "normalize()").normalize();
-
-  var unsafeTextNode = new XPCNativeWrapper(unsafePre, "firstChild").firstChild;
-
-  sd.installFromSource(new XPCNativeWrapper(unsafeTextNode, "nodeValue").nodeValue,
-                       new XPCNativeWrapper(unsafeLoc, "href").href);
+  sd.installFromURL(new XPCNativeWrapper(unsafeLoc, "href").href);
 }
 
 function installContextItemClicked() {
