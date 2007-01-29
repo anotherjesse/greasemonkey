@@ -187,7 +187,9 @@ var greasemonkeyService = {
       sandbox.__proto__ = unsafeContentWin;
 
       try {
-        this.evalInSandbox(getContents(getScriptFileURI(script.filename).spec), 
+        this.evalInSandbox("(function(){\n" +
+                           getContents(getScriptFileURI(script.filename).spec) +
+                           "\n})()",
                            url, 
                            sandbox);
       } catch (e) {
