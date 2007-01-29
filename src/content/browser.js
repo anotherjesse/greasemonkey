@@ -393,10 +393,11 @@ function manageMenuItemClicked() {
 function installMenuItemClicked() {
   var sd = new ScriptDownloader();
   var unsafeDoc = new XPCNativeWrapper(window._content, "document").document;
-  var unsafeBody = new XPCNativeWrapper(unsafeDoc, "body").body;
   var unsafeLoc = new XPCNativeWrapper(window._content, "location").location;
+  var unsafePre = new XPCNativeWrapper(unsafeDoc, "getElementsByTagName()")
+                      .getElementsByTagName("PRE")[0];
 
-  sd.installFromSource(new XPCNativeWrapper(unsafeBody, "textContent").textContent,
+  sd.installFromSource(new XPCNativeWrapper(unsafePre, "innerHTML").innerHTML,
                        new XPCNativeWrapper(unsafeLoc, "href").href);
 }
 
