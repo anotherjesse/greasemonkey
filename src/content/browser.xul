@@ -48,6 +48,7 @@ copies or substantial portions of the Software.
     <script type="application/x-javascript" src="chrome://greasemonkey/content/scriptdownloader.js" />
     <script type="application/x-javascript" src="chrome://greasemonkey/content/config.js" />
     <script type="application/x-javascript" src="chrome://greasemonkey/content/browser.js" />
+    <script type="application/x-javascript" src="chrome://greasemonkey/content/accelimation.js" />
 
     <popup id="contentAreaContextMenu">
         <menuitem id="install-userscript" label="Install User Script..."  accesskey="S" insertbefore="context-openlink" oncommand="installContextItemClicked(event)"/>
@@ -79,6 +80,7 @@ copies or substantial portions of the Software.
 
     <statusbar id="status-bar">
         <statusbarpanel id="gm-status" insertafter="livemark-button">
+            <label id="gm-status-label" collapsed="true" crop="end" style="width:0px" />
             <image id="gm-status-image" width="16" height="16"/>
         </statusbarpanel>
     </statusbar>

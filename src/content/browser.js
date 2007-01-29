@@ -75,6 +75,7 @@ GM_BrowserUI.chromeLoad = function(e) {
   this.appContent = document.getElementById("appcontent");
   this.contextMenu = document.getElementById("contentAreaContextMenu"); 
   this.statusImage = document.getElementById("gm-status-image");
+  this.statusLabel = document.getElementById("gm-status-label");
   this.toolsMenu = document.getElementById("menu_ToolsPopup");
 
   // seamonkey compat
@@ -323,6 +324,52 @@ GM_BrowserUI.newUserScript = function() {
   openInEditor(destFile);
 }
 
+GM_BrowserUI.showStatus = function(message, autoHide) {
+  if (this.statusLabel.collapsed) {
+    this.statusLabel.collapsed = false;
+  }
+
+  var current = parseInt(this.statusLabel.style.width);
+  this.statusLabel.value = message;
+  this.statusLabel.style.width = "";
+  var max = this.statusLabel.boxObject.width;
+
+  this.statusLabel.style.width = current + "px";
+  
+  this.showAnimation = new Accelimation(this.statusLabel.style, 
+                                          "width", max, 300, 2, "px");
+  this.showAnimation.onend = GM_hitch(this, "showStatusAnimationEnd", autoHide);
+  this.showAnimation.start();
+}
+
+GM_BrowserUI.showStatusAnimationEnd = function(autoHide) {
+  this.showAnimation = null;
+  this.setAutoHideTimer();
+}
+
+GM_BrowserUI.setAutoHideTimer = function() {
+  if (this.autoHideTimer) {
+    window.clearTimeout(this.autoHideTimer);
+  }
+
+  this.autoHideTimer = window.setTimeout(GM_hitch(this, "hideStatus"), 3000);
+}
+
+GM_BrowserUI.hideStatus = function() {
+  if (!this.hideAnimation) {
+    this.autoHideTimer = null;
+    this.hideAnimation = new Accelimation(this.statusLabel.style, 
+                                            "width", 0, 300, 2, "px");
+    this.hideAnimation.onend = GM_hitch(this, "hideStatusAnimationEnd");
+    this.hideAnimation.start();
+  }
+}
+
+GM_BrowserUI.hideStatusAnimationEnd = function() {
+  this.hideAnimation = null;
+  this.statusLabel.collapsed = true;
+}
+
 // necessary for webProgressListener implementation
 GM_BrowserUI.onProgressChange = function(webProgress,b,c,d,e,f){}
 GM_BrowserUI.onStateChange = function(a,b,c,d){}
@@ -344,16 +391,18 @@ function manageMenuItemClicked() {
 }
 
 function installMenuItemClicked() {
-  new ScriptDownloader(window._content.location.href).start();
+  var sd = new ScriptDownloader();
+  var unsafeDoc = new XPCNativeWrapper(window._content, "document").document;
+  var unsafeBody = new XPCNativeWrapper(unsafeDoc, "body").body;
+  var unsafeLoc = new XPCNativeWrapper(window._content, "location").location;
+
+  sd.installFromSource(new XPCNativeWrapper(unsafeBody, "textContent").textContent,
+                       new XPCNativeWrapper(unsafeLoc, "href").href);
 }
 
 function installContextItemClicked() {
-  new ScriptDownloader(document.popupNode.href).start();
-}
-
-function installContextItemClicked() {
-  new ScriptDownloader(GM_BrowserUI.getUserScriptLinkUnderPointer().href)
-      .start();
+  var sd = new ScriptDownloader();
+  sd.installFromURL(GM_BrowserUI.getUserScriptLinkUnderPointer().href);
 }
 
 // this is a debug function to make sure that menuCommanders are being
