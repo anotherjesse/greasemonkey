@@ -218,9 +218,28 @@ GM_BrowserUI.contextMenuShowing = function() {
      culprit = culprit.parentNode;
   }
 
-  contextItem.hidden = contextSep.hidden = 
-    !(culprit && culprit.href && 
-       culprit.href.match(/\.user\.js(\?|$)/i) != null);
+  contextItem.hidden = 
+    contextSep.hidden = 
+    !this.getUserScriptLinkUnderPointer();
+}
+
+
+GM_BrowserUI.getUserScriptLinkUnderPointer = function() {
+  var contextItem = ge("install-userscript");
+  var contextSep = ge("install-userscript-sep");
+
+  var culprit = document.popupNode;
+
+  while (culprit && culprit.tagName && culprit.tagName.toLowerCase() != "a") {
+     culprit = culprit.parentNode;
+  }
+
+  if (culprit && culprit.href && 
+      culprit.href.match(/\.user\.js(\?|$)/i) != null) {
+    return culprit;
+  } else {
+    return null;
+  }
 }
 
 
@@ -333,7 +352,8 @@ function installContextItemClicked() {
 }
 
 function installContextItemClicked() {
-  new ScriptDownloader(document.popupNode.href).start();
+  new ScriptDownloader(GM_BrowserUI.getUserScriptLinkUnderPointer().href)
+      .start();
 }
 
 // this is a debug function to make sure that menuCommanders are being
