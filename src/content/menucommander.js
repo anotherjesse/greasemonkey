@@ -124,7 +124,7 @@ function(commandName, commandFunc, accessKey) {
   menuItem.setAttribute("oncommand", "this._commandFunc()");
 
   if (accessKey) {
-    if (typeof(accessKey) == string && accessKey.length == 1) {
+    if (typeof(accessKey) == "string" && accessKey.length == 1) {
       menuItem.setAttribute("accesskey", accessKey);
     } else {
       throw "accessKey must be a single character";

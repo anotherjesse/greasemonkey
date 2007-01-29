@@ -83,15 +83,12 @@ function Config(configFile) {
   }
   
   this.load = function() {
-    var doc = document.implementation.createDocument("", "", null);
-    var configURI = Components.classes["@mozilla.org/network/io-service;1"]
-                              .getService(Components.interfaces.nsIIOService)
-                              .newFileURI(this.configFile);
+    var domParser = Components.classes["@mozilla.org/xmlextras/domparser;1"]
+                              .createInstance(Components.interfaces.nsIDOMParser);
 
-    doc.async = false;
-    doc.load(configURI.spec);
-
-    var nodes = document.evaluate("/UserScriptConfig/Script", doc, null, 0, null);
+    var configContents = getContents(getScriptFileURI("config.xml").spec);
+    var doc = domParser.parseFromString(configContents, "text/xml");
+    var nodes = doc.evaluate("/UserScriptConfig/Script", doc, null, 0, null);
 
     this.scripts = [];
 

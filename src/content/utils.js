@@ -47,17 +47,22 @@ function GM_hitch(obj, meth) {
     throw "method '" + meth + "' does not exist on object '" + obj + "'";
   }
   
-  if (arguments.length > 2) {
-    var hitchArgs = [];
+  var staticArgs = Array.prototype.splice.call(arguments, 2, arguments.length);
 
-    for (var i = 2; i < arguments.length; i++) {
-      hitchArgs.push(arguments[i]);
+  return function() { 
+    // make a copy of staticArgs (don't modify it because it gets reused for
+    // every invocation).
+    var args = staticArgs.concat();
+
+    // add all the new arguments
+    for (var i = 0; i < arguments.length; i++) {
+      args.push(arguments[i]);
     }
 
-    return function() { return obj[meth].apply(obj, hitchArgs); };
-  } else {
-    return function() { return obj[meth].apply(obj, arguments); };
-  }
+    // invoke the original function with the correct this obj and the combined
+    // list of static and dynamic arguments.
+    return obj[meth].apply(obj, args);
+  };
 }
 
 function GM_listen(source, event, listener, opt_capture) {
@@ -74,8 +79,7 @@ function GM_unlisten(source, event, listener, opt_capture) {
  * Utility to create an error message in the log without throwing an error.
  */
 function GM_logError(e, force) {
-  GM_log("> GM_DocHandler.reportError");
-
+  GM_log("> GM_logError");
   if (force || GM_prefRoot.getValue("logChrome", false)) {
     var consoleService = Components.classes['@mozilla.org/consoleservice;1']
       .getService(Components.interfaces.nsIConsoleService);
@@ -89,7 +93,7 @@ function GM_logError(e, force) {
     consoleService.logMessage(consoleError);
   }
 
-  GM_log("< GM_DocHandler.reportError");
+  GM_log("< GM_logError");
 }
 
 function GM_log(message, force) {
@@ -310,10 +314,10 @@ function delayalert(s) {
     setTimeout(function() {alert(s);}, 1000);
 }
 
-function GM_deepWrappersEnabled() {
+function GM_deepWrappersEnabled(someXPCObject) {
   // the old school javacript wrappers had this property containing their
   // untrusted variable. the new ones don't.
-  return !(new XPCNativeWrapper(window).mUntrustedObject);
+  return !(new XPCNativeWrapper(someXPCObject).mUntrustedObject);
 }
 
 function GM_isGreasemonkeyable(url) {
@@ -321,7 +325,8 @@ function GM_isGreasemonkeyable(url) {
                .getService(Components.interfaces.nsIIOService)
                .extractScheme(url);
 
-  return scheme == "http" || scheme == "https" || scheme == "file";
+  return (scheme == "http" || scheme == "https" || scheme == "file") &&
+         !/hiddenWindow\.html$/.test(url);
 }
 
 function GM_isFileScheme(url) {
@@ -330,4 +335,58 @@ function GM_isFileScheme(url) {
                .extractScheme(url);
 
   return scheme == "file";
+}
+
+function GM_getEnabled() {
+  return GM_prefRoot.getValue("enabled", true);
+}
+
+function GM_setEnabled(enabled) {
+  GM_prefRoot.setValue("enabled", enabled);
+}
+
+
+/**
+ * Logs a message to the console. The message can have python style %s 
+ * thingers which will be interpolated with additional parameters passed.
+ */
+function log(message) {
+  for (var i = 1; i < arguments.length; i++) {
+    message = message.replace(/\%s/, arguments[i]);
+  }
+
+  dump(message + "\n");
+}
+
+/**
+ * Loggifies an object. Every method of the object will have it's entrance, 
+ * any parameters, any errors, and it's exit logged automatically.
+ */
+function loggify(obj, name) {
+  for (var p in obj) {
+    if (typeof obj[p] == "function") {
+      obj[p] = gen_loggify_wrapper(obj[p], name, p);
+    }
+  }
+}
+
+function gen_loggify_wrapper(meth, objName, methName) {
+  return function() {
+    var retVal;
+    var args = new Array(arguments.length);
+    for (var i = 0; i < args.length; i++) {
+      args[i] = arguments[i];
+    }
+    
+    log("> %s.%s(%s)", objName, methName, args.join(", "));
+    
+    try {
+      return retVal = meth.apply(this, arguments);
+    } finally {
+      log("< %s.%s: %s", 
+          objName, 
+          methName, 
+          (typeof retVal == "undefined" ? "void" : retVal));
+    }
+  }
 }
