@@ -111,14 +111,26 @@ GM_BrowserUI.chromeLoad = function(e) {
  * gmIBrowserWindow.registerMenuCommand
  */
 GM_BrowserUI.registerMenuCommand = function(menuCommand) {
-  var commander = this.getCommander(menuCommand.window);
+  if (this.isMyWindow(domWindow)) {
+    var commander = this.getCommander(menuCommand.window);
 
-  commander.registerMenuCommand(menuCommand.name,
-                                menuCommand.doCommand,
-                                menuCommand.accelKey,
-                                menuCommand.accelModifiers,
-                                menuCommand.accessKey);
+    commander.registerMenuCommand(menuCommand.name,
+                                  menuCommand.doCommand,
+                                  menuCommand.accelKey,
+                                  menuCommand.accelModifiers,
+                                  menuCommand.accessKey);
+  }
 }
+
+/**
+ * gmIBrowserWindow.openInTab
+ */
+GM_BrowserUI.openInTab = function(domWindow, url) {
+  if (this.isMyWindow(domWindow)) {
+    document.getElementById("content").addTab(url);
+  }
+}
+
 
 /**
  * Gets called when a DOMContentLoaded event occurs somewhere in the browser.
@@ -126,13 +138,25 @@ GM_BrowserUI.registerMenuCommand = function(menuCommand) {
  * it's menu items and activate them.
  */
 GM_BrowserUI.contentLoad = function(e) {
-  var unsafeTarget = new XPCNativeWrapper(e, "target").target;
-  var unsafeWin = new XPCNativeWrapper(unsafeTarget, "defaultView").defaultView;
-  var unsafeLoc = new XPCNativeWrapper(unsafeWin, "location").location;
-  var href = new XPCNativeWrapper(unsafeLoc, "href").href;
+  var unsafeWin;
+  var href;
   var commander;
 
-  if (GM_isGreasemonkeyable(href)) {
+  if (GM_deepWrappersEnabled(window)) {
+    // when deep wrappers are enabled, e.target is already a deep xpcnw
+    unsafeWin = e.target.defaultView.wrappedJSObject;
+    href = e.target.location.href;
+  } else {
+    // otherwise we need to wrap it manually
+    unsafeWin = new XPCNativeWrapper(
+                  new XPCNativeWrapper(e, "target").target,
+                  "defaultView").defaultView;
+    href = new XPCNativeWrapper(
+              new XPCNativeWrapper(unsafeWin, "location").location,
+              "href").href;
+  }
+
+  if (GM_getEnabled() && GM_isGreasemonkeyable(href)) {
     commander = this.getCommander(unsafeWin);
 
     // if this content load is in the focused tab, attach the menuCommaander  
@@ -140,6 +164,8 @@ GM_BrowserUI.contentLoad = function(e) {
       this.currentMenuCommander = commander;
       this.currentMenuCommander.attach();
     }
+
+    this.gmSvc.domContentLoaded({ wrappedJSObject: unsafeWin });
   
     GM_listen(unsafeWin, "unload", GM_hitch(this, "contentUnload"));
   }
@@ -282,6 +308,22 @@ GM_BrowserUI.getCommander = function(unsafeWin) {
 }
 
 /**
+ * Helper to determine if a given dom window is in this tabbrowser
+ */
+GM_BrowserUI.isMyWindow = function(domWindow) {
+  var tabbrowser = getBrowser();  
+  var browser;
+
+  for (var i = 0; browser = tabbrowser.browsers[i]; i++) {
+    if (browser.contentWindow == domWindow) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * The Greasemonkey status icon has been clicked.
  */
 GM_BrowserUI.monkeyClicked = function() {
@@ -397,7 +439,11 @@ function installMenuItemClicked() {
   var unsafePre = new XPCNativeWrapper(unsafeDoc, "getElementsByTagName()")
                       .getElementsByTagName("PRE")[0];
 
-  sd.installFromSource(new XPCNativeWrapper(unsafePre, "innerHTML").innerHTML,
+  new XPCNativeWrapper(unsafePre, "normalize()").normalize();
+
+  var unsafeTextNode = new XPCNativeWrapper(unsafePre, "firstChild").firstChild;
+
+  sd.installFromSource(new XPCNativeWrapper(unsafeTextNode, "nodeValue").nodeValue,
                        new XPCNativeWrapper(unsafeLoc, "href").href);
 }
 

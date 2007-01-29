@@ -61,10 +61,3 @@ function GM_ScriptLogger(script) {
 GM_ScriptLogger.prototype.log = function(message) {
   GM_log(this.prefix + message, true);
 }
-
-
-function GM_openInTab(url) {
-  window.setTimeout(function() {
-    document.getElementById("content").addTab(url);
-  }, 0);
-}
