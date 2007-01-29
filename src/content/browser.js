@@ -330,14 +330,6 @@ GM_BrowserUI.isMyWindow = function(domWindow) {
   return false;
 }
 
-/**
- * The Greasemonkey status icon has been clicked.
- */
-GM_BrowserUI.monkeyClicked = function(aEvent) {
-  this.statusPopup.showPopup(this.statusImage, -1, -1, "context", "topright", 
-                             "bottomright");
-}
-
 function GM_showPopup(aEvent) {
 	var config = new Config(getScriptFile("config.xml"));
 	config.load();
@@ -382,7 +374,6 @@ function GM_showPopup(aEvent) {
 		mi.setAttribute('value', i);
 		mi.setAttribute('type', 'checkbox');
 		mi.setAttribute('checked', script.enabled?'true':'false');
-		if ('disabled'==status) mi.style.color='grey';
 		if ('injected'==status) mi.style.fontWeight='bold';
 		popup.insertBefore(mi, separator);
 	}

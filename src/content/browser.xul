@@ -73,14 +73,13 @@ copies or substantial portions of the Software.
     <statusbar id="status-bar">
         <statusbarpanel id="gm-status" insertafter="livemark-button">
             <label id="gm-status-label" collapsed="true" crop="end" style="width:0px" />
-            <image id="gm-status-image" width="16" height="16"
-              onclick='GM_BrowserUI.monkeyClicked(event); event.preventBubble();'/>
+            <image id="gm-status-image" width="16" height="16" popup='gm-status-popup'/>
             <popup id='gm-status-popup' position='before_end' 
               onpopupshowing='GM_showPopup(event); event.preventBubble();'
               oncommand='GM_popupClicked(event); event.preventBubble();'>
               <menuseparator />
               <menu id="userscript-commands-sb" accesskey="r" 
-                label="User Script Commands" disabled="false"
+                label="User Script Commands" disabled="false" 
                 onpopupshowing='event.preventBubble()'>
                 <menupopup/>
               </menu>
