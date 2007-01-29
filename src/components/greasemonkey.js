@@ -3,8 +3,7 @@ const CONTRACTID = "@greasemonkey.mozdev.org/greasemonkey-service;1";
 const CID = Components.ID("{77bf3650-1cd6-11da-8cd6-0800200c9a66}");
 
 const ifaces = Components.interfaces;
-const docSvc = Components.classes["@mozilla.org/docloaderservice;1"]
-                         .getService(ifaces.nsIWebProgress);
+
 const appSvc = Components.classes["@mozilla.org/appshell/appShellService;1"]
                          .getService(ifaces.nsIAppShellService);
 
@@ -26,7 +25,8 @@ var greasemonkeyService = {
         !aIID.equals(ifaces.nsISupports) &&
         !aIID.equals(ifaces.nsIWebProgressListener) &&
         !aIID.equals(ifaces.nsISupportsWeakReference) &&
-        !aIID.equals(ifaces.gmIGreasemonkeyService))
+        !aIID.equals(ifaces.gmIGreasemonkeyService) &&
+        !aIID.equals(ifaces.nsIWindowMediatorListener))
       throw Components.results.NS_ERROR_NO_INTERFACE;
 
     return this;
@@ -67,6 +67,17 @@ var greasemonkeyService = {
     throw new Error("Browser window is not registered.");
   },
 
+  domContentLoaded: function(wrappedWindow) {
+    var unsafeWin = wrappedWindow.wrappedJSObject;
+    var unsafeLoc = new XPCNativeWrapper(unsafeWin, "location").location;
+    var href = new XPCNativeWrapper(unsafeLoc, "href").href;
+    var scripts = this.initScripts(href);
+
+    if (scripts.length > 0) {
+      this.injectScripts(scripts, href, unsafeWin);
+    }
+  },
+
 
   startup: function() {
     Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
@@ -98,44 +109,8 @@ var greasemonkeyService = {
               .loadSubScript("chrome://greasemonkey/content/xmlhttprequester.js");
 
     loggify(this, "GM_GreasemonkeyService");
-
-    docSvc.addProgressListener(this, 
-                               ifaces.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
   },
 
-
-  // nsIWebProgressListener
-  onStateChange : function(aWebProgress, aRequest, aStateFlags, aStatus) {
-    var requestURI;
-    var scripts;
-
-    if (!GM_getEnabled()) {
-      log("* Greasemonkey is disabled.");
-      return;
-    }
-
-    if (aStateFlags & ifaces.nsIWebProgressListener.STATE_STOP) {
-      log("Caught document stop");
-
-      try {
-        requestURI = aRequest.name;
-      } catch(e) {
-        // For some requests, not only is there no name, retrieving it throws
-        // an error. Just ignore those.
-        return;
-      }
-
-      log("requestURI: %s", requestURI);
-      
-      if (GM_isGreasemonkeyable(requestURI)) {
-        scripts = this.initScripts(requestURI);
-
-        if (scripts.length > 0) {
-          this.injectScripts(scripts, requestURI, aWebProgress.DOMWindow);
-        }
-      }
-    }
-  },
 
   initScripts: function(url) {
     var config = new Config(getScriptFile("config.xml"));
@@ -201,7 +176,7 @@ var greasemonkeyService = {
       sandbox.GM_log = GM_hitch(logger, "log");
       sandbox.GM_setValue = GM_hitch(storage, "setValue");
       sandbox.GM_getValue = GM_hitch(storage, "getValue");
-      sandbox.GM_openInTab = GM_openInTab;
+      sandbox.GM_openInTab = GM_hitch(this, "openInTab", unsafeContentWin);
       sandbox.GM_xmlhttpRequest = GM_hitch(xmlhttpRequester, 
                                            "contentStartRequest");
       sandbox.GM_registerMenuCommand = GM_hitch(this, 
@@ -234,6 +209,12 @@ var greasemonkeyService = {
 
     for (var i = 0; i < this.browserWindows.length; i++) {
       this.browserWindows[i].registerMenuCommand(command);
+    }
+  },
+
+  openInTab: function(unsafeContentWin, url) {
+    for (var i = 0; i < this.browserWindows.length; i++) {
+      this.browserWindows[i].openInTab(unsafeContentWin, url);
     }
   },
 
