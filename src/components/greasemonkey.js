@@ -168,8 +168,13 @@ var greasemonkeyService = {
                                                 "document").document;
       }
 
+      // provide a way for scripts to get to the real js window object
       sandbox.unsafeWindow = unsafeContentWin;
 
+      // patch missing properties on xpcnw
+      sandbox.XPathResult = Components.interfaces.nsIDOMXPathResult;
+
+      // add our own APIs
       sandbox.GM_addStyle = function(css) { GM_addStyle(sandbox.document, css) };
       sandbox.GM_log = GM_hitch(logger, "log");
       sandbox.GM_setValue = GM_hitch(storage, "setValue");
