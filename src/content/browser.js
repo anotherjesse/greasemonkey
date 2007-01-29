@@ -174,7 +174,7 @@ GM_BrowserUI.contentLoad = function(e) {
 
     this.gmSvc.domContentLoaded({ wrappedJSObject: unsafeWin });
   
-    GM_listen(unsafeWin, "unload", GM_hitch(this, "contentUnload"));
+    GM_listen(unsafeWin, "pagehide", GM_hitch(this, "contentUnload"));
   }
 }
 
@@ -203,7 +203,11 @@ GM_BrowserUI.onLocationChange = function(a,b,c) {
  * avoid leaking it's memory. 
  */
 GM_BrowserUI.contentUnload = function(e) {
-  var unsafeWin = new XPCNativeWrapper(e, "currentTarget").currentTarget;
+  if (e.persisted) {
+    return;
+  }
+
+  var unsafeWin = e.target.defaultView;
 
   // remove the commander for this document  
   var commander = null;
@@ -239,6 +243,7 @@ GM_BrowserUI.chromeUnload = function() {
   GM_prefRoot.unwatch("enabled", this.enabledWatcher);
   this.tabBrowser.removeProgressListener(this);
   this.gmSvc.unregisterBrowser(this);
+  delete this.menuCommanders;
 }
 
 
