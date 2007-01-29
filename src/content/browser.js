@@ -4,7 +4,7 @@
 Copyright 2004-2005 Aaron Boodman
 
 Contributors:
-Jeremy Dunck, Nikolas Coukouma, Matthew Gray.
+Jeremy Dunck, Nikolas Coukouma, Matthew Gray, Anthony Lieuallen.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy 
 of this software and associated documentation files (the "Software"), to deal 
@@ -333,7 +333,74 @@ GM_BrowserUI.isMyWindow = function(domWindow) {
  * The Greasemonkey status icon has been clicked.
  */
 GM_BrowserUI.monkeyClicked = function() {
-  GM_setEnabled(!GM_getEnabled());
+  //this may not work well with a mac using
+  //'command click' for the context
+  if (1==aEvent.which) this.setEnabled(!this.getEnabled());
+}
+
+function GM_showPopup(aEvent) {
+	var config = new Config(getScriptFile("config.xml"));
+	config.load();
+	var popup=aEvent.target, separator=null;
+	var url=getBrowser().contentWindow.document.location.href;
+
+	//remove all the scripts from the list
+	while (true) {
+		el=popup.childNodes[0];
+		if ('menuseparator'==el.tagName) {
+			separator=el;
+			break;
+		}
+		el.parentNode.removeChild(el);
+	}
+
+	//build the new list of scripts
+	for (var i=0, script=null; script=config.scripts[i]; i++) {
+		var status=script.enabled?'enabled':'disabled';
+		if ('enabled'==status) {
+			//this whole loop could really stand to be cleaner
+			//and/or modularized with the place it was copied from
+			incloop: for (var j = 0; j < script.includes.length; j++) {
+				var pattern = convert2RegExp(script.includes[j]);
+				if (pattern.test(url)) {
+					for (var k = 0; k < script.excludes.length; k++) {
+						pattern = convert2RegExp(script.excludes[k]);
+						if (pattern.test(url)) {
+							break incloop;
+						}
+					}
+					status='injected';
+					break incloop;
+				}
+			}
+		}
+		var mi=document.createElement('menuitem');
+		mi.setAttribute('label', script.name);
+		mi.setAttribute('value', i);
+		mi.setAttribute('type', 'checkbox');
+		mi.setAttribute('checked', script.enabled?'true':'false');
+		if ('disabled'==status) mi.style.color='grey';
+		if ('injected'==status) mi.style.fontWeight='bold';
+		popup.insertBefore(mi, separator);
+	}
+	if (0==i) {
+		//there were no scripts!
+		var mi=document.createElement('menuitem');
+		mi.setAttribute('label', 'No scripts installed!');
+		mi.setAttribute('value', -1);
+		mi.setAttribute('type', 'checkbox');
+		mi.setAttribute('checked', 'false');
+		mi.style.color='grey';
+		popup.insertBefore(mi, separator);
+	}
+}
+function GM_popupClicked(aEvent) {
+	var config = new Config(getScriptFile("config.xml"));
+	config.load();
+	var scriptNum=aEvent.target.value;
+	if (!config.scripts[scriptNum]) return;
+	config.scripts[scriptNum].enabled=!config.scripts[scriptNum].enabled;
+	config.save();
 }
 
 /**

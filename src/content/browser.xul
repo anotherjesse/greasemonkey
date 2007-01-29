@@ -6,7 +6,7 @@
 Copyright 2004-2005 Aaron Boodman
 
 Contributors:
-Jeremy Dunck, Nikolas Coukouma, Matthew Gray.
+Jeremy Dunck, Nikolas Coukouma, Matthew Gray, Anthony Lieuallen.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy 
 of this software and associated documentation files (the "Software"), to deal 
@@ -81,7 +81,22 @@ copies or substantial portions of the Software.
     <statusbar id="status-bar">
         <statusbarpanel id="gm-status" insertafter="livemark-button">
             <label id="gm-status-label" collapsed="true" crop="end" style="width:0px" />
-            <image id="gm-status-image" width="16" height="16"/>
-        </statusbarpanel>
+            <image id="gm-status-image" width="16" height="16"
+              onclick='GM_BrowserUI.monkeyClicked(event); event.preventBubble();'
+              context='gm-status-popup'/>
+            <popup id='gm-status-popup' position='before_end' 
+              onpopupshowing='GM_showPopup(event); event.preventBubble();'
+              oncommand='GM_popupClicked(event); event.preventBubble();'>
+              <menuseparator />
+              <menuitem accesskey="U" label="Manage User Scripts..." 
+                oncommand="manageMenuItemClicked(event)"/>
+              <!-- this does not work yet ...
+              <menu id="userscript-commands-sb" accesskey="r" 
+                label="User Script Commands" disabled="true">
+                <menupopup/>
+              </menu>
+              -->
+            </popup>
+         </statusbarpanel>
     </statusbar>
 </overlay>
