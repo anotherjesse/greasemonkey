@@ -39,6 +39,14 @@
         <label value="&install.butnoton;"/>
         <description id="excludes-desc" style="font-style:italic"/>
       </vbox>
+      <vbox id="requires" style="display:none;">
+        <label value="Requires:"/>
+        <description id="requires-desc" style="font-style:italic"/>
+      </vbox>
+      <vbox id="imports" style="display:none;">
+        <label value="Imports:"/>
+        <description id="imports-desc" style="font-style:italic"/>
+      </vbox>
       <spacer flex="1"/>
     </vbox>
 
