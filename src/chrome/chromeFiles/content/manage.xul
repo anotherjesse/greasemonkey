@@ -127,7 +127,7 @@
     
     function handleEditButton() {
       openInEditor(
-        getScriptFile(selectedScript.filename),
+        getScriptFile(selectedScript),
         document.getElementById("gm-manage-bundle").getString("editor.prompt"));
     }
 
