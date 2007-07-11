@@ -9,9 +9,13 @@ window.addEventListener("load", function() {
   bundle = document.getElementById("gm-browser-bundle");
 
   // load default namespace from pref
-  document.getElementById("namespace").value = GM_prefRoot.getValue(
-  	"newscript_namespace", ""
-  );
+  document.getElementById("namespace").value = 
+      GM_prefRoot.getValue("newscript_namespace", "");
+
+  // default the includes with the current page's url
+  document.getElementById("includes").value = 
+      window.opener.document.getElementById("content").selectedBrowser
+      .contentWindow.location.href;
 }, false);
 
 ////////////////////////////////// functions ///////////////////////////////////
@@ -35,7 +39,7 @@ function doInstall() {
   // make sure entered details will not ruin an existing file
   var existingIndex = config.find(script.namespace, script.name);
   if (existingIndex > -1) {
-    var overwrite = confirm(bundle.getString("error.exists"));
+    var overwrite = confirm(bundle.getString("newscript.exists"));
     if (!overwrite) return false;
   }
 
@@ -64,7 +68,7 @@ function createScriptSource() {
 
   var name = document.getElementById("name").value;
   if ("" == name) {
-    alert(bundle.getString("error.noname"));
+    alert(bundle.getString("newscript.noname"));
     return false;
   } else {
     script.push("// @name           " + name);
@@ -72,7 +76,7 @@ function createScriptSource() {
 
   var namespace = document.getElementById("namespace").value;
   if ("" == namespace) {
-    alert(bundle.getString("error.nonamespace"));
+    alert(bundle.getString("newscript.nonamespace"));
     return false;
   } else {
     script.push("// @namespace      " + namespace);
@@ -93,7 +97,7 @@ function createScriptSource() {
   var excludes = document.getElementById("excludes").value;
   if ("" != excludes) {
     excludes = excludes.match(/.+/g);
-    excludes = "// @exclude        " + excludes.join("// @exclude        ");
+    excludes = "// @exclude        " + excludes.join("\n// @exclude        ");
     script.push(excludes);
   }
 
