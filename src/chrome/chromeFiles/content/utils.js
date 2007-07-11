@@ -35,13 +35,13 @@ function GM_hitch(obj, meth) {
 }
 
 function GM_listen(source, event, listener, opt_capture) {
-  Components.lookupMethod(source, "addEventListener").apply(
-    source, [event, listener, opt_capture]);
+  Components.lookupMethod(source, "addEventListener")(
+    event, listener, opt_capture);
 }
 
 function GM_unlisten(source, event, listener, opt_capture) {
-  Components.lookupMethod(source, "removeEventListener").apply(
-    source, [event, listener, opt_capture]);
+  Components.lookupMethod(source, "removeEventListener")(
+    event, listener, opt_capture);
 }
 
 /**
@@ -338,19 +338,14 @@ function delayalert(s) {
     setTimeout(function() {alert(s);}, 1000);
 }
 
-function GM_deepWrappersEnabled(someXPCObject) {
-  // the old school javacript wrappers had this property containing their
-  // untrusted variable. the new ones don't.
-  return !(new XPCNativeWrapper(someXPCObject).mUntrustedObject);
-}
-
 function GM_isGreasemonkeyable(url) {
   var scheme = Components.classes["@mozilla.org/network/io-service;1"]
                .getService(Components.interfaces.nsIIOService)
                .extractScheme(url);
 
   return (scheme == "http" || scheme == "https" || scheme == "file" ||
-          url.match(/^about:cache/)) && !/hiddenWindow\.html$/.test(url);
+          scheme == "ftp" || url.match(/^about:cache/)) && 
+          !/hiddenWindow\.html$/.test(url);
 }
 
 function GM_isFileScheme(url) {

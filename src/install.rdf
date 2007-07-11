@@ -7,22 +7,25 @@
 
     <em:name>Greasemonkey</em:name>
     <em:id>{e4a8a97b-f2ed-450b-b12d-ee082ba24781}</em:id>
-    <em:version>0.6.7.20070131.0</em:version>
+    <em:version>0.6.8.20070301.0</em:version>
     <em:description>A User Script Manager for Firefox</em:description>
     <em:creator>Aaron Boodman; http://youngpup.net/</em:creator>
     <em:contributor>Anthony Lieuallen; http://arantius.com</em:contributor>
     <em:contributor>Chris Feldmann; http://axlotl.net</em:contributor>
     <em:contributor>David Schontzler; http://stilleye.com/</em:contributor>
     <em:contributor>Gareth Andrew; http://freegarethandrew.org</em:contributor>
+    <em:contributor>Hisateru Tanaka</em:contributor>
     <em:contributor>Jeremy Dunck; http://dunck.us/anabasis/</em:contributor>
-    <em:contributor>JP Sugarbroad; n/a</em:contributor>
-    <em:contributor>Juan Pablo Guereca Alonso; n/a</em:contributor>
-    <em:contributor>Mark Pilgrim,; http://diveintomark.org</em:contributor>
+    <em:contributor>JP Sugarbroad</em:contributor>
+    <em:contributor>Juan Pablo Guereca Alonso</em:contributor>
+    <em:contributor>Manpreet Singh</em:contributor>
+    <em:contributor>Mark Pilgrim; http://diveintomark.org</em:contributor>
     <em:contributor>Matthias Bauer; http://moeffju.net/</em:contributor>
     <em:contributor>Matthew Gray; http://mkgray.com:8000/</em:contributor>
     <em:contributor>Nikolas Coukouma; http://atrus.org/</em:contributor>
-    <em:contributor>Ori Avtallon; n/a</em:contributor>
+    <em:contributor>Ori Avtallon</em:contributor>
     <em:contributor>Sergio Abreu; http://sitedosergio.sitesbr.net</em:contributor>
+    <em:contributor>Tommi Rautava</em:contributor>
     <em:homepageURL>http://greasemonkey.mozdev.org/</em:homepageURL>
     <em:optionsURL>chrome://greasemonkey/content/manage.xul</em:optionsURL>
     <em:iconURL>chrome://greasemonkey/content/status_on.gif</em:iconURL>
