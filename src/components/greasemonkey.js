@@ -328,13 +328,35 @@ var greasemonkeyService = {
         var lineFinder = new Error();
         Components.utils.evalInSandbox(code, sandbox);
       } catch (e) {
-        var err = this.findError(script, e.lineNumber-lineFinder.lineNumber-1);
-        GM_logError(
-          e, // error obj
-          0, // 0 = error (1 = warning)
-          err.uri, 
-          err.lineNumber
-        );
+        // try to find the line of the actual error line
+        var line = e.lineNumber;
+        if (4294967295 == line) {
+          // Line number is reported as max int in edge cases.  Sometimes
+          // the right one is in the "location", instead.  Look there.
+          if (e.location && e.location.lineNumber) {
+            line = e.location.lineNumber;
+          } else {
+            // Reporting max int is useless, if we couldn't find it in location
+            // either, forget it.  Value of 0 isn't shown in the console.
+            line = 0;
+          }
+        }
+        if(line){
+            var err = this.findError(script, line-lineFinder.lineNumber-1);
+            GM_logError(
+              e, // error obj
+              0, // 0 = error (1 = warning)
+              err.uri, 
+              err.lineNumber
+            );
+        }else{
+            GM_logError(
+              e, // error obj
+              0, // 0 = error (1 = warning)
+              getScriptFileURI(script).spec,
+              0
+            );
+        }
       }
     }
   },
