@@ -413,6 +413,11 @@ GM_BrowserUI.isMyWindow = function(domWindow) {
   return false;
 }
 
+function GM_showGeneralPopup(aEvent) {
+  // set the enabled/disabled state
+  GM_BrowserUI.generalMenuEnabledItem.setAttribute("checked", GM_getEnabled());
+}
+
 function GM_showPopup(aEvent) {
   var config = new Config();
   config.load();
