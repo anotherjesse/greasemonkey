@@ -108,11 +108,6 @@ var greasemonkeyService = {
     Cc["@mozilla.org/moz/jssubscript-loader;1"]
       .getService(Ci.mozIJSSubScriptLoader)
       .loadSubScript("chrome://greasemonkey/content/xmlhttprequester.js");
-      
-      
-    Cc["@mozilla.org/moz/jssubscript-loader;1"]
-      .getService(Ci.mozIJSSubScriptLoader)
-      .loadSubScript("chrome://greasemonkey/content/downloadqueue.js");
 
     //loggify(this, "GM_GreasemonkeyService");
   },
@@ -133,7 +128,7 @@ var greasemonkeyService = {
       return Ci.nsIContentPolicy.ACCEPT;
     }
 
-    if (ct == Ci.nsIContentPolicy.TYPE_DOCUMENT && 
+    if (ct == Ci.nsIContentPolicy.TYPE_DOCUMENT &&
 	cl.spec.match(/\.user\.js$/)) {
 
       dump("shouldload: " + cl.spec + "\n");
@@ -155,7 +150,7 @@ var greasemonkeyService = {
     this.ignoreNextScript_ = false;
     return ret;
   },
-  
+
   shouldProcess: function(ct, cl, org, ctx, mt, ext) {
     return Ci.nsIContentPolicy.ACCEPT;
   },
@@ -182,10 +177,10 @@ var greasemonkeyService = {
   },
 
   initScripts: function(url) {
-    var config = new Config();
+    var config = new Config(getScriptFile("config.xml"));
     var scripts = [];
     config.load();
-    
+
     outer:
     for (var i = 0; i < config.scripts.length; i++) {
       var script = config.scripts[i];
@@ -196,7 +191,7 @@ var greasemonkeyService = {
           if (pattern.test(url)) {
             for (var k = 0; k < script.excludes.length; k++) {
               pattern = convert2RegExp(script.excludes[k]);
-    
+
               if (pattern.test(url)) {
                 continue outer;
               }
@@ -228,9 +223,9 @@ var greasemonkeyService = {
 
       logger = new GM_ScriptLogger(script);
       storage = new GM_ScriptStorage(script);
-      xmlhttpRequester = new GM_xmlhttpRequester(unsafeContentWin, 
+      xmlhttpRequester = new GM_xmlhttpRequester(unsafeContentWin,
                                                  appSvc.hiddenDOMWindow);
-      imports = new GM_Imports(script);
+
       sandbox.window = safeWin;
       sandbox.document = sandbox.window.document;
       sandbox.unsafeWindow = unsafeContentWin;
@@ -243,45 +238,25 @@ var greasemonkeyService = {
       sandbox.GM_log = GM_hitch(logger, "log");
       sandbox.GM_setValue = GM_hitch(storage, "setValue");
       sandbox.GM_getValue = GM_hitch(storage, "getValue");
-      sandbox.GM_getImport = GM_hitch(imports, "getImport"); 
       sandbox.GM_openInTab = GM_hitch(this, "openInTab", unsafeContentWin);
-      sandbox.GM_xmlhttpRequest = GM_hitch(xmlhttpRequester, 
+      sandbox.GM_xmlhttpRequest = GM_hitch(xmlhttpRequester,
                                            "contentStartRequest");
-      sandbox.GM_registerMenuCommand = GM_hitch(this, 
-                                                "registerMenuCommand", 
+      sandbox.GM_registerMenuCommand = GM_hitch(this,
+                                                "registerMenuCommand",
                                                 unsafeContentWin);
 
       sandbox.__proto__ = safeWin;
 
-      var contents = getContents(getScriptFileURI(script))
-      
-      GM_log("Sub-scripts: " + script.requires.length);
-      var requires = [];
-      var offsets = [];
-      var offset = 0;
-      script.requires.forEach(function(req){
-          var uri = getDependencyFileURI(script, req);
-          var contents = getContents(uri);
-          var lineCount = contents.split("\n").length 
-          requires.push(getContents(uri));
-          offset += lineCount;
-          offsets.push(offset);
-      })
-      script.offsets = offsets; 
-      
-      var scriptSrc = "(function(){\n" +
-                         requires.join("\n") +
-                         "\n" + 
-                         contents +
-                         "\n})()";
-      this.evalInSandbox(scriptSrc,
+      this.evalInSandbox("(function(){\n" +
+                         getContents(getScriptFileURI(script.filename)) +
+                         "\n})()",
                          url,
                          sandbox,
                          script);
     }
   },
 
-  registerMenuCommand: function(unsafeContentWin, commandName, commandFunc, 
+  registerMenuCommand: function(unsafeContentWin, commandName, commandFunc,
                                 accelKey, accelModifiers, accessKey) {
     var command = {name: commandName,
                    accelKey: accelKey,
@@ -313,31 +288,15 @@ var greasemonkeyService = {
         var lineFinder = new Error();
         Components.utils.evalInSandbox(code, sandbox);
       } catch (e) {
-        var err = this.findError(script, e.lineNumber-lineFinder.lineNumber-1);
         GM_logError(
           e, // error obj
           0, // 0 = error (1 = warning)
-          err.uri, 
-          err.lineNumber
+          getScriptFileURI(script.filename).spec,
+          e.lineNumber-lineFinder.lineNumber-1
         );
       }
     }
   },
-  
-  findError : function(script, lineNumber){
-      var start = 0;
-      var end = 1;
-      for(var i=0; i<script.offsets.length; i++){
-          end = script.offsets[i];
-          if(lineNumber < end){
-              return { uri: getDependencyFileURI(script, script.requires[i]).spec,
-                       lineNumber: (lineNumber - start)};
-          }
-          start = end;
-      }
-      return { uri: getScriptFileURI(script).spec,
-                    lineNumber: (lineNumber - end)};
-  }
 };
 
 greasemonkeyService.wrappedJSObject = greasemonkeyService;
@@ -346,7 +305,7 @@ greasemonkeyService.wrappedJSObject = greasemonkeyService;
 
 
 
-/** 
+/**
  * XPCOM Registration goop
  */
 var Module = new Object();
@@ -369,7 +328,7 @@ Module.registerSelf = function(compMgr, fileSpec, location, type) {
                           true,
                           true);
 
-  catMgr.addCategoryEntry("content-policy", 
+  catMgr.addCategoryEntry("content-policy",
 			  CONTRACTID,
                           CONTRACTID,
                           true,
@@ -380,7 +339,7 @@ Module.getClassObject = function(compMgr, cid, iid) {
   if (!cid.equals(CID)) {
     throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
   }
-  
+
   if (!iid.equals(Ci.nsIFactory)) {
     throw Components.results.NS_ERROR_NO_INTERFACE;
   }
