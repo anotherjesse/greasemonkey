@@ -37,17 +37,21 @@ Config.prototype.initFilename = function(script) {
     index[this.scripts[i].basedir] = this.scripts[i];
   }
     
-  if (!index[base]) {
-    script.filename = base + ".user.js";
-    script.basedir = base;
-    return;
-  }
+  for (var count = 0, filename; count < Number.MAX_VALUE; count++) {
+    if (0 == count) {
+      filename = base + ".user.js";
+    } else {
+      filename = base + count + ".user.js";
+    }
     
-  for (var count = 1; count < Number.MAX_VALUE; count++) {
-    if (!index[base + count]) {
-      script.filename = base + ".user.js";
-      script.basedir = base + "("+ count + ")";
-      return;
+    if (!index[filename]) {
+      // Check to make sure there's no file already in that space.
+      var file = getScriptDir().clone();
+      file.append(filename);
+      if (!file.exists()) {
+        script.filename = filename;
+        return;
+      }
     }
   }
     

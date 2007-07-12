@@ -368,14 +368,14 @@ GM_BrowserUI.getUserScriptLinkUnderPointer = function() {
 
 GM_BrowserUI.toolsMenuShowing = function() {
   var installItem = ge("userscript-tools-install");
-  var collapsed = true;
+  var hidden = true;
 
   if (window._content && window._content.location &&
       window.content.location.href.match(/\.user\.js(\?|$)/i)) {
-    collapsed = false;
+    hidden = false;
   }
 
-  installItem.setAttribute("collapsed", collapsed.toString());
+  installItem.setAttribute("hidden", hidden.toString());
 }
 
 
