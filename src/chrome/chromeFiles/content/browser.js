@@ -374,7 +374,9 @@ GM_BrowserUI.toolsMenuShowing = function() {
       window.content.location.href.match(/\.user\.js(\?|$)/i)) {
     hidden = false;
   }
-
+  
+  // Better to use hidden than collapsed because collapsed still allows you to
+  // select the item using keyboard navigation, but hidden doesn't.
   installItem.setAttribute("hidden", hidden.toString());
 }
 

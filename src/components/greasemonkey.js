@@ -226,6 +226,7 @@ var greasemonkeyService = {
     var sandbox;
     var script;
     var logger;
+    var console;
     var storage;
     var xmlhttpRequester;
     var safeWin = new XPCNativeWrapper(unsafeContentWin);
