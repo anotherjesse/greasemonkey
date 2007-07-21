@@ -224,7 +224,6 @@ Config.prototype.install = function(script) {
     this.scripts.push(script);
     this.save();
    
-   window.opener.GM_BrowserUI.showHorrayMessage(script.name); 
    
     GM_log("< Config.install")
 
@@ -250,19 +249,6 @@ Config.prototype.installDependency = function(script, req){
       throw e;
    }       
 }
-
-
-Config.prototype.finishInstall = function(script){
-   this.scripts.push(script);
-   this.save();
-   
-   window.opener.GM_BrowserUI.showHorrayMessage(script.name);
-}
-
-Config.prototype.errorInstall = function (script, req){
-    GM_log("Error installing script");
-}
-
 
 function Script() {
   this.filename = null;

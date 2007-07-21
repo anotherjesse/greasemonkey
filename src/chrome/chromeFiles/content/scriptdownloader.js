@@ -20,6 +20,8 @@ ScriptDownloader.prototype.startDownload = function() {
   this.win_.GM_BrowserUI.statusImage.src = "chrome://global/skin/throbber/Throbber-small.gif";
   this.win_.GM_BrowserUI.statusImage.style.opacity = "0.5";
   this.win_.GM_BrowserUI.statusImage.tooltipText = this.bundle_.getString("tooltip.loading");
+  
+  this.win_.GM_BrowserUI.showStatus("Fetching user script", false);
 
   Components.classes["@greasemonkey.mozdev.org/greasemonkey-service;1"]
   .getService().wrappedJSObject
@@ -36,6 +38,8 @@ ScriptDownloader.prototype.handleDownloadComplete = function() {
   // If loading from file, status might be zero on success
   if (this.req_.status != 200 && this.req_.status != 0) {
     this.win_.GM_BrowserUI.refreshStatus();
+    this.win_.GM_BrowserUI.hideStatus();
+    
     alert("Error loading user script:\n" + 
 	  this.req_.status + ": " + 
 	  this.req_.statusText);
@@ -64,7 +68,7 @@ ScriptDownloader.prototype.handleDownloadComplete = function() {
   ws.close();
 
   this.script.file = file;
-  this.win_.GM_BrowserUI.hideStatus();
+  this.win_.GM_BrowserUI.showStatus("Fetching dependencies", false);
   
   downloader = new DownloadQueue();
 
@@ -102,6 +106,8 @@ ScriptDownloader.prototype.checkDependencyURL = function(url){
 }
 
 ScriptDownloader.prototype.finishInstall = function(){
+  this.win_.GM_BrowserUI.hideStatus();
+  this.win_.GM_BrowserUI.refreshStatus();
   if (this.installing_) {
     this.showInstallDialog();
   } else {
