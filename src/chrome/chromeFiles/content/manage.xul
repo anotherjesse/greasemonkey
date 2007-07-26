@@ -20,7 +20,7 @@
     <script type="application/x-javascript" src="chrome://greasemonkey/content/prefmanager.js" />
     <script type="application/x-javascript" src="chrome://greasemonkey/content/config.js" />
     <script type="application/x-javascript" src="chrome://greasemonkey/content/manage.js" />
-        
+
     <stringbundle id="gm-manage-bundle" src="chrome://greasemonkey/locale/gm-manage.properties"/>
 
     <grid flex="1" orient="vertical">
@@ -28,7 +28,7 @@
         <column id="col_left" flex="1"/>
         <column id="col_right" flex="3"/>
       </columns>
-      
+
       <rows>
         <row flex="1" orient="horizontal">
           <vbox flex="1">
@@ -44,10 +44,10 @@
             <description id="ctlHeader"/>
             <description id="ctlDescription"/>
             <vbox id="pages-control" flex="1" />
-          </vbox>                
+          </vbox>
         </row>
         <row>
-	      <hbox>
+          <hbox>
             <checkbox id="chkEnabled" label="&manage.label.chkEnabled;" checked="true" />
             <button id="btnEdit" label="&manage.label.btnEdit;" />
           </hbox>
@@ -60,6 +60,6 @@
             </hbox>
           </vbox>
         </row>
-      </rows>          
+      </rows>
     </grid>
 </dialog>

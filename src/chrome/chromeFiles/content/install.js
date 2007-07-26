@@ -12,7 +12,7 @@ var GMInstall = {
     this.setupIncludes("excludes", "excludes-desc", this.script_.excludes);
     this.setupDependencies("imports", "imports-desc", this.script_.imports);
     this.setupDependencies("requires", "requires-desc", this.script_.requires);
-    
+
     this.dialog_ = document.documentElement;
     this.extraButton_ = this.dialog_.getButton("extra1");
     this.extraButton_.setAttribute("type", "checkbox");

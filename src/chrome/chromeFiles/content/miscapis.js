@@ -48,11 +48,11 @@ GM_Imports.prototype.getImport = function(name){
 
 function GM_ScriptLogger(script) {
   var namespace = script.namespace;
-  
+
   if (namespace.substring(namespace.length - 1) != "/") {
     namespace += "/";
   }
-  
+
   this.prefix = [namespace, script.name, ": "].join("");
 }
 
@@ -61,7 +61,7 @@ GM_ScriptLogger.prototype.log = function(message) {
 }
 
 
-// Based on Mark Pilgrim's GM_addGlobalStyle from 
+// Based on Mark Pilgrim's GM_addGlobalStyle from
 // http://diveintogreasemonkey.org/patterns/add-css.html. Used by permission
 // under GPL: http://diveintogreasemonkey.org/license/gpl.html
 function GM_addStyle(doc, css) {
