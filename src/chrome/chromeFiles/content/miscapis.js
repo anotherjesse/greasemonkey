@@ -29,7 +29,7 @@ GM_Imports.prototype.getImportURL = function(name) {
     .getService(Components.interfaces.nsIAppShellService);
 
   var window = appSvc.hiddenDOMWindow;
-  var binaryContents = getBinaryContents(getDependencyFileURI(script, dep))
+  var binaryContents = getBinaryContents(getDependencyFileURI(this.script, dep))
 
   // TODO(aa): I think we should return a real URL here, not base64. I think
   // it's not that hard to implement protocol handlers.
@@ -42,16 +42,17 @@ GM_Imports.prototype.getImportContent = function(name) {
   // encoded or something? Binary data is not that useful to JavaScript. Should
   // we just rename this method getImportText() to make it clear that it only
   // works for text imports?
-  return getContents(getDependencyFileURI(script, dep))
+  var dep = this.getDep_(name);
+  return getContents(getDependencyFileURI(this.script, dep))
 }
 
 GM_Imports.prototype.getDep_ = function(name) {
-  this.script.imports.forEach(function(d) {
+  for (var i=0; i< this.script.imports.length; i++){
+    var d = this.script.imports[i]
     if (d.name == name) {
       return d;
     }
-  });
-
+  }
   throw new Error("No import with name: " + name);
 }
 
