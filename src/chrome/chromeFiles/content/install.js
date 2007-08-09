@@ -94,30 +94,33 @@ var GMInstall = {
       document.getElementById(box).style.display = "";
 
       for (var i = 0; i < includes.length; i++) {
-	desc.appendChild(document.createTextNode(includes[i]));
-	desc.appendChild(document.createElementNS(this.htmlNs_, "br"));
+        desc.appendChild(document.createTextNode(includes[i]));
+        desc.appendChild(document.createElementNS(this.htmlNs_, "br"));
       }
 
       desc.removeChild(desc.lastChild);
     }
   },
+
   setupDependencies: function(box, desc, deps){
-      if (deps.length > 0) {
-          desc = document.getElementById(desc);
-          document.getElementById(box).style.display = "";
-          
-          for (var i = 0; i < deps.length; i++) {
-            var link = document.createElementNS(this.htmlNs_, "a");
-            link.setAttribute("href", "#");
-            link.addEventListener("click", GM_hitch(this, "onOpenDependency", deps[i].file), true);
-            desc.appendChild(link);
-            link.appendChild(document.createTextNode(deps[i].url));
-	        desc.appendChild(document.createElementNS(this.htmlNs_, "br"));
-          }
+    if (deps.length > 0) {
+      desc = document.getElementById(desc);
+      document.getElementById(box).style.display = "";
+      
+      for (var i = 0; i < deps.length; i++) {
+        var link = document.createElementNS(this.htmlNs_, "a");
+        link.setAttribute("href", "#");
+        link.addEventListener("click",
+                              GM_hitch(this, "onOpenDependency",
+                              deps[i].file),
+                              true);
+        desc.appendChild(link);
+        link.appendChild(document.createTextNode(deps[i].url));
+        desc.appendChild(document.createElementNS(this.htmlNs_, "br"));
       }
+    }
   },
     
-
   onOK: function() {
     var config = new Config();
     config.load();

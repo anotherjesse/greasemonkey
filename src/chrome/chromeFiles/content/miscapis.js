@@ -17,34 +17,43 @@ GM_ScriptStorage.prototype.getValue = function(name, defVal) {
 }
 
 function GM_Imports(script){
-    this.script = script;
+  this.script = script;
 }
 
-GM_Imports.prototype.getImport = function(name){
-    var dep = false;
-    var script = this.script;
-    script.imports.forEach(function(d){
-        if(d.name == name){
-            dep = d;
-        }
-    });
-    if(dep){
-        var getDepContents = function(){
-            return getContents(getDependencyFileURI(script, dep))
-        }
-        var getDepURI = function(){
-            var ioService=Components.classes["@mozilla.org/network/io-service;1"].getService(Components.interfaces.nsIIOService);
- 		    const appSvc = Components.classes["@mozilla.org/appshell/appShellService;1"].getService(Components.interfaces.nsIAppShellService);
- 		    var window = appSvc.hiddenDOMWindow;
- 		    var binaryContents = getBinaryContents(getDependencyFileURI(script, dep))
- 		    return "data:"+dep.mimetype+";base64,"+window.encodeURIComponent(window.btoa(binaryContents));
-        }
-        return {getContents: getDepContents, getURI: getDepURI};
-    }else{
-        //TODO: Throw error
+GM_Imports.prototype.getImportURL = function(name) {
+  var dep = this.getDep_(name);
+
+  var ioService = Components.classes["@mozilla.org/network/io-service;1"]
+    .getService(Components.interfaces.nsIIOService);
+  var appSvc = Components.classes["@mozilla.org/appshell/appShellService;1"]
+    .getService(Components.interfaces.nsIAppShellService);
+
+  var window = appSvc.hiddenDOMWindow;
+  var binaryContents = getBinaryContents(getDependencyFileURI(script, dep))
+
+  // TODO(aa): I think we should return a real URL here, not base64. I think
+  // it's not that hard to implement protocol handlers.
+  return "data:" + dep.mimetype + ";base64," + 
+    window.encodeURIComponent(window.btoa(binaryContents));
+}
+
+GM_Imports.prototype.getImportContent = function(name) {
+  // TODO(aa): Should we check the mimetype and return binary data, base64
+  // encoded or something? Binary data is not that useful to JavaScript. Should
+  // we just rename this method getImportText() to make it clear that it only
+  // works for text imports?
+  return getContents(getDependencyFileURI(script, dep))
+}
+
+GM_Imports.prototype.getDep_ = function(name) {
+  this.script.imports.forEach(function(d) {
+    if (d.name == name) {
+      return d;
     }
-}
+  });
 
+  throw new Error("No import with name: " + name);
+}
 
 function GM_ScriptLogger(script) {
   var namespace = script.namespace;

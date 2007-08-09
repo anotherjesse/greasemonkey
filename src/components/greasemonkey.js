@@ -230,6 +230,7 @@ var greasemonkeyService = {
     var console;
     var storage;
     var xmlhttpRequester;
+    var imports;
     var safeWin = new XPCNativeWrapper(unsafeContentWin);
     var safeDoc = safeWin.document;
 
@@ -247,6 +248,7 @@ var greasemonkeyService = {
       xmlhttpRequester = new GM_xmlhttpRequester(unsafeContentWin,
                                                  appSvc.hiddenDOMWindow);
       imports = new GM_Imports(script);
+
       sandbox.window = safeWin;
       sandbox.document = sandbox.window.document;
       sandbox.unsafeWindow = unsafeContentWin;
@@ -260,7 +262,8 @@ var greasemonkeyService = {
       sandbox.console = console;
       sandbox.GM_setValue = GM_hitch(storage, "setValue");
       sandbox.GM_getValue = GM_hitch(storage, "getValue");
-      sandbox.GM_getImport = GM_hitch(imports, "getImport"); 
+      sandbox.GM_getImportURL = GM_hitch(imports, "getImportURL"); 
+      sandbox.GM_getImportContent = GM_hitch(imports, "getImportContent");
       sandbox.GM_openInTab = GM_hitch(this, "openInTab", unsafeContentWin);
       sandbox.GM_xmlhttpRequest = GM_hitch(xmlhttpRequester,
                                            "contentStartRequest");
@@ -272,17 +275,18 @@ var greasemonkeyService = {
 
       var contents = getContents(getScriptFileURI(script))
       
-      GM_log("Sub-scripts: " + script.requires.length);
+      GM_log("Number of required scripts: " + script.requires.length);
       var requires = [];
       var offsets = [];
       var offset = 0;
+
       script.requires.forEach(function(req){
-          var uri = getDependencyFileURI(script, req);
-          var contents = getContents(uri);
-          var lineCount = contents.split("\n").length 
-          requires.push(getContents(uri));
-          offset += lineCount;
-          offsets.push(offset);
+        var uri = getDependencyFileURI(script, req);
+        var contents = getContents(uri);
+        var lineCount = contents.split("\n").length;
+        requires.push(getContents(uri));
+        offset += lineCount;
+        offsets.push(offset);
       })
       script.offsets = offsets; 
       
@@ -343,42 +347,49 @@ var greasemonkeyService = {
             line = 0;
           }
         }
+
         if (line) {
-            var err = this.findError(script, line-lineFinder.lineNumber-1);
-        GM_logError(
-          e, // error obj
-          0, // 0 = error (1 = warning)
-              err.uri, 
-              err.lineNumber
-        );
-        }else{
-            GM_logError(
-              e, // error obj
-              0, // 0 = error (1 = warning)
-              getScriptFileURI(script).spec,
-              0
-            );
+          var err = this.findError(script, line - lineFinder.lineNumber - 1);
+          GM_logError(
+            e, // error obj
+            0, // 0 = error (1 = warning)
+            err.uri, 
+            err.lineNumber
+          );
+        } else {
+          GM_logError(
+            e, // error obj
+            0, // 0 = error (1 = warning)
+            getScriptFileURI(script).spec,
+            0
+          );
         }
       }
     }
   },
 
-  findError : function(script, lineNumber){
-      var start = 0;
-      var end = 1;
-      for(var i=0; i<script.offsets.length; i++){
-          end = script.offsets[i];
-          if(lineNumber < end){
-              return { uri: getDependencyFileURI(script, script.requires[i]).spec,
-                       lineNumber: (lineNumber - start)};
-          }
-          start = end;
+  findError: function(script, lineNumber){
+    var start = 0;
+    var end = 1;
+
+    for (var i = 0; i < script.offsets.length; i++) {
+      end = script.offsets[i];
+      if (lineNumber < end) {
+        return {
+          uri: getDependencyFileURI(script, script.requires[i]).spec,
+          lineNumber: (lineNumber - start)
+        };
       }
-      return { uri: getScriptFileURI(script).spec,
-                    lineNumber: (lineNumber - end)};
+      start = end;
+    }
+
+    return {
+      uri: getScriptFileURI(script).spec,
+      lineNumber: (lineNumber - end)
+    };
   },
   
-  getFirebugConsole:function(unsafeContentWin, chromeWin) {
+  getFirebugConsole: function(unsafeContentWin, chromeWin) {
     var firebugConsoleCtor = null;
     var firebugContext = null;
 

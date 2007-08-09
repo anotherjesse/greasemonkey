@@ -39,50 +39,52 @@ Config.prototype.initFilename = function(script) {
     
   if (!index[base]) {
     script.filename = base + ".user.js";
- 	  script.basedir = base;
- 	  return;
- 	}
- 	   
- 	for (var count = 1; count < Number.MAX_VALUE; count++) {
- 	  if (!index[base + count]) {
- 	    script.filename = base + ".user.js";
- 	    script.basedir = base + "("+ count + ")";
- 	    return;
- 	  }
- 	}
+    script.basedir = base;
+    return;
+  }
+      
+  for (var count = 1; count < Number.MAX_VALUE; count++) {
+    if (!index[base + count]) {
+      script.filename = base + ".user.js";
+      script.basedir = base + "("+ count + ")";
+      return;
+    }
+  }
     
   throw new Error("doooooooode. get some different user script or something.");
 }
   
 Config.prototype.initDependencyFilename = function(script, req){
-    var remoteFilename = req.url.substr(req.url.lastIndexOf("/")+1)
-    var dotIndex = remoteFilename.lastIndexOf(".");
-    if(dotIndex > 0){
-        var base = remoteFilename.substring(0, dotIndex);
-        var ext = remoteFilename.substring(dotIndex+1);
-    }else{
-       var base = remoteFilename;
-       var ext = "";
-    }
-    
-    if (base.length > 24) {
-        base = base.substring(0, 24);
-    }
-    if (ext.length > 0){
-        ext = "."+ext;
-    }
+  var remoteFilename = req.url.substr(req.url.lastIndexOf("/") + 1)
+  var dotIndex = remoteFilename.lastIndexOf(".");
+
+  if (dotIndex > 0) {
+    var base = remoteFilename.substring(0, dotIndex);
+    var ext = remoteFilename.substring(dotIndex+1);
+  } else {
+    var base = remoteFilename;
+    var ext = "";
+  }
   
-    for (var count = 0; count < Number.MAX_VALUE; count++) {
-        var stamp = (count>0) ? "("+count+")" : "";
-        var filename = base + stamp + ext;
-        var file = getScriptBasedir(script)
-        file.append(filename);
-        if(!file.exists()){
-            return filename; 
-        }        
-    }
-    
-}  
+  if (base.length > 24) {
+    base = base.substring(0, 24);
+  }
+
+  if (ext.length > 0){
+    ext = "."+ext;
+  }
+
+  for (var count = 0; count < Number.MAX_VALUE; count++) {
+    var stamp = (count > 0) ? "(" + count + ")" : "";
+    var filename = base + stamp + ext;
+    var file = getScriptBasedir(script)
+    file.append(filename);
+
+    if (!file.exists()) {
+      return filename; 
+    }        
+  }
+}
   
 Config.prototype.load = function() {
   var domParser = Components.classes["@mozilla.org/xmlextras/domparser;1"]
@@ -99,12 +101,12 @@ Config.prototype.load = function() {
 
     for (var i = 0, childNode = null; (childNode = node.childNodes[i]); i++) {
       if (childNode.nodeName == "Include") {
-	     script.includes.push(childNode.firstChild.nodeValue);
-      }else if (childNode.nodeName == "Exclude") {
-	     script.excludes.push(childNode.firstChild.nodeValue);
-      }else if (childNode.nodeName == "Require"){
-         script.requires.push({ filename : childNode.getAttribute("filename")});
-      }else if (childNode.nodeName == "Import"){
+        script.includes.push(childNode.firstChild.nodeValue);
+      } else if (childNode.nodeName == "Exclude") {
+        script.excludes.push(childNode.firstChild.nodeValue);
+      } else if (childNode.nodeName == "Require") {
+        script.requires.push({ filename : childNode.getAttribute("filename")});
+      } else if (childNode.nodeName == "Import") {
          script.imports.push({ name : childNode.getAttribute("name"),
                                filename : childNode.getAttribute("filename"),
                                mimetype : childNode.getAttribute("mimetype")});
@@ -142,26 +144,26 @@ Config.prototype.save = function() {
       scriptNode.appendChild(excludeNode);
     }
     
-    for(var j=0; j< scriptObj.requires.length; j++){
-        var req = scriptObj.requires[j];
-        var importNode = doc.createElement("Require");
-        
-        importNode.setAttribute("filename", req.filename);
-        
-        scriptNode.appendChild(doc.createTextNode("\n\t\t"));
-        scriptNode.appendChild(importNode);
+    for (var j = 0; j < scriptObj.requires.length; j++) {
+      var req = scriptObj.requires[j];
+      var importNode = doc.createElement("Require");
+      
+      importNode.setAttribute("filename", req.filename);
+      
+      scriptNode.appendChild(doc.createTextNode("\n\t\t"));
+      scriptNode.appendChild(importNode);
     }
     
-    for(var j=0; j< scriptObj.imports.length; j++){
-        var imp = scriptObj.imports[j];
-        var importNode = doc.createElement("Import");
-        
-        importNode.setAttribute("name", imp.name);
-        importNode.setAttribute("filename", imp.filename);
-        importNode.setAttribute("mimetype", imp.mimetype);
-        
-        scriptNode.appendChild(doc.createTextNode("\n\t\t"));
-        scriptNode.appendChild(importNode);
+    for (var j = 0; j< scriptObj.imports.length; j++) {
+      var imp = scriptObj.imports[j];
+      var importNode = doc.createElement("Import");
+      
+      importNode.setAttribute("name", imp.name);
+      importNode.setAttribute("filename", imp.filename);
+      importNode.setAttribute("mimetype", imp.mimetype);
+      
+      scriptNode.appendChild(doc.createTextNode("\n\t\t"));
+      scriptNode.appendChild(importNode);
     }
     
     scriptNode.appendChild(doc.createTextNode("\n\t"));
@@ -185,7 +187,7 @@ Config.prototype.save = function() {
 }
 
 Config.prototype.install = function(script) {
-  GM_log("< Config.install");
+  GM_log("> Config.install");
 
   try {
     // initialize a new script object
@@ -199,25 +201,26 @@ Config.prototype.install = function(script) {
     if (existingIndex > -1) {
         existingFile = getScriptBasedir(this.scripts[existingIndex]);
         existingFile.normalize();
-        if(existingFile.equals(getScriptDir())){
+        if (existingFile.equals(getScriptDir())) {
           existingFile = getScriptFile(this.scripts[existingIndex]);
         }
         if (existingFile.exists()) {
-	        existingFile.remove(true);
+          existingFile.remove(true);
         }
 
       this.scripts.splice(existingIndex, 1);
     }
+
     this.initFilename(script);
     newDir.append(script.basedir);
-    script.file.copyTo(newDir, script.filename)
+    script.file.copyTo(newDir, script.filename);
    
-    for(var i=0; i<script.requires.length; i++){
-         this.installDependency(script, script.requires[i]);
+    for (var i = 0; i < script.requires.length; i++) {
+      this.installDependency(script, script.requires[i]);
     }
  
-    for(var i=0; i<script.imports.length; i++){
-         this.installDependency(script, script.imports[i]);
+    for (var i = 0; i < script.imports.length; i++) {
+      this.installDependency(script, script.imports[i]);
     } 
    
    
@@ -226,28 +229,27 @@ Config.prototype.install = function(script) {
    
    
     GM_log("< Config.install")
-
   } catch (e2) {
     alert("Error installing user script:\n\n" + (e2 ? e2 : ""));
-  }  
+  }
 }
 
 Config.prototype.installDependency = function(script, req){
-   GM_log("Installing dependency: " + req.url  + " from " + req.file.path);
-   
-   var scriptDir = getScriptDir();
-   GM_log("Installing to " + script.basedir);
-   scriptDir.append(script.basedir);
-   
-   req.filename = this.initDependencyFilename(script, req);
-   
-   GM_log("Installing as: " + req.filename);                   
-   
-   try{
-       req.file.copyTo(scriptDir, req.filename)
-   }catch(e){
-      throw e;
-   }       
+  GM_log("Installing dependency: " + req.url  + " from " + req.file.path);
+
+  var scriptDir = getScriptDir();
+  GM_log("Installing to " + script.basedir);
+  scriptDir.append(script.basedir);
+
+  req.filename = this.initDependencyFilename(script, req);
+
+  GM_log("Installing as: " + req.filename);                   
+
+  try {
+    req.file.copyTo(scriptDir, req.filename)
+  } catch(e) {
+    throw e;
+  }       
 }
 
 function Script() {
@@ -264,15 +266,15 @@ function Script() {
 }
 
 function ScriptDependency(){
-    this.url = null
-    this.file = null;
-    this.filename = null;
+  this.url = null
+  this.file = null;
+  this.filename = null;
 }
 
 function ScriptImport(){
-    this.url = null
-    this.name = null;
-    this.file = null;
-    this.filename = null;
-    this.mimetype = null;
+  this.url = null
+  this.name = null;
+  this.file = null;
+  this.filename = null;
+  this.mimetype = null;
 }
