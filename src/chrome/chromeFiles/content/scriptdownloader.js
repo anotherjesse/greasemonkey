@@ -4,6 +4,7 @@ function ScriptDownloader(win, uri, bundle) {
   this.bundle_ = bundle;
   this.req_ = null;
   this.script = null;
+  this.depQueue_ = [];
 }
 
 ScriptDownloader.prototype.startInstall = function() {
@@ -29,11 +30,11 @@ ScriptDownloader.prototype.startDownload = function() {
 
   this.req_ = new XMLHttpRequest();
   this.req_.open("GET", this.uri_.spec, true);
-  this.req_.onload = GM_hitch(this, "handleDownloadComplete");
+  this.req_.onload = GM_hitch(this, "handleScriptDownloadComplete");
   this.req_.send(null);
 };
 
-ScriptDownloader.prototype.handleDownloadComplete = function() {
+ScriptDownloader.prototype.handleScriptDownloadComplete = function() {
 
   // If loading from file, status might be zero on success
   if (this.req_.status != 200 && this.req_.status != 0) {
@@ -70,21 +71,70 @@ ScriptDownloader.prototype.handleDownloadComplete = function() {
   this.script.file = file;
   this.win_.GM_BrowserUI.showStatus("Fetching dependencies", false);
   
+  
   downloader = new DownloadQueue();
 
   var deps = this.script.requires.concat(this.script.imports);
    for(var i=0; i<deps.length; i++){
      var dep = deps[i];
      if(this.checkDependencyURL(dep.url)){
-         downloader.add(dep.url, GM_hitch(this, "installDependency", this.script, dep),GM_hitch(this, "errorInstallDependency", this.script, dep))
+         this.depQueue_.push(dep);
      }else{
          this.errorInstallDependency(this.script, dep, "SecurityException: Request to local and chrome url's is forbidden")
          return;
      }
    }
-   
-   downloader.start(GM_hitch(this, "finishInstall", this.script),GM_hitch(this, "errorInstall", this.script))
+   this.downloadNextDependency();
+}
+
+ScriptDownloader.prototype.downloadNextDependency = function(){
+  if (this.depQueue_.length>0) {
+    var dep = this.depQueue_.pop();
+    try{
+      var persist = Components.classes["@mozilla.org/embedding/browser/nsWebBrowserPersist;1"].createInstance(Components.interfaces.nsIWebBrowserPersist);
+      persist.persistFlags = persist.PERSIST_FLAGS_BYPASS_CACHE | persist.PERSIST_FLAGS_REPLACE_EXISTING_FILES; //doesn't work? 
+      var ioservice = Components.classes["@mozilla.org/network/io-service;1"]
+                  .getService();
+      var sourceUri = ioservice.newURI(dep.url, null, null);
+      var sourceChannel = ioservice.newChannelFromURI(sourceUri);
+      sourceChannel.notificationCallbacks = new NotificationCallbacks();
+    
+      var file = getTempFile();
+    
+      var progressListener = new PersistProgressListener(persist);
+      progressListener.onFinish =  GM_hitch(this, "handleDependencyDownloadComplete", dep, file, sourceChannel);
+      persist.progressListener = progressListener;
+     
+      persist.saveChannel(sourceChannel,  file);
+    }catch(e){
+      GM_log("Download exception " + e);
+      this.errorInstallDependency(this.script, dep, e);
+    }
+  } else {
+      this.finishInstall();
+  } 
+}
+
+ScriptDownloader.prototype.handleDependencyDownloadComplete = function(dep, file, channel){
+  GM_log("DQ: Download complete ");
+  try{
+    var httpChannel = channel.QueryInterface(Components.interfaces.nsIHttpChannel);
+  }catch(e){
+    var httpChannel = false;    
+  }
   
+  if(httpChannel){
+    if(httpChannel.requestSucceeded){
+      dep.file = file;
+      dep.mimetype= channel.contentType;  
+      this.downloadNextDependency();
+    }else{
+      this.errorInstallDependency(this.script, dep, "Error! Server Returned : " + httpChannel.responseStatus + ": " + httpChannel.responseStatusText);
+    }
+  }else{
+    job.onload(file, channel.contentType);
+    downloadNext();
+  }
 }
 
 ScriptDownloader.prototype.checkDependencyURL = function(url){
@@ -116,19 +166,12 @@ ScriptDownloader.prototype.finishInstall = function(){
 }
 
 ScriptDownloader.prototype.errorInstall = function(){
-        GM_log("Error installing script");
+  GM_log("Error installing script");
 }
 
-ScriptDownloader.prototype.errorInstallDependency = function(script, req, msg){
-   this.win_.GM_BrowserUI.refreshStatus();
-    
-   alert("Error loading dependency " + req.url + "\n" + msg);
-    
-}
-
-ScriptDownloader.prototype.installDependency = function(script, req, file, mimetype){
-    req.file = file;
-    req.mimetype= mimetype;
+ScriptDownloader.prototype.errorInstallDependency = function(script, dep, msg){
+  this.win_.GM_BrowserUI.refreshStatus();
+  alert("Error loading dependency " + req.url + "\n" + msg);
 }
 
 ScriptDownloader.prototype.showInstallDialog = function(timer) {
@@ -229,3 +272,82 @@ ScriptDownloader.prototype.parseScript = function(source, uri) {
 
   this.script = script;
 };
+
+
+function NotificationCallbacks(){
+    
+}
+
+NotificationCallbacks.prototype = {
+   QueryInterface : function(aIID)
+   {
+       if(aIID.equals(Components.interfaces.nsIInterfaceRequestor)){
+           return this;
+       }
+       throw Components.results.NS_NOINTERFACE;
+   },
+   
+   getInterface : function(aIID){
+       if(aIID.equals(Components.interfaces.nsIAuthPrompt )){
+         var winWat = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
+                          .getService(Components.interfaces.nsIWindowWatcher);
+         return winWat.getNewAuthPrompter(winWat.activeWindow);                          
+       }
+   } 
+};
+
+function PersistProgressListener(persist){
+	this.persist = persist;
+    this.onFinish = function(){};
+	this.persiststate = "";
+};
+
+PersistProgressListener.prototype =
+ {
+   QueryInterface : function(aIID)
+   {
+     if(aIID.equals(Components.interfaces.nsIWebProgressListener)){
+       return this;
+     }
+     throw Components.results.NS_NOINTERFACE;
+   },
+   
+ 
+   // nsIWebProgressListener
+   onProgressChange : function (aWebProgress, aRequest,
+                                aCurSelfProgress, aMaxSelfProgress,
+                                aCurTotalProgress, aMaxTotalProgress)
+   {
+      GM_log("Persister.progress: "+ aCurTotalProgress + " of "+ aMaxTotalProgress);
+   },
+ 
+   onStateChange : function(aWebProgress, aRequest, aStateFlags, aStatus)
+   {
+     try {
+       if(this.persist.currentState == this.persist.PERSIST_STATE_READY){
+            
+       }else if(this.persist.currentState == this.persist.PERSIST_STATE_SAVING){
+           
+       }else if(this.persist.currentState == this.persist.PERSIST_STATE_FINISHED){
+          GM_log("Persister: Download complete " + aRequest.status);
+	      this.onFinish();
+       }
+     }catch(e) {
+       //  log("Exception " + e + " : " + e.fileName + " " + e.lineNumber);
+     }
+     
+   },
+ 
+   onLocationChange : function(aWebProgress, aRequest, aLocation)
+   {
+   },
+ 
+   onStatusChange : function(aWebProgress, aRequest, aStatus, aMessage)
+   {
+     GM_log("Persister.onStatusChange: " + aMessage);
+   },
+ 
+   onSecurityChange : function(aWebProgress, aRequest, aState)
+   {
+   }
+}
