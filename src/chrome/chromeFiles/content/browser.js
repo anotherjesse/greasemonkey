@@ -252,12 +252,15 @@ GM_BrowserUI.observe = function(subject, topic, data) {
  * Handles the install button getting clicked.
  */
 GM_BrowserUI.installCurrentScript = function() {
-  var config = new Config();
-  config.load();
-  config.install(this.scriptDownloader_.script);
-  this.showHorrayMessage(this.scriptDownloader_.script.name);
+  this.scriptDownloader_.installScript();
 };
 
+GM_BrowserUI.installScript = function(script){
+    var config = new Config();
+    config.load();
+    config.install(script);
+    this.showHorrayMessage(script.name);
+}
 
 /**
  * The browser's location has changed. Usually, we don't care. But in the case

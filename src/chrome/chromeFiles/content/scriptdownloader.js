@@ -5,6 +5,8 @@ function ScriptDownloader(win, uri, bundle) {
   this.req_ = null;
   this.script = null;
   this.depQueue_ = [];
+  this.dependenciesLoaded_ = false;
+  this.installOnCompletion_ = false;
 }
 
 ScriptDownloader.prototype.startInstall = function() {
@@ -69,22 +71,29 @@ ScriptDownloader.prototype.handleScriptDownloadComplete = function() {
   ws.close();
 
   this.script.file = file;
-  this.win_.GM_BrowserUI.showStatus("Fetching dependencies", false);
   
+  window.setTimeout(GM_hitch(this, "fetchDependencies"), 0);
   
-  downloader = new DownloadQueue();
+  if(this.installing_){
+    this.showInstallDialog();  
+  }else{
+    this.showScriptView();
+  }
+}
 
+ScriptDownloader.prototype.fetchDependencies = function(){
+  GM_log("Fetching Dependenies");
   var deps = this.script.requires.concat(this.script.imports);
-   for(var i=0; i<deps.length; i++){
-     var dep = deps[i];
-     if(this.checkDependencyURL(dep.url)){
-         this.depQueue_.push(dep);
-     }else{
-         this.errorInstallDependency(this.script, dep, "SecurityException: Request to local and chrome url's is forbidden")
-         return;
-     }
-   }
-   this.downloadNextDependency();
+  for(var i=0; i<deps.length; i++){
+    var dep = deps[i];
+    if(this.checkDependencyURL(dep.url)){
+      this.depQueue_.push(dep);
+    }else{
+      this.errorInstallDependency(this.script, dep, "SecurityException: Request to local and chrome url's is forbidden")
+      return;
+    }
+  }
+  this.downloadNextDependency();
 }
 
 ScriptDownloader.prototype.downloadNextDependency = function(){
@@ -111,20 +120,21 @@ ScriptDownloader.prototype.downloadNextDependency = function(){
       this.errorInstallDependency(this.script, dep, e);
     }
   } else {
-      this.finishInstall();
+    this.dependenciesLoaded_ = true;
+    this.finishInstall();
   } 
 }
 
 ScriptDownloader.prototype.handleDependencyDownloadComplete = function(dep, file, channel){
-  GM_log("DQ: Download complete ");
+  GM_log("Dependency Download complete");
   try{
     var httpChannel = channel.QueryInterface(Components.interfaces.nsIHttpChannel);
   }catch(e){
     var httpChannel = false;    
   }
   
-  if(httpChannel){
-    if(httpChannel.requestSucceeded){
+  if (httpChannel) {
+    if (httpChannel.requestSucceeded) {
       dep.file = file;
       dep.mimetype= channel.contentType;  
       this.downloadNextDependency();
@@ -132,7 +142,7 @@ ScriptDownloader.prototype.handleDependencyDownloadComplete = function(dep, file
       this.errorInstallDependency(this.script, dep, "Error! Server Returned : " + httpChannel.responseStatus + ": " + httpChannel.responseStatusText);
     }
   }else{
-    job.onload(file, channel.contentType);
+    dep.file = file;
     downloadNext();
   }
 }
@@ -156,12 +166,8 @@ ScriptDownloader.prototype.checkDependencyURL = function(url){
 }
 
 ScriptDownloader.prototype.finishInstall = function(){
-  this.win_.GM_BrowserUI.hideStatus();
-  this.win_.GM_BrowserUI.refreshStatus();
-  if (this.installing_) {
-    this.showInstallDialog();
-  } else {
-    this.showScriptView();
+  if (this.installOnCompletion_) {
+    this.installScript();
   }    
 }
 
@@ -174,12 +180,21 @@ ScriptDownloader.prototype.errorInstallDependency = function(script, dep, msg){
   alert("Error loading dependency " + req.url + "\n" + msg);
 }
 
+ScriptDownloader.prototype.installScript = function(){
+  if(this.dependenciesLoaded_){
+    this.win_.GM_BrowserUI.installScript(this.script)
+  }else{
+    this.installOnCompletion_ = true;
+  }
+}
+
 ScriptDownloader.prototype.showInstallDialog = function(timer) {
   if (!timer) {
     // otherwise, the status bar stays in the loading state.
     this.win_.setTimeout(GM_hitch(this, "showInstallDialog", true), 0);
     return;
   }
+  this.win_.GM_BrowserUI.hideStatus();
   this.win_.GM_BrowserUI.refreshStatus();
   this.win_.openDialog("chrome://greasemonkey/content/install.xul", "", 
 		               "chrome,centerscreen,modal,dialog,titlebar,resizable",
@@ -187,6 +202,8 @@ ScriptDownloader.prototype.showInstallDialog = function(timer) {
 };
 
 ScriptDownloader.prototype.showScriptView = function() {
+  this.win_.GM_BrowserUI.hideStatus();
+  this.win_.GM_BrowserUI.refreshStatus();
   this.win_.GM_BrowserUI.showScriptView(this);
 };
 
