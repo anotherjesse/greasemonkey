@@ -1,4 +1,4 @@
-var config = new Config(getScriptFile("config.xml"));
+var config = new Config();
 var uninstallList = [];
 
 window.addEventListener("load", function(ev) {
