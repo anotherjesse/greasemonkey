@@ -112,11 +112,6 @@ var greasemonkeyService = {
     Cc["@mozilla.org/moz/jssubscript-loader;1"]
       .getService(Ci.mozIJSSubScriptLoader)
       .loadSubScript("chrome://greasemonkey/content/xmlhttprequester.js");
-
-      
-    Cc["@mozilla.org/moz/jssubscript-loader;1"]
-      .getService(Ci.mozIJSSubScriptLoader)
-      .loadSubScript("chrome://greasemonkey/content/downloadqueue.js");
     
     //loggify(this, "GM_GreasemonkeyService");
   },
