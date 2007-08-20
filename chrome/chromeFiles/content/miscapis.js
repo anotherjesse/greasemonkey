@@ -69,3 +69,14 @@ function GM_console(script) {
 
 GM_console.prototype.log = function() {
 }
+
+
+function GM_ScriptHeaders() {}
+
+// On first call (an index operation on GM_headers), parse the script header and
+// return an object indexed on header name, values arrays of all such headers.
+GM_ScriptHeaders.prototype.get = function(script) {
+  if (this.headers) return this.headers;
+  var source = getContents(getScriptFileURI(script.filename));
+  return this.headers = ScriptDownloader.prototype.parseHeaders(source);
+}
