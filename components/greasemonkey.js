@@ -262,12 +262,9 @@ var greasemonkeyService = {
       sandbox.GM_registerMenuCommand = GM_hitch(this,
                                                 "registerMenuCommand",
                                                 unsafeContentWin);
-      sandbox.__proto__ = {
-        GM_getHeaders: function GM_getHeaders() {
-          return headers.get();
-        }
-      };
-      sandbox.__proto__.__proto__ = safeWin;
+      sandbox.GM_getHeaders = GM_hitch(headers, "get");
+
+      sandbox.__proto__ = safeWin;
 
       this.evalInSandbox("(function(){\n" +
                          getContents(getScriptFileURI(script.filename)) +
