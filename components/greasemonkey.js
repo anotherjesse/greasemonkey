@@ -239,7 +239,7 @@ var greasemonkeyService = {
       console = firebugConsole ? firebugConsole : new GM_console(script);
 
       storage = new GM_ScriptStorage(script);
-      headers = new GM_ScriptHeaders(script);
+      headers = new GM_ScriptHeaders(script.filename);
       xmlhttpRequester = new GM_xmlhttpRequester(unsafeContentWin,
                                                  appSvc.hiddenDOMWindow);
 
@@ -263,7 +263,7 @@ var greasemonkeyService = {
                                                 "registerMenuCommand",
                                                 unsafeContentWin);
       sandbox.__proto__ = {
-        get GM_headers() {
+        GM_getHeaders: function GM_getHeaders() {
           return headers.get();
         }
       };

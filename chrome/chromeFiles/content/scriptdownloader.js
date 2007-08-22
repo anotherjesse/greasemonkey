@@ -89,67 +89,14 @@ ScriptDownloader.prototype.showScriptView = function() {
   this.win_.GM_BrowserUI.showScriptView(this);
 };
 
-// Returns an associative array from header name to header values. Values are
-// arrays, unless headers[name] == 1, in which case the value is a string only.
-// The headers object, if provided, lists which headers you want, and whether
-// you want all occurrences, or just the last one. Gets all headers by default.
-ScriptDownloader.prototype.parseHeaders = function(source, headers) {
-  var headerRe = /.*/;
-  if (headers) {
-    var allHeaders = [];
-    for (var header in headers)
-      allHeaders.push(header);
-    headerRe = new RegExp( "^(" + allHeaders.join("|") + ")$" );
-  }
-
-  // read one line at a time looking for start meta delimiter or EOF
-  var lines = source.match(/.+/g);
-  var lnIdx = 0;
-  var result;
-  var foundMeta = false;
-  var headers = {};
-
-  while (result = lines[lnIdx++]) {
-    if (result.indexOf("// ==UserScript==") == 0) {
-      GM_log("* found metadata");
-      foundMeta = true;
-      break;
-    }
-  }
-
-  // gather up meta lines
-  if (foundMeta) {
-    while (result = lines[lnIdx++]) {
-      if (result.indexOf("// ==/UserScript==") == 0) {
-        break;
-      }
-
-      var match = result.match(/\/\/ \@(\S+)\s+([^\n]+)/);
-      if (match != null) {
-        var name = match[1], value = match[2];
-        if (!name.match(headerRe))
-          continue;
-        if (headers && headers[name])
-          headers[name] = value; // only wanted the last value
-        else { // want an array of all values
-          if (!headers.hasOwnProperty(name))
-            headers[name] = [];
-          headers[name].push(value);
-        }
-      }
-    }
-  }
-  return headers;
-};
-
 ScriptDownloader.prototype.parseScript = function(source, uri) {
   var script = new Script();
   script.uri = uri;
   script.enabled = true;
 
-  var headers = this.parseHeaders(source,
-                                  { name:1, namespace:1, description:1,
-                                    include:0, exclude:0 } );
+  var headers = parseScriptHeaders(source,
+                                   { name:1, namespace:1, description:1,
+                                     include:0, exclude:0 } );
 
   script.name = headers.name || parseScriptName(uri);
   script.namespace = headers.namespace || uri.host;

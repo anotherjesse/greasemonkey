@@ -373,3 +373,57 @@ return function() {
     }
   }
 }
+
+
+// Returns an associative array from header name to header values. Values are
+// arrays, unless headers[name] == 1, in which case the value is a string only.
+// The headers object, if provided, lists which headers you want, and whether
+// you want all occurrences, or just the last one. Gets all headers by default.
+function parseScriptHeaders(source, whichHeaders) {
+  var headerRe = /.*/;
+  if (whichHeaders) {
+    var allHeaders = [];
+    for (var header in whichHeaders)
+      allHeaders.push(header);
+    headerRe = new RegExp( "^(" + allHeaders.join("|") + ")$" );
+  }
+
+  // read one line at a time looking for start meta delimiter or EOF
+  var lines = source.match(/.+/g);
+  var lnIdx = 0;
+  var result;
+  var foundMeta = false;
+  var headers = {};
+
+  while (result = lines[lnIdx++]) {
+    if (result.indexOf("// ==UserScript==") == 0) {
+      GM_log("* found metadata");
+      foundMeta = true;
+      break;
+    }
+  }
+
+  // gather up meta lines
+  if (foundMeta) {
+    while (result = lines[lnIdx++]) {
+      if (result.indexOf("// ==/UserScript==") == 0) {
+        break;
+      }
+
+      var match = result.match(/\/\/ \@(\S+)\s+([^\n]+)/);
+      if (match != null) {
+        var name = match[1], value = match[2];
+        if (!name.match(headerRe))
+          continue;
+        if (whichHeaders && whichHeaders[name])
+          headers[name] = value; // only wanted the last value
+        else { // want an array of all values
+          if (!headers.hasOwnProperty(name))
+            headers[name] = [];
+          headers[name].push(value);
+        }
+      }
+    }
+  }
+  return headers;
+};
