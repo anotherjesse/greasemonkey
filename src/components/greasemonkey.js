@@ -258,7 +258,7 @@ var greasemonkeyService = {
       sandbox.GM_setValue = GM_hitch(storage, "setValue");
       sandbox.GM_getValue = GM_hitch(storage, "getValue");
       sandbox.GM_getImportURL = GM_hitch(imports, "getImportURL"); 
-      sandbox.GM_getImportContent = GM_hitch(imports, "getImportContent");
+      sandbox.GM_getImportText = GM_hitch(imports, "getImportText");
       sandbox.GM_openInTab = GM_hitch(this, "openInTab", unsafeContentWin);
       sandbox.GM_xmlhttpRequest = GM_hitch(xmlhttpRequester,
                                            "contentStartRequest");

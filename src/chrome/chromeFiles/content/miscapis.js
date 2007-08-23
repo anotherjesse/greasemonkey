@@ -37,7 +37,7 @@ GM_Imports.prototype.getImportURL = function(name) {
     window.encodeURIComponent(window.btoa(binaryContents));
 }
 
-GM_Imports.prototype.getImportContent = function(name) {
+GM_Imports.prototype.getImportText = function(name) {
   // TODO(aa): Should we check the mimetype and return binary data, base64
   // encoded or something? Binary data is not that useful to JavaScript. Should
   // we just rename this method getImportText() to make it clear that it only
