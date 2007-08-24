@@ -109,7 +109,8 @@ Config.prototype.load = function() {
       } else if (childNode.nodeName == "Import") {
          script.imports.push({ name : childNode.getAttribute("name"),
                                filename : childNode.getAttribute("filename"),
-                               mimetype : childNode.getAttribute("mimetype")});
+                               mimetype : childNode.getAttribute("mimetype"),
+                               charset  : childNode.getAttribute("charset")});
       }
     }
     
@@ -161,6 +162,9 @@ Config.prototype.save = function() {
       importNode.setAttribute("name", imp.name);
       importNode.setAttribute("filename", imp.filename);
       importNode.setAttribute("mimetype", imp.mimetype);
+      if (imp.charset) {
+        importNode.setAttribute("charset", imp.charset);
+      }
       
       scriptNode.appendChild(doc.createTextNode("\n\t\t"));
       scriptNode.appendChild(importNode);

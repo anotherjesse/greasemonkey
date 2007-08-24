@@ -137,6 +137,9 @@ ScriptDownloader.prototype.handleDependencyDownloadComplete = function(dep, file
     if (httpChannel.requestSucceeded) {
       dep.file = file;
       dep.mimetype= channel.contentType;  
+      if(channel.contentCharset){
+        dep.charset = channel.contentCharset;
+      }
       this.downloadNextDependency();
     }else{
       this.errorInstallDependency(this.script, dep, "Error! Server Returned : " + httpChannel.responseStatus + ": " + httpChannel.responseStatusText);

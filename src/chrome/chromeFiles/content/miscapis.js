@@ -30,10 +30,15 @@ GM_Imports.prototype.getImportURL = function(name) {
 
   var window = appSvc.hiddenDOMWindow;
   var binaryContents = getBinaryContents(getDependencyFileURI(this.script, dep))
-
+  
+  var mimetype = dep.mimetype;
+  if(dep.charset && dep.charset.length > 0){
+    mimetype += ";charset=" + dep.charset;
+  }
+  
   // TODO(aa): I think we should return a real URL here, not base64. I think
   // it's not that hard to implement protocol handlers.
-  return "data:" + dep.mimetype + ";base64," + 
+  return "data:" + mimetype + ";base64," + 
     window.encodeURIComponent(window.btoa(binaryContents));
 }
 
