@@ -429,28 +429,16 @@ function GM_showPopup(aEvent) {
 
   // build the new list of scripts
   for (var i = 0, script = null; script = config.scripts[i]; i++) {
-    incloop: for (var j = 0; j < script.includes.length; j++) {
-      var pattern = convert2RegExp(script.includes[j]);
-      if (pattern.test(url)) {
-        for (var k = 0; k < script.excludes.length; k++) {
-          pattern = convert2RegExp(script.excludes[k]);
-          if (pattern.test(url)) {
-            break incloop;
-          }
-        }
+    if (GM_scriptMatchesUrl(script, url)) {
+      foundInjectedScript = true;
 
-        foundInjectedScript = true;
+      var mi = document.createElement('menuitem');
+      mi.setAttribute('label', script.name);
+      mi.setAttribute('value', i);
+      mi.setAttribute('type', 'checkbox');
+      mi.setAttribute('checked', script.enabled.toString());
 
-        var mi = document.createElement('menuitem');
-        mi.setAttribute('label', script.name);
-        mi.setAttribute('value', i);
-        mi.setAttribute('type', 'checkbox');
-        mi.setAttribute('checked', script.enabled.toString());
-
-        popup.insertBefore(mi, document.getElementById("gm-status-no-scripts-sep"));
-
-        break incloop;
-      }
+      popup.insertBefore(mi, document.getElementById("gm-status-no-scripts-sep"));
     }
   }
 

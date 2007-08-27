@@ -95,6 +95,7 @@ ScriptDownloader.prototype.parseScript = function(source, uri) {
   script.enabled = true;
   script.includes = [];
   script.excludes = [];
+  script.xpaths = [];
 
   // read one line at a time looking for start meta delimiter or EOF
   var lines = source.match(/.+/g);
@@ -117,7 +118,7 @@ ScriptDownloader.prototype.parseScript = function(source, uri) {
         break;
       }
 
-      var match = result.match(/\/\/ \@(\S+)\s+([^\n]+)/);
+      var match = result.match(/\/\/ \@(\S+)\s+([^\n]+)/), required = false;
       if (match != null) {
         switch (match[1]) {
         case "name":
@@ -128,6 +129,23 @@ ScriptDownloader.prototype.parseScript = function(source, uri) {
         case "include":
         case "exclude":
           script[match[1]+"s"].push(match[2]);
+          break;
+        case "xpath":
+        case "xpath+":
+          required = true; /* fall-through */
+        case "xpath?":
+        case "xpath*":
+          var xpath = match[2];
+          var tag = xpath.match(/([^\s:]+):\s+(.+)/);
+          var attr = { required:required, multiple:false, path:xpath };
+          if (match[1].match(/[+*]$/)) {
+            attr.multiple = true;
+          }
+          if (tag) {
+            attr.name = tag[1];
+            attr.path = tag[2];
+          }
+          script.xpaths.push(attr);
           break;
         }
       }

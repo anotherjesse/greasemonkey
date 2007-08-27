@@ -78,6 +78,18 @@ Config.prototype.load = function() {
       else if (childNode.nodeName == "Exclude") {
 	script.excludes.push(childNode.firstChild.nodeValue);
       }
+      else if (childNode.nodeName == "XPath") {
+        var attr = {
+          required:childNode.getAttribute("required") == "true",
+          multiple:childNode.getAttribute("multiple") == "true",
+          path:childNode.firstChild.nodeValue
+        };
+        var name = childNode.getAttribute("name");
+        if (name) {
+          attr.name = name;
+        }
+        script.xpaths.push(attr);
+      }
     }
 
     script.filename = node.getAttribute("filename");
@@ -108,6 +120,19 @@ Config.prototype.save = function() {
       excludeNode.appendChild(doc.createTextNode(scriptObj.excludes[j]));
       scriptNode.appendChild(doc.createTextNode("\n\t\t"));
       scriptNode.appendChild(excludeNode);
+    }
+
+    for (var j = 0; j < scriptObj.xpaths.length; j++) {
+      var xpathNode = doc.createElement("XPath");
+      var xpath = scriptObj.xpaths[j];
+      if (xpath.name) {
+        xpathNode.setAttribute("name", xpath.name);
+      }
+      xpathNode.setAttribute("required", xpath.required.toString());
+      xpathNode.setAttribute("multiple", xpath.multiple.toString());
+      xpathNode.appendChild(doc.createTextNode(xpath.path));
+      scriptNode.appendChild(doc.createTextNode("\n\t\t"));
+      scriptNode.appendChild(xpathNode);
     }
 
     scriptNode.appendChild(doc.createTextNode("\n\t"));
@@ -173,4 +198,5 @@ function Script() {
   this.enabled = true;
   this.includes = [];
   this.excludes = [];
+  this.xpaths = [];
 }

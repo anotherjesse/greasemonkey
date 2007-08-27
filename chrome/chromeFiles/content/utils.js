@@ -373,3 +373,36 @@ return function() {
     }
   }
 }
+
+function GM_scriptMatchesUrl( script, url ) {
+ for (var i = 0, glob; glob = script.includes[i]; i++) {
+   var re = convert2RegExp(glob);
+   if (re.test(url)) {
+     for (var j = 0; glob = script.excludes[j]; j++) {
+       re = convert2RegExp(glob);
+       if (re.test(url))
+         return false;
+     }
+     return true;
+   }
+ }
+ return false;
+}
+
+function GM_byXPath(xpath, asArray, doc) {
+  //GM_log( "GM_byXPath: "+ xpath +", "+ asArray +", "+ doc );
+  var result = doc.evaluate(xpath, doc, null, 0/* (= ANY_TYPE) */, null);
+  if (asArray) {
+    var nodes = [], node;
+    while (node = result.iterateNext())
+      nodes.push(node);
+    return nodes;
+  }
+
+  switch (result.resultType) {
+    case result.STRING_TYPE:  return result.stringValue;
+    case result.NUMBER_TYPE:  return result.numberValue;
+    case result.BOOLEAN_TYPE: return result.booleanValue;
+  }
+  return result.iterateNext();
+}

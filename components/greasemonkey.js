@@ -186,31 +186,13 @@ var greasemonkeyService = {
   },
 
   initScripts: function(url) {
-    var config = new Config(getScriptFile("config.xml"));
-    var scripts = [];
+    var config = new Config();
+    var scripts = [], script;
     config.load();
 
-    outer:
-    for (var i = 0; i < config.scripts.length; i++) {
-      var script = config.scripts[i];
-      if (script.enabled) {
-        for (var j = 0; j < script.includes.length; j++) {
-          var pattern = convert2RegExp(script.includes[j]);
-
-          if (pattern.test(url)) {
-            for (var k = 0; k < script.excludes.length; k++) {
-              pattern = convert2RegExp(script.excludes[k]);
-
-              if (pattern.test(url)) {
-                continue outer;
-              }
-            }
-
-            scripts.push(script);
-
-            continue outer;
-          }
-        }
+    for (var i = 0; script = config.scripts[i]; i++) {
+      if (script.enabled && GM_scriptMatchesUrl(script, url)) {
+        scripts.push(script);
       }
     }
 
@@ -231,7 +213,38 @@ var greasemonkeyService = {
     // detect and grab reference to firebug console and context, if it exists
     var firebugConsole = this.getFirebugConsole(unsafeContentWin, chromeWin);
 
+    outer:
     for (var i = 0; script = scripts[i]; i++) {
+      if (script.xpaths.length) {
+        script.xpath = {};
+        for (var j = 0, xpath; xpath = script.xpaths[j]; j++) {
+          try {
+            var result = GM_byXPath(xpath.path, xpath.multiple, safeDoc);
+          } catch (e) {
+            var tag = "@xpath";
+            if (xpath.required) {
+              if (xpath.multiple) {
+                tag += "+"
+              }
+            } else {
+              tag += xpath.multiple ? "*" : "?";
+            }
+            GM_log(tag + (xpath.name ? " " + xpath.name + ":" : "") +
+                   " " + xpath.path + " failed: " + e.message);
+            if (xpath.required) {
+              continue outer; // don't inject
+            }
+            continue; // pass by, unperturbed
+          }
+          if (xpath.required && !result) {
+            continue outer; // don't inject
+          }
+          if (xpath.name) {
+            script.xpath[xpath.name] = result;
+          }
+        }
+      }
+
       sandbox = new Components.utils.Sandbox(safeWin);
 
       logger = new GM_ScriptLogger(script);
@@ -253,6 +266,9 @@ var greasemonkeyService = {
       sandbox.GM_addStyle = function(css) { GM_addStyle(safeDoc, css) };
       sandbox.GM_log = GM_hitch(logger, "log");
       sandbox.console = console;
+      if (script.xpath) {
+        sandbox.GM_xpath = script.xpath;
+      }
       sandbox.GM_setValue = GM_hitch(storage, "setValue");
       sandbox.GM_getValue = GM_hitch(storage, "getValue");
       sandbox.GM_openInTab = GM_hitch(this, "openInTab", unsafeContentWin);
