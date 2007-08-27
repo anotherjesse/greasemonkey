@@ -229,8 +229,8 @@ var greasemonkeyService = {
             } else {
               tag += xpath.multiple ? "*" : "?";
             }
-            GM_log(tag + (xpath.name ? " " + xpath.name + ":" : "") +
-                   " " + xpath.path + " failed: " + e.message);
+            /* GM_log(tag + (xpath.name ? " " + xpath.name + ":" : "") +
+                   " " + xpath.path + " failed: " + e.message); */
             if (xpath.required) {
               continue outer; // don't inject
             }
