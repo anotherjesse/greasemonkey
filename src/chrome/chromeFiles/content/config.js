@@ -253,7 +253,9 @@ Config.prototype.installDependency = function(script, req){
   scriptDir.append(script.basedir);
 
   req.filename = this.initDependencyFilename(script, req);
-
+  if(req.name == ""){
+    req.name = req.filename;
+  }
   GM_log("Installing as: " + req.filename);                   
 
   try {

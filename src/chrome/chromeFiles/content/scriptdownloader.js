@@ -37,47 +37,53 @@ ScriptDownloader.prototype.startDownload = function() {
 };
 
 ScriptDownloader.prototype.handleScriptDownloadComplete = function() {
-
-  // If loading from file, status might be zero on success
-  if (this.req_.status != 200 && this.req_.status != 0) {
+  try {
+    // If loading from file, status might be zero on success
+    if (this.req_.status != 200 && this.req_.status != 0) {
+      this.win_.GM_BrowserUI.refreshStatus();
+      this.win_.GM_BrowserUI.hideStatus();
+      
+      alert("Error loading user script:\n" + 
+  	  this.req_.status + ": " + 
+  	  this.req_.statusText);
+      return;
+    }
+  
+    var source = this.req_.responseText;
+  
+    this.parseScript(source, this.uri_);
+  
+    var file = Components.classes["@mozilla.org/file/directory_service;1"]
+          .getService(Components.interfaces.nsIProperties)
+          .get("TmpD", Components.interfaces.nsILocalFile);
+  
+    var base = this.script.name.replace(/[^A-Z0-9_]/gi, "").toLowerCase();
+    file.append(base + ".user.js");
+    
+    var converter =  
+      Components.classes["@mozilla.org/intl/scriptableunicodeconverter"]  
+      .createInstance(Components.interfaces.nsIScriptableUnicodeConverter);  
+    converter.charset = "UTF-8";  
+    source = converter.ConvertFromUnicode(source);
+  
+    var ws = getWriteStream(file);
+    ws.write(source, source.length);
+    ws.close();
+  
+    this.script.file = file;
+    
+    window.setTimeout(GM_hitch(this, "fetchDependencies"), 0);
+    
+    if(this.installing_){
+      this.showInstallDialog();  
+    }else{
+      this.showScriptView();
+    }
+  } catch (e) {
+    alert("Script could not be installed " + e);
     this.win_.GM_BrowserUI.refreshStatus();
     this.win_.GM_BrowserUI.hideStatus();
-    
-    alert("Error loading user script:\n" + 
-	  this.req_.status + ": " + 
-	  this.req_.statusText);
-    return;
-  }
-
-  var source = this.req_.responseText;
-
-  this.parseScript(source, this.uri_);
-
-  var file = Components.classes["@mozilla.org/file/directory_service;1"]
-        .getService(Components.interfaces.nsIProperties)
-        .get("TmpD", Components.interfaces.nsILocalFile);
-
-  var base = this.script.name.replace(/[^A-Z0-9_]/gi, "").toLowerCase();
-  file.append(base + ".user.js");
-  
-  var converter =  
-    Components.classes["@mozilla.org/intl/scriptableunicodeconverter"]  
-    .createInstance(Components.interfaces.nsIScriptableUnicodeConverter);  
-  converter.charset = "UTF-8";  
-  source = converter.ConvertFromUnicode(source);
-
-  var ws = getWriteStream(file);
-  ws.write(source, source.length);
-  ws.close();
-
-  this.script.file = file;
-  
-  window.setTimeout(GM_hitch(this, "fetchDependencies"), 0);
-  
-  if(this.installing_){
-    this.showInstallDialog();  
-  }else{
-    this.showScriptView();
+    throw e;
   }
 }
 
@@ -268,9 +274,16 @@ ScriptDownloader.prototype.parseScript = function(source, uri) {
           break;
         case "import":
           var imp = match[2].match(/([^\s]+)\s+([^\s]+)/);
-          var impUri = ioservice.newURI(imp[2], null, uri);
+          if (imp) {
+            var impName = imp[1];
+            var impUri = imp[2];
+          } else {
+            var impUri = match[2];
+            var impName = "";
+          }
+          var impUri = ioservice.newURI(impUri, null, uri);
           var scriptImport = new ScriptImport();
-          scriptImport.name = imp[1];
+          scriptImport.name = impName;
           scriptImport.url = impUri.spec;
           script.imports.push(scriptImport);
           break;
