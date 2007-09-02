@@ -56,8 +56,12 @@ Config.prototype.initFilename = function(script) {
   
 Config.prototype.initDependencyFilename = function(script, req){
   var remoteFilename = req.url.substr(req.url.lastIndexOf("/") + 1)
-  var dotIndex = remoteFilename.lastIndexOf(".");
 
+  if(remoteFilename.indexOf("?")>0){
+    remoteFilename = remoteFilename.substr(0, remoteFilename.indexOf("?"));
+  }
+
+  var dotIndex = remoteFilename.lastIndexOf(".");
   if (dotIndex > 0) {
     var base = remoteFilename.substring(0, dotIndex);
     var ext = remoteFilename.substring(dotIndex+1);
@@ -65,6 +69,9 @@ Config.prototype.initDependencyFilename = function(script, req){
     var base = remoteFilename;
     var ext = "";
   }
+
+  ext = ext.replace(/[^A-Z0-9_]/gi, "");
+  base = base.replace(/[^A-Z0-9_]/gi, "")
   
   if (base.length > 24) {
     base = base.substring(0, 24);

@@ -107,7 +107,7 @@ ScriptDownloader.prototype.downloadNextDependency = function(){
       var sourceUri = ioservice.newURI(dep.url, null, null);
       var sourceChannel = ioservice.newChannelFromURI(sourceUri);
       sourceChannel.notificationCallbacks = new NotificationCallbacks();
-    
+
       var file = getTempFile();
     
       var progressListener = new PersistProgressListener(persist);
@@ -126,7 +126,7 @@ ScriptDownloader.prototype.downloadNextDependency = function(){
 }
 
 ScriptDownloader.prototype.handleDependencyDownloadComplete = function(dep, file, channel){
-  GM_log("Dependency Download complete");
+  GM_log("Dependency Download complete " + dep.url);
   try{
     var httpChannel = channel.QueryInterface(Components.interfaces.nsIHttpChannel);
   }catch(e){
@@ -174,19 +174,21 @@ ScriptDownloader.prototype.finishInstall = function(){
   }    
 }
 
-ScriptDownloader.prototype.errorInstall = function(){
-  GM_log("Error installing script");
-}
-
 ScriptDownloader.prototype.errorInstallDependency = function(script, dep, msg){
-  this.win_.GM_BrowserUI.refreshStatus();
-  alert("Error loading dependency " + req.url + "\n" + msg);
+  GM_log("Error loading dependency " + dep.url + "\n" + msg)
+  if (this.installOnCompletion_) {
+    alert("Error loading dependency " + dep.url + "\n" + msg);
+  } else {
+    this.dependencyError = "Error loading dependency " + dep.url + "\n" + msg;
+  }
 }
 
 ScriptDownloader.prototype.installScript = function(){
-  if(this.dependenciesLoaded_){
+  if (this.dependencyError) {
+    alert(this.dependencyError);
+  } else if(this.dependenciesLoaded_) {
     this.win_.GM_BrowserUI.installScript(this.script)
-  }else{
+  } else {
     this.installOnCompletion_ = true;
   }
 }
