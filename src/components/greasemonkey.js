@@ -270,7 +270,6 @@ var greasemonkeyService = {
 
       var contents = getContents(getScriptFileURI(script))
       
-      GM_log("Number of required scripts: " + script.requires.length);
       var requires = [];
       var offsets = [];
       var offset = 0;

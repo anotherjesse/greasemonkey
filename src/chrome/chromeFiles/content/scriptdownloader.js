@@ -88,7 +88,7 @@ ScriptDownloader.prototype.handleScriptDownloadComplete = function() {
 }
 
 ScriptDownloader.prototype.fetchDependencies = function(){
-  GM_log("Fetching Dependenies");
+  GM_log("Fetching Dependencies");
   var deps = this.script.requires.concat(this.script.imports);
   for(var i=0; i<deps.length; i++){
     var dep = deps[i];
@@ -240,7 +240,6 @@ ScriptDownloader.prototype.parseScript = function(source, uri) {
 
   while (result = lines[lnIdx++]) {
     if (result.indexOf("// ==UserScript==") == 0) {
-      GM_log("* found metadata");
       foundMeta = true;
       break;
     }
@@ -255,39 +254,38 @@ ScriptDownloader.prototype.parseScript = function(source, uri) {
 
       var match = result.match(/\/\/ \@(\S+)\s+([^\n]+)/);
       if (match != null) {
-          GM_log("Processing " + match[1]);
-    	switch (match[1]) {
-    	case "name":
-    	case "namespace":
-    	case "description":
-    	  script[match[1]] = match[2];
-    	  break;
-    	case "include":
-    	case "exclude":
-    	  script[match[1]+"s"].push(match[2]);
-    	  break;
-        case "require":
-          var reqUri = ioservice.newURI(match[2], null, uri);
-          var scriptDependency = new ScriptDependency();
-          scriptDependency.url = reqUri.spec;
-          script.requires.push(scriptDependency);
-          break;
-        case "import":
-          var imp = match[2].match(/([^\s]+)\s+([^\s]+)/);
-          if (imp) {
-            var impName = imp[1];
-            var impUri = imp[2];
-          } else {
-            var impUri = match[2];
-            var impName = "";
-          }
-          var impUri = ioservice.newURI(impUri, null, uri);
-          var scriptImport = new ScriptImport();
-          scriptImport.name = impName;
-          scriptImport.url = impUri.spec;
-          script.imports.push(scriptImport);
-          break;
-    	}
+      	switch (match[1]) {
+        	case "name":
+        	case "namespace":
+        	case "description":
+        	  script[match[1]] = match[2];
+        	  break;
+        	case "include":
+        	case "exclude":
+        	  script[match[1]+"s"].push(match[2]);
+        	  break;
+            case "require":
+              var reqUri = ioservice.newURI(match[2], null, uri);
+              var scriptDependency = new ScriptDependency();
+              scriptDependency.url = reqUri.spec;
+              script.requires.push(scriptDependency);
+              break;
+            case "import":
+              var imp = match[2].match(/([^\s]+)\s+([^\s]+)/);
+              if (imp) {
+                var impName = imp[1];
+                var impUri = imp[2];
+              } else {
+                var impUri = match[2];
+                var impName = "";
+              }
+              var impUri = ioservice.newURI(impUri, null, uri);
+              var scriptImport = new ScriptImport();
+              scriptImport.name = impName;
+              scriptImport.url = impUri.spec;
+              script.imports.push(scriptImport);
+              break;
+      	}
       }
     }
   }
@@ -353,7 +351,6 @@ PersistProgressListener.prototype =
                                 aCurSelfProgress, aMaxSelfProgress,
                                 aCurTotalProgress, aMaxTotalProgress)
    {
-      GM_log("Persister.progress: "+ aCurTotalProgress + " of "+ aMaxTotalProgress);
    },
  
    onStateChange : function(aWebProgress, aRequest, aStateFlags, aStatus)
@@ -379,7 +376,6 @@ PersistProgressListener.prototype =
  
    onStatusChange : function(aWebProgress, aRequest, aStatus, aMessage)
    {
-     GM_log("Persister.onStatusChange: " + aMessage);
    },
  
    onSecurityChange : function(aWebProgress, aRequest, aState)
