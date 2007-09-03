@@ -101,8 +101,8 @@ ScriptDownloader.prototype.parseScript = function(source, uri) {
   script.name = headers.name || parseScriptName(uri);
   script.namespace = headers.namespace || uri.host;
   script.description = headers.description || "";
-  script.includes = headers.include || [];
-  script.excludes = headers.exclude || ["*"];
+  script.includes = headers.include || ["*"];
+  script.excludes = headers.exclude || [];
 
   this.script = script;
 };
