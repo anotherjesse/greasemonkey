@@ -256,7 +256,6 @@ ScriptDownloader.prototype.parseScript = function(source, uri) {
   if (foundMeta) {
     // used for duplicate resource name detection
     var previousResourceNames = {};
-    var previousRequiredUrls = {};
 
     while (result = lines[lnIdx++]) {
       if (result.indexOf("// ==/UserScript==") == 0) {
@@ -277,14 +276,6 @@ ScriptDownloader.prototype.parseScript = function(source, uri) {
         	  break;
             case "require":
               var reqUri = ioservice.newURI(match[2], null, uri);
-
-              if (previousRequiredUrls[reqUri.spec]) {
-                throw new Error("Duplicate required url '" + reqUri.spec +
-                  "' detected. Each required url must be unique.");
-              } else {
-                previousRequiredUrls[reqUri.spec] = true;
-              }
-
               var scriptDependency = new ScriptDependency();
               scriptDependency.url = reqUri.spec;
               script.requires.push(scriptDependency);
