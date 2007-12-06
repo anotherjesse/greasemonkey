@@ -281,14 +281,14 @@ ScriptDownloader.prototype.parseScript = function(source, uri) {
               script.requires.push(scriptDependency);
               break;
             case "resource":
-              var res = match[2].split(" ");
-              if (res.length < 2) {
+              var res = match[2].match(/(\S+)\s+(.*)/);
+              if (res === null) {
                 throw new Error("Invalid syntax for @resource declaration '" +
                                 match[2] + "'. Resources are declared like: " +
                                 "@resource <name> <url>.");
               }
 
-              var resName = res.shift();
+              var resName = res[1];
               if (previousResourceNames[resName]) {
                 throw new Error("Duplicate resource name '" + resName + "' " +
                                 "detected. Each resource must have a unique " +
@@ -297,7 +297,7 @@ ScriptDownloader.prototype.parseScript = function(source, uri) {
                 previousResourceNames[resName] = true;
               }
 
-              var resUri = ioservice.newURI(res.join(" "), null, uri);
+              var resUri = ioservice.newURI(res[2], null, uri);
               var scriptResource = new ScriptResource();
               scriptResource.name = resName;
               scriptResource.url = resUri.spec;
