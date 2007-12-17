@@ -1,5 +1,4 @@
 content    greasemonkey    chrome/chromeFiles/content/
 overlay	   chrome://browser/content/browser.xul    chrome://greasemonkey/content/browser.xul
 overlay	   chrome://songbird/content/xul/mainScriptsOverlay.xul    chrome://greasemonkey/content/browser.xul
-
-# NOTE: build.sh will auto-generate ALL available locales (newline is intentional below)
+locale  greasemonkey  en-US  chrome/chromeFiles/locale/en-US/
