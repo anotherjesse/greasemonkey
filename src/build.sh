@@ -12,6 +12,7 @@ cp chrome.manifest build/
 cp install.js build/
 cp install.rdf build/
 cp license.txt build/
+cp -r defaults build/
 cp -r components build/
 cp -r chrome build/
 cd build
