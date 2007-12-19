@@ -19,9 +19,11 @@ cd build
 
 # Generate locales for chrome.manifest from babelzilla directories, which
 # we assume have been placed in locale/.
+GMLOC=\"en-US\"
 for entry in $(ls chrome/chromeFiles/locale/); do
   if [ $entry != en-US ]; then
     echo "locale  $GMNAME  "$entry"  chrome/chromeFiles/locale/"$entry"/" >> chrome.manifest
+    GMLOC=$GMLOC,\ \"$entry\"
   fi
 done
 
@@ -42,6 +44,8 @@ checkGMVER "<em:version>$GMREGEXVER<\/em:version>" install.rdf
 
 sed -r -i "s/const APP_VERSION =.*;/const APP_VERSION = \"$GMVER\";/" install.js
 checkGMVER "const APP_VERSION = \"$GMREGEXVER\";" install.js
+
+sed -r -i "s/const APP_LOCALES =.*;/const APP_LOCALES = [ $GMLOC ];/" install.js
 
 find . -name '.svn' -prune -or -name '.DS_Store' -or -name '*~' -or -name '#*' \
   -or -print | zip $GMNAME-$GMVER.xpi -9X -@
