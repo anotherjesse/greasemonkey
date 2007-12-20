@@ -14,9 +14,9 @@
     chrome:name="greasemonkey"
     chrome:extension="true"
     chrome:settingsURL="chrome://greasemonkey/content/manage.xul"
-    chrome:iconURL="chrome://greasemonkey/content/icon_medium.png"
+    chrome:iconURL="chrome://greasemonkey/skin/icon_medium.png"
     chrome:xpcNativeWrappers="true"
-    chrome:description="A user script manager for Firefox and SeaMonkey.">
+    chrome:description="A User Script Manager for Firefox and SeaMonkey.">
   </RDF:Description>
 
   <RDF:Seq about="urn:mozilla:overlays">

@@ -87,7 +87,7 @@ function PerformInstall(tryAgain) {
       );
     }
 
-    //registerChrome(SKIN | INSTFLAGS, ...);
+    registerChrome(SKIN | INSTFLAGS, getFolder(getFolder(getFolder(thisf, "chromeFiles"), "skin"), "classic"));
 
     // register Components
     thisf = getFolder("Components");
