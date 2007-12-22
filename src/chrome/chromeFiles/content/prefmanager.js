@@ -30,6 +30,9 @@ function GM_PrefManager(startPoint) {
    * returns the named preference, or defaultValue if it does not exist
    */
   this.getValue = function(prefName, defaultValue) {
+    if ( !prefName ) {
+      throw new Error('[Greasemonkey:getValue] Missing parameter');
+    }
     var prefType = pref.getPrefType(prefName);
 
     // underlying preferences object throws an exception if pref doesn't exist
@@ -40,7 +43,8 @@ function GM_PrefManager(startPoint) {
     try {
       switch (prefType) {
         case pref.PREF_STRING:
-          return pref.getComplexValue(prefName, nsISupportsString).data;
+          var value = pref.getComplexValue(prefName, nsISupportsString).data;
+          return ((!value) ? value : (isNaN(value)) ? value : parseFloat(value));
         case pref.PREF_BOOL:
           return pref.getBoolPref(prefName);
         case pref.PREF_INT:
@@ -53,8 +57,8 @@ function GM_PrefManager(startPoint) {
   };
 
   /**
-   * sets the named preference to the specified value. values must be strings,
-   * booleans, or integers.
+   * sets the named preference to the specified value. values can be strings,
+   * booleans, integers, and floats.  floats and double long integers will be stored as a string.
    */
   this.setValue = function(prefName, value) {
     var prefType = typeof(value);
@@ -64,19 +68,22 @@ function GM_PrefManager(startPoint) {
       case "boolean":
         break;
       case "number":
-        if (value % 1 != 0) {
-          // NOTE: Non localised strings
-          throw new Error("Cannot set preference to non integral number");
+        if (value % 1 == 0) {
+          const sizeofUInt = ((1 << 32) == 1) ? 32 : 64;
+          if (value > (1 << (sizeofUInt - 1)) && value < ~(1 << (sizeofUInt - 1))) {
+            break;
+          }
         }
+        value += "";
+        prefType = typeof(value);
         break;
       default:
-        throw new Error("Cannot set preference with datatype: " + prefType);
+        throw new Error('[Greasemonkey:setValue] Datatype ' + prefType + ' is not supported');
     }
 
     // underlying preferences object throws an exception if new pref has a
-    // different type than old one. i think we should not do this, so delete
-    // old pref first if this is the case.
-    if (this.exists(prefName) && prefType != typeof(this.getValue(prefName))) {
+    // different type than old one, so must delete old value to avoid collision
+    if (this.exists(prefName)) {
       this.remove(prefName);
     }
 
@@ -92,7 +99,7 @@ function GM_PrefManager(startPoint) {
         pref.setBoolPref(prefName, value);
         break;
       case "number":
-        pref.setIntPref(prefName, Math.floor(value));
+        pref.setIntPref(prefName, value);
         break;
     }
   };

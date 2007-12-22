@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name          Foo
-// @namespace     localhost
+// @namespace     http://localhost
 // @description   Foo'in around
 // @include       http://wiki.greasespot.net/*
 // @resource      fooCon1 foo1.png
@@ -19,6 +19,37 @@
 
     alert('> ' + scriptName);
     GM_log('> ' + scriptName);
+
+      function debugToLog( num, prefName, prefValue) {
+        try {
+          GM_setValue(prefName, prefValue);
+        } catch(ex) {
+          GM_log( num + ' ' + ex );
+        } finally {
+          prefValue = GM_getValue(prefName);
+          GM_log( num + ' > ' + prefValue + ' < ' + prefValue + ' typeof == ' + typeof( prefValue ) );
+        }
+      };
+
+      var outDate;
+      var inDate = new Date;
+      GM_setValue("inDate", inDate.getTime());
+      for( var i = 0; i < 1; ++i ) {
+        debugToLog(1, "test", 86);
+        debugToLog(2, "test", -2147483648);
+        debugToLog(3, "test", 4294967296);
+        debugToLog(4, "test", 72.35);
+        debugToLog(5, "test", Math.PI);
+        debugToLog(6, "test", 429496764565456445.12);
+        debugToLog(7, "test", -429496764565456445.12456);
+        debugToLog(8,"test", "stringy");
+        debugToLog(9, "test", true);
+        debugToLog(10, "test", "" );
+        debugToLog(11, "test", null);
+        debugToLog(12, "test", undefined);
+      }
+      outDate = new Date;
+      GM_log(outDate.getTime() - inDate.getTime() + ' ms');
 
       GM_setValue('test1', scriptName );
       GM_setValue('test2', 31415 );
