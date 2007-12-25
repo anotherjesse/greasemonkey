@@ -4,6 +4,7 @@ GMMIN=8
 GMREL=0
 
 GMNAME=greasemonkey
+GMLOCALE=chrome/chromeFiles/locale
 
 # Copy base structure to a temporary build directory and change to it
 rm -rf build
@@ -19,11 +20,15 @@ cd build
 
 # Generate locales for chrome.manifest from babelzilla directories, which
 # we assume have been placed in locale/.
-GMLOC=\"en-US\"
-for entry in $(ls chrome/chromeFiles/locale/); do
-  if [ $entry != en-US ]; then
-    echo "locale  $GMNAME  "$entry"  chrome/chromeFiles/locale/"$entry"/" >> chrome.manifest
-    GMLOC=$GMLOC,\ \"$entry\"
+GMLOCALES=\"en-US\"
+for GMLANG in $(ls $GMLOCALE/); do
+  if [ $GMLANG != en-US ]; then
+    echo "locale  $GMNAME  "$GMLANG"  $GMLOCALE/"$GMLANG"/" >> chrome.manifest
+    GMLOCALES=$GMLOCALES,\ \"$GMLANG\"
+     if [ -d $GMLOCALE/$GMLANG ]; then
+       cp $GMLOCALE/en-US/contents.rdf $GMLOCALE/$GMLANG
+       sed -r -i "s/en-US/$GMLANG/g" $GMLOCALE/$GMLANG/contents.rdf
+     fi
   fi
 done
 
@@ -45,7 +50,7 @@ checkGMVER "<em:version>$GMREGEXVER<\/em:version>" install.rdf
 sed -r -i "s/const APP_VERSION =.*;/const APP_VERSION = \"$GMVER\";/" install.js
 checkGMVER "const APP_VERSION = \"$GMREGEXVER\";" install.js
 
-sed -r -i "s/const APP_LOCALES =.*;/const APP_LOCALES = [ $GMLOC ];/" install.js
+sed -r -i "s/const APP_LOCALES =.*;/const APP_LOCALES = [ $GMLOCALES ];/" install.js
 
 find . -name '.svn' -prune -or -name '.DS_Store' -or -name '*~' -or -name '#*' \
   -or -print | zip $GMNAME-$GMVER.xpi -9X -@
