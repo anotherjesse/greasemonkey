@@ -9,20 +9,20 @@
 <dialog xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
         xmlns:html="http://www.w3.org/1999/xhtml"
         id="greasemonkey" title="&install.title;" style="width: 32em; height:32em;" 
-        onload="GMInstall.init()" 
-        ondialogaccept="return GMInstall.onOK();"
-        ondialogcancel="return GMInstall.onCancel();"
-        ondialogextra1="return GMInstall.onShowSource()"
+        ondialogaccept="return GM_installWindow.onOK();"
+        ondialogcancel="return GM_installWindow.onCancel();"
+        ondialogextra1="return GM_installWindow.onShowSource()"
         buttons="accept,cancel,extra1"
         buttonlabelaccept="&install.installbutton;"
         buttonlabelextra1="&install.showscriptsource;"
         defaultButton="accept">
 
-  <script src="chrome://greasemonkey/content/utils.js"/>
-  <script src="chrome://greasemonkey/content/config.js"/>
-  <script src="chrome://greasemonkey/content/scriptdownloader.js"/>
-  <script src="chrome://greasemonkey/content/prefmanager.js"/>
-  <script src="chrome://greasemonkey/content/install.js"/>
+  <script type="application/x-javascript">
+    var GM_installWindow = 
+      new (Components.classes["@greasemonkey.mozdev.org/greasemonkey-service;1"]
+                     .getService().wrappedJSObject).InstallWindow(this);
+  </script>
+
   <stringbundle id="gm-browser-bundle" src="chrome://greasemonkey/locale/gm-browser.properties"/>
 
   <vbox flex="1" id="dialogContentBox">

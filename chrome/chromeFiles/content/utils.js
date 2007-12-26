@@ -4,8 +4,40 @@ const GM_GUID = "{e4a8a97b-f2ed-450b-b12d-ee082ba24781}";
 // TODO: properly scope this constant
 const NAMESPACE = "http://youngpup.net/greasemonkey";
 
-var GM_consoleService = Components.classes["@mozilla.org/consoleservice;1"]        
-                        .getService(Components.interfaces.nsIConsoleService);
+var GM_consoleService = Cc["@mozilla.org/consoleservice;1"]
+                          .getService(Ci.nsIConsoleService);
+
+/**
+ * Create an xmlhttprequest object using it's XPCOM registration. Inside
+ * GreasemonkeyService, we don't have access to the XMLHttpRequest global.
+ */
+function createXmlHttpRequest() {
+  return Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
+           .createInstance(Ci.nsIXMLHttpRequest);
+}
+
+/**
+ * Create an xmlhttprequest object using it's XPCOM registration. Inside
+ * GreasemonkeyService, we don't have access to the XMLDocument global.
+ *
+ * @param {String} rootName  The name of the root element. Empty namespace is
+ *   assumed.
+ */
+function createXmlDocument(rootName) {
+  // There is no way to create an xmldocument directly from xpcom, so we parse
+  // one from a string.
+  return Cc["@mozilla.org/xmlextras/domparser;1"]
+           .createInstance(Ci.nsIDOMParser)
+           .parseFromString("<" + rootName + "/>","text/xml");
+}
+
+/**
+ * Create an xmlserializer object using it's XPCOM registration.
+ */
+function createXmlSerializer() {
+  return Cc["@mozilla.org/xmlextras/xmlserializer;1"]
+           .createInstance(Ci.nsIDOMSerializer);
+}
 
 function GM_isDef(thing) {
   return typeof(thing) != "undefined";
@@ -95,7 +127,11 @@ function openInEditor(aFile, promptTitle) {
     var filePicker = Components.classes["@mozilla.org/filepicker;1"]
       .createInstance(nsIFilePicker);
 
-    filePicker.init(window, promptTitle, nsIFilePicker.modeOpen);
+    var currentWindow = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
+                                  .getService(Components.interfaces.nsIWindowWatcher)
+                                  .activeWindow;
+
+    filePicker.init(currentWindow, promptTitle, nsIFilePicker.modeOpen);
     filePicker.appendFilters(nsIFilePicker.filterApplication);
     filePicker.appendFilters(nsIFilePicker.filterAll);
     
@@ -255,11 +291,6 @@ function gmPrompt(msg, defVal, title) {
     return null;
   }
 }
-
-function ge(id) {
-    return window.document.getElementById(id);
-}
-
 
 function dbg(o) {
   var s = "";

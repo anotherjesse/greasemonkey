@@ -85,7 +85,7 @@ Config.prototype.load = function() {
 }
 
 Config.prototype.save = function() {
-  var doc = document.implementation.createDocument("", "UserScriptConfig", null);
+  var doc = createXmlDocument("UserScriptConfig");
     
   for (var i = 0, scriptObj = null; (scriptObj = this.scripts[i]); i++) {
     var scriptNode = doc.createElement("Script");
@@ -119,7 +119,7 @@ Config.prototype.save = function() {
   doc.firstChild.appendChild(doc.createTextNode("\n"))
 
   var configStream = getWriteStream(this.configFile);
-  new XMLSerializer().serializeToStream(doc, configStream, "utf-8");
+  createXmlSerializer().serializeToStream(doc, configStream, "utf-8");
   configStream.close();
 }
 

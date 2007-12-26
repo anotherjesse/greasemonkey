@@ -85,29 +85,26 @@ var greasemonkeyService = {
       .getService(Ci.mozIJSSubScriptLoader)
       .loadSubScript("chrome://global/content/XPCNativeWrapper.js");
 
-    Cc["@mozilla.org/moz/jssubscript-loader;1"]
-      .getService(Ci.mozIJSSubScriptLoader)
-      .loadSubScript("chrome://greasemonkey/content/prefmanager.js");
+    var scripts = ["prefmanager",
+                   "utils",
+                   "config",
+                   "convert2RegExp",
+                   "miscapis",
+                   "xmlhttprequester",
+                   "browser",
+                   "versioning",
+                   "menucommander",
+                   "scriptdownloader",
+                   "accelimation",
+                   "manage",
+                   "pagescontrol",
+                   "install"];
 
-    Cc["@mozilla.org/moz/jssubscript-loader;1"]
-      .getService(Ci.mozIJSSubScriptLoader)
-      .loadSubScript("chrome://greasemonkey/content/utils.js");
-
-    Cc["@mozilla.org/moz/jssubscript-loader;1"]
-      .getService(Ci.mozIJSSubScriptLoader)
-      .loadSubScript("chrome://greasemonkey/content/config.js");
-
-    Cc["@mozilla.org/moz/jssubscript-loader;1"]
-      .getService(Ci.mozIJSSubScriptLoader)
-      .loadSubScript("chrome://greasemonkey/content/convert2RegExp.js");
-
-    Cc["@mozilla.org/moz/jssubscript-loader;1"]
-      .getService(Ci.mozIJSSubScriptLoader)
-      .loadSubScript("chrome://greasemonkey/content/miscapis.js");
-
-    Cc["@mozilla.org/moz/jssubscript-loader;1"]
-      .getService(Ci.mozIJSSubScriptLoader)
-      .loadSubScript("chrome://greasemonkey/content/xmlhttprequester.js");
+    for (var i = 0, script; script = scripts[i]; i++) {
+      Cc["@mozilla.org/moz/jssubscript-loader;1"]
+        .getService(Ci.mozIJSSubScriptLoader)
+        .loadSubScript("chrome://greasemonkey/content/" + script + ".js");
+    }
 
     //loggify(this, "GM_GreasemonkeyService");
   },
@@ -126,8 +123,8 @@ var greasemonkeyService = {
 	  var winWat = Cc["@mozilla.org/embedcomp/window-watcher;1"]
 	    .getService(Ci.nsIWindowWatcher);
 
-	  if (winWat.activeWindow && winWat.activeWindow.GM_BrowserUI) {
-	    winWat.activeWindow.GM_BrowserUI.startInstallScript(cl);
+	  if (winWat.activeWindow && winWat.activeWindow.GM_browserWindow) {
+	    winWat.activeWindow.GM_browserWindow.startInstallScript(cl);
 	    ret = Ci.nsIContentPolicy.REJECT_REQUEST;
 	  }
 	}
@@ -284,7 +281,8 @@ var greasemonkeyService = {
   },
 };
 
-greasemonkeyService.wrappedJSObject = greasemonkeyService;
+// Export the current global scope to other javascript in mozilla.
+greasemonkeyService.wrappedJSObject = this;
 
 //loggify(greasemonkeyService, "greasemonkeyService");
 

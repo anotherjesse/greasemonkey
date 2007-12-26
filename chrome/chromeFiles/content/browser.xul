@@ -5,21 +5,14 @@
 
 <overlay id="greasemonkey-browser-overlay" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 
-    <script type="application/x-javascript" src="chrome://greasemonkey/content/utils.js" />
-    <script type="application/x-javascript" src="chrome://greasemonkey/content/prefmanager.js" />
-    <script type="application/x-javascript" src="chrome://greasemonkey/content/convert2RegExp.js" />
-    <script type="application/x-javascript" src="chrome://greasemonkey/content/versioning.js" />
-    <script type="application/x-javascript" src="chrome://greasemonkey/content/menucommander.js" />
-    <script type="application/x-javascript" src="chrome://greasemonkey/content/xmlhttprequester.js" />
-    <script type="application/x-javascript" src="chrome://greasemonkey/content/miscapis.js" />
-    <script type="application/x-javascript" src="chrome://greasemonkey/content/dochandler.js" />
-    <script type="application/x-javascript" src="chrome://greasemonkey/content/scriptdownloader.js" />
-    <script type="application/x-javascript" src="chrome://greasemonkey/content/config.js" />
-    <script type="application/x-javascript" src="chrome://greasemonkey/content/browser.js" />
-    <script type="application/x-javascript" src="chrome://greasemonkey/content/accelimation.js" />
+    <script type="application/x-javascript">
+      var GM_browserWindow = 
+        new (Components.classes["@greasemonkey.mozdev.org/greasemonkey-service;1"]
+                       .getService().wrappedJSObject).BrowserWindow(this);
+    </script>
 
     <popup id="contentAreaContextMenu">
-        <menuitem id="view-userscript" label="&menu.show;"  accesskey="&menu.show.accesskey;" insertbefore="context-openlink" oncommand="GM_BrowserUI.viewContextItemClicked(event)"/>
+        <menuitem id="view-userscript" label="&menu.show;"  accesskey="&menu.show.accesskey;" insertbefore="context-openlink" oncommand="GM_browserWindow.viewContextItemClicked(event)"/>
         <menuseparator id="install-userscript-sep" insertbefore="context-openlink" />
     </popup>
 
@@ -31,19 +24,19 @@
                     accesskey="&menu.install.accesskey;" 
                     label="&menu.install;" 
                     collapsed="true"
-                    oncommand="GM_BrowserUI.installMenuItemClicked(event)"/>
+                    oncommand="GM_browserWindow.installMenuItemClicked(event)"/>
                 <menuitem 
                     accesskey="&menu.manage.accesskey;" 
                     label="&menu.manage;" 
-                    oncommand="GM_BrowserUI.manageMenuItemClicked(event)"/>
+                    oncommand="GM_browserWindow.manageMenuItemClicked(event)"/>
                 <menuitem 
                     id="userscript-tools-new" 
                     accesskey="&menu.new.accesskey;" 
                     label="&menu.new;" 
-                    oncommand="GM_BrowserUI.newUserScript()"/>
+                    oncommand="GM_browserWindow.newUserScript()"/>
                 <menu id="userscript-commands-sb2" accesskey="&menu.commands.accesskey;" 
                     label="&menu.commands;" disabled="false" 
-                    onpopupshowing='event.preventBubble()'>
+                    onpopupshowing='event.stopPropagation()'>
                     <menupopup/>
                 </menu>
             </menupopup>
@@ -55,28 +48,28 @@
         <statusbarpanel id="gm-status" insertafter="livemark-button">
             <label id="gm-status-label" collapsed="true" crop="end" style="width:0px; margin:0;" />
             <image id="gm-status-image" width="16" height="16" style="margin:0 5px"
-              onclick="if (!event.button) GM_setEnabled(!GM_getEnabled()); 
-                       else if (event.button == 1) GM_BrowserUI.manageMenuItemClicked();"
+              onclick="if (!event.button) GM_browserWindow.toggleEnabled(); 
+                       else if (event.button == 1) GM_browserWindow.manageMenuItemClicked();"
               context='gm-status-popup'/>
             <popup id='gm-status-popup' position='before_end'
-              onpopupshowing='GM_showPopup(event); event.preventBubble();'
-              onclick="GM_popupClicked(event); event.preventBubble();">
+              onpopupshowing='GM_browserWindow.setupMonkeyMenu(event); event.stopPropagation();'
+              onclick="GM_browserWindow.monkeyMenuClicked(event); event.stopPropagation();">
               <menuitem id="gm-status-no-scripts" label="&statusbar.noscripts;" 
                 style="color:grey"/>
               <menuseparator id="gm-status-no-scripts-sep"/>
               <menu id="userscript-commands-sb" 
                 accesskey="&menu.commands.accesskey;" 
 	        label="&menu.commands;" disabled="false" 
-      	        onpopupshowing='event.preventBubble()'>
+      	        onpopupshowing='event.stopPropagation()'>
                 <menupopup />
               </menu>
               <menuseparator />
               <menuitem accesskey="&menu.new.accesskey;" label="&menu.new;" 
-                oncommand="GM_BrowserUI.newUserScript()"/>
+                oncommand="GM_browserWindow.newUserScript()"/>
               <menuitem accesskey="&menu.manage.accesskey;" label="&menu.manage;" 
-                oncommand="GM_BrowserUI.manageMenuItemClicked(event)"/>
+                oncommand="GM_browserWindow.manageMenuItemClicked(event)"/>
               <menuseparator />
-              <menuitem id="gm-status-enabled-item" accesskey="&statusbar.enabled.accesskey;" label="&statusbar.enabled;" type="checkbox" oncommand="GM_setEnabled(!GM_getEnabled())"/>
+              <menuitem id="gm-status-enabled-item" accesskey="&statusbar.enabled.accesskey;" label="&statusbar.enabled;" type="checkbox" oncommand="GM_browserWindow.toggleEnabled()"/>
             </popup>
          </statusbarpanel>
     </statusbar>

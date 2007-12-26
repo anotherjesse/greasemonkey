@@ -101,7 +101,7 @@ function GM_pointThreeMigrate() {
   
     // save the config file
     var configStream = getWriteStream(configFile);
-    new XMLSerializer().serializeToStream(doc, configStream, "utf-8");
+    createXmlSerializer().serializeToStream(doc, configStream, "utf-8");
     configStream.close();
 
     log("config saved.")

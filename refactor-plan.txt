@@ -1,0 +1,29 @@
+GreasemonkeyService : nsIContentPolicy, nsIObserver
+  config (one shared instance for whole app)
+
+  observe:
+    app-startup:
+      load all scripts
+      create config instance
+
+  shouldLoad: 
+    - reject requests for gm chrome
+    - start install script dialog
+
+BrowserWindow
+  domContentLoaded:
+    selectedTab.gm_scriptRunner = new ScriptRunner(this)
+  tabSwitch:
+    get script runner for current tab
+    get menu commands for script runner and activate
+  plus, all the gm ui
+
+ScriptRunner
+  use Config.getScriptsForUrl(location.href)
+  create sandbox
+  populate sandbox
+  getMenuCommands() -> called by BrowserWindow on tab switch
+  getMatchedScripts() -> called by BrowserWindow when monkey menu is shown
+
+Config
+  load, save, scripts, getScriptsForUrl, install, etc

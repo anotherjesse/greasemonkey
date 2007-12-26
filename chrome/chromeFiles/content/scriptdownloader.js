@@ -17,22 +17,20 @@ ScriptDownloader.prototype.startViewScript = function(uri) {
 };
 
 ScriptDownloader.prototype.startDownload = function() {
-  this.win_.GM_BrowserUI.statusImage.src = "chrome://global/skin/throbber/Throbber-small.gif";
-  this.win_.GM_BrowserUI.statusImage.style.opacity = "0.5";
-  this.win_.GM_BrowserUI.statusImage.tooltipText = this.bundle_.getString("tooltip.loading");
+  this.win_.GM_browserWindow.statusImage.src = "chrome://global/skin/throbber/Throbber-small.gif";
+  this.win_.GM_browserWindow.statusImage.style.opacity = "0.5";
+  this.win_.GM_browserWindow.statusImage.tooltipText = this.bundle_.getString("tooltip.loading");
 
-  Components.classes["@greasemonkey.mozdev.org/greasemonkey-service;1"]
-  .getService().wrappedJSObject
-  .ignoreNextScript();
+  greasemonkeyService.ignoreNextScript();
 
-  this.req_ = new XMLHttpRequest();
+  this.req_ = createXmlHttpRequest();
   this.req_.open("GET", this.uri_.spec, true);
   this.req_.onload = GM_hitch(this, "handleDownloadComplete");
   this.req_.send(null);
 };
 
 ScriptDownloader.prototype.handleDownloadComplete = function() {
-  this.win_.GM_BrowserUI.refreshStatus();
+  this.win_.GM_browserWindow.refreshStatus();
 
   // If loading from file, status might be zero on success
   if (this.req_.status != 200 && this.req_.status != 0) {
@@ -58,7 +56,7 @@ ScriptDownloader.prototype.handleDownloadComplete = function() {
   ws.close();
 
   this.script.file = file;
-  this.win_.GM_BrowserUI.hideStatus();
+  this.win_.GM_browserWindow.hideStatus();
 
   if (this.installing_) {
     this.showInstallDialog();
@@ -80,7 +78,7 @@ ScriptDownloader.prototype.showInstallDialog = function(timer) {
 };
 
 ScriptDownloader.prototype.showScriptView = function() {
-  this.win_.GM_BrowserUI.showScriptView(this);
+  this.win_.GM_browserWindow.showScriptView(this);
 };
 
 ScriptDownloader.prototype.parseScript_ = function(source, uri) {

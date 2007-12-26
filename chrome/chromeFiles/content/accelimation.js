@@ -89,7 +89,11 @@ Accelimation._add = function(o) {
     this.instances[index] = o;
     // if this is the first one, start the engine
     if (this.instances.length == 1) {
-        this.timerID = window.setInterval("Accelimation._paintAll()", this.targetRes);
+        this.timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+        this.timer.init(
+          {observe: function() { Accelimation._paintAll(); }},
+          this.targetRes,
+          Ci.nsITimer.TYPE_REPEATING_PRECISE);
     }
 }
 
@@ -103,7 +107,7 @@ Accelimation._remove = function(o) {
     }
     // if that was the last one, stop the engine
     if (this.instances.length == 0) {
-        window.clearInterval(this.timerID);
+        this.timer.cancel();
         this.timerID = null;
     }
 }
@@ -126,4 +130,4 @@ Accelimation._paintAll = function() {
 
 Accelimation.instances = [];
 Accelimation.targetRes = 10;
-Accelimation.timerID = null;
+Accelimation.timer = null;
