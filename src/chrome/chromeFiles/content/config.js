@@ -1,10 +1,8 @@
-
-
 function Config() {
   this.onload = null;
   this.scripts = null;
   this.configFile = getConfigFile();
-}
+};
 
 Config.prototype.find = function(namespace, name) {
   namespace = namespace.toLowerCase();
@@ -17,7 +15,7 @@ Config.prototype.find = function(namespace, name) {
   }
 
   return -1;
-}
+};
 
 Config.prototype.initFilename = function(script) {
   var index = {};
@@ -36,13 +34,13 @@ Config.prototype.initFilename = function(script) {
   for (var i = 0; i < this.scripts.length; i++) {
     index[this.scripts[i].basedir] = this.scripts[i];
   }
-    
+
   if (!index[base]) {
     script.filename = base + ".user.js";
     script.basedir = base;
     return;
   }
-      
+
   for (var count = 1; count < Number.MAX_VALUE; count++) {
     if (!index[base + count]) {
       script.filename = base + ".user.js";
@@ -60,12 +58,12 @@ Config.prototype.initFilename = function(script) {
       }
     }
   }
-
+  // NOTE: non localised string
   throw new Error("doooooooode. get some different user script or something.");
-}
+};
 
-Config.prototype.initDependencyFilename = function(script, req){
-  var remoteFilename = req.url.substr(req.url.lastIndexOf("/") + 1)
+Config.prototype.initDependencyFilename = function(script, req) {
+  var remoteFilename = req.url.substr(req.url.lastIndexOf("/") + 1);
 
   if(remoteFilename.indexOf("?")>0){
     remoteFilename = remoteFilename.substr(0, remoteFilename.indexOf("?"));
@@ -81,8 +79,8 @@ Config.prototype.initDependencyFilename = function(script, req){
   }
 
   ext = ext.replace(/[^A-Z0-9_]/gi, "");
-  base = base.replace(/[^A-Z0-9_]/gi, "")
-  
+  base = base.replace(/[^A-Z0-9_]/gi, "");
+
   if (base.length > 24) {
     base = base.substring(0, 24);
   }
@@ -98,14 +96,15 @@ Config.prototype.initDependencyFilename = function(script, req){
     file.append(filename);
 
     if (!file.exists()) {
-      return filename; 
-    }        
+      return filename;
+    }
   }
+  return undefined;
 }
-  
+
 Config.prototype.load = function() {
   var domParser = Components.classes["@mozilla.org/xmlextras/domparser;1"]
-    .createInstance(Components.interfaces.nsIDOMParser);
+                            .createInstance(Components.interfaces.nsIDOMParser);
 
   var configContents = getContents(getConfigFileURI());
   var doc = domParser.parseFromString(configContents, "text/xml");
@@ -137,10 +136,10 @@ Config.prototype.load = function() {
     script.description = node.getAttribute("description");
     script.enabled = node.getAttribute("enabled") == true.toString();
     script.basedir = node.getAttribute("basedir") || ".";
-    
+
     this.scripts.push(script);
   }
-}
+};
 
 Config.prototype.save = function() {
   var doc = document.implementation.createDocument("", "UserScriptConfig", null);
@@ -161,32 +160,32 @@ Config.prototype.save = function() {
       scriptNode.appendChild(doc.createTextNode("\n\t\t"));
       scriptNode.appendChild(excludeNode);
     }
-    
+
     for (var j = 0; j < scriptObj.requires.length; j++) {
       var req = scriptObj.requires[j];
       var resourceNode = doc.createElement("Require");
-      
+
       resourceNode.setAttribute("filename", req.filename);
-      
+
       scriptNode.appendChild(doc.createTextNode("\n\t\t"));
       scriptNode.appendChild(resourceNode);
     }
-    
+
     for (var j = 0; j< scriptObj.resources.length; j++) {
       var imp = scriptObj.resources[j];
       var resourceNode = doc.createElement("Resource");
-      
+
       resourceNode.setAttribute("name", imp.name);
       resourceNode.setAttribute("filename", imp.filename);
       resourceNode.setAttribute("mimetype", imp.mimetype);
       if (imp.charset) {
         resourceNode.setAttribute("charset", imp.charset);
       }
-      
+
       scriptNode.appendChild(doc.createTextNode("\n\t\t"));
       scriptNode.appendChild(resourceNode);
     }
-    
+
     scriptNode.appendChild(doc.createTextNode("\n\t"));
 
     scriptNode.setAttribute("filename", scriptObj.filename);
@@ -200,12 +199,12 @@ Config.prototype.save = function() {
     doc.firstChild.appendChild(scriptNode);
   }
 
-  doc.firstChild.appendChild(doc.createTextNode("\n"))
+  doc.firstChild.appendChild(doc.createTextNode("\n"));
 
   var configStream = getWriteStream(this.configFile);
   new XMLSerializer().serializeToStream(doc, configStream, "utf-8");
   configStream.close();
-}
+};
 
 Config.prototype.install = function(script) {
   GM_log("> Config.install");
@@ -234,25 +233,24 @@ Config.prototype.install = function(script) {
     this.initFilename(script);
     newDir.append(script.basedir);
     script.file.copyTo(newDir, script.filename);
-   
+
     for (var i = 0; i < script.requires.length; i++) {
       this.installDependency(script, script.requires[i]);
     }
- 
+
     for (var i = 0; i < script.resources.length; i++) {
       this.installDependency(script, script.resources[i]);
-    } 
-   
-   
+    }
+
     this.scripts.push(script);
     this.save();
-   
-   
-    GM_log("< Config.install")
+
+    GM_log("< Config.install");
   } catch (e2) {
+    // NOTE: unlocalised string
     alert("Error installing user script:\n\n" + (e2 ? e2 : ""));
   }
-}
+};
 
 Config.prototype.installDependency = function(script, req){
   GM_log("Installing dependency: " + req.url  + " from " + req.file.path);
@@ -262,14 +260,14 @@ Config.prototype.installDependency = function(script, req){
   scriptDir.append(script.basedir);
 
   req.filename = this.initDependencyFilename(script, req);
-  GM_log("Installing as: " + req.filename);                   
+  GM_log("Installing as: " + req.filename);
 
   try {
     req.file.copyTo(scriptDir, req.filename)
   } catch(e) {
     throw e;
-  }       
-}
+  }
+};
 
 function Script() {
   this.filename = null;
@@ -282,13 +280,13 @@ function Script() {
   this.basedir = null;
   this.requires = [];
   this.resources = [];
-}
+};
 
 function ScriptDependency(){
   this.url = null
   this.file = null;
   this.filename = null;
-}
+};
 
 function ScriptResource(){
   this.url = null;
@@ -296,4 +294,4 @@ function ScriptResource(){
   this.file = null;
   this.filename = null;
   this.mimetype = null;
-}
+};
