@@ -1,8 +1,8 @@
-var config = new Config();
+var config = Components.classes["@greasemonkey.mozdev.org/greasemonkey-service;1"]
+                       .getService().wrappedJSObject.config;
 var uninstallList = [];
 
 window.addEventListener("load", function(ev) {
-  config.load();
   loadControls();
 
   if (!config.scripts.length == 0) {
