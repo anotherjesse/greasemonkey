@@ -17,7 +17,6 @@ function alert(msg) {
 var greasemonkeyService = {
 
   browserWindows: [],
-  config: null,
 
 
   // nsISupports
@@ -113,10 +112,7 @@ var greasemonkeyService = {
     Cc["@mozilla.org/moz/jssubscript-loader;1"]
       .getService(Ci.mozIJSSubScriptLoader)
       .loadSubScript("chrome://greasemonkey/content/xmlhttprequester.js");
-
-    this.config = new Config();
-    this.config.load();
-
+    
     //loggify(this, "GM_GreasemonkeyService");
   },
 
@@ -190,11 +186,13 @@ var greasemonkeyService = {
   },
 
   initScripts: function(url) {
+    var config = new Config();
     var scripts = [];
+    config.load();
 
     outer:
-    for (var i = 0; i < this.config.scripts.length; i++) {
-      var script = this.config.scripts[i];
+    for (var i = 0; i < config.scripts.length; i++) {
+      var script = config.scripts[i];
       if (script.enabled) {
         for (var j = 0; j < script.includes.length; j++) {
           var pattern = convert2RegExp(script.includes[j]);

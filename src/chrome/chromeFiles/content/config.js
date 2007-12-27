@@ -4,37 +4,6 @@ function Config() {
   this.onload = null;
   this.scripts = null;
   this.configFile = getConfigFile();
-  this.listeners_ = [];
-}
-
-// TODO: Factor the three methods below out into an EventTarget-type base class.
-// Or better yet, use a javascript library that already provides functionality
-// like this.
-
-Config.prototype.addEventListener = function(eventName, listener) {
-  if (typeof listener != "function") {
-    throw new Error("listener must be a function");
-  }
-
-  this.listeners_.push(listener);
-}
-
-Config.prototype.removeEventListener = function(eventName, listener) {
-  if (eventName != "save") {
-    throw new Error("Unsupported event name: " + eventName);
-  }
-
-  var idx = this.listeners_.indexOf(listener);
-  if (idx > -1) {
-    this.listeners_.splice(idx, 1);
-  }
-}
-
-Config.prototype.fireEvent = function(eventName) {
-  // TODO: Only fire matching listeners when there is more than one event.
-  this.listeners_.forEach(function(listener) {
-    listener();
-  });
 }
 
 Config.prototype.find = function(namespace, name) {
@@ -236,8 +205,6 @@ Config.prototype.save = function() {
   var configStream = getWriteStream(this.configFile);
   new XMLSerializer().serializeToStream(doc, configStream, "utf-8");
   configStream.close();
-
-  this.fireEvent("save");
 }
 
 Config.prototype.install = function(script) {
