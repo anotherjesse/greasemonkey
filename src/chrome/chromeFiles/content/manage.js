@@ -12,37 +12,42 @@ window.addEventListener("load", function(ev) {
 }, false);
 
 function handleOkButton() {
-  for (var i = 0, script = null; (script = uninstallList[i]); i++) {
-    var idx = config.find(script.namespace, script.name);
-    config.scripts.splice(idx, 1);
-  }
-  config.save();
+  try {
+    for (var i = 0, script = null; (script = uninstallList[i]); i++) {
+      var idx = config.find(script.namespace, script.name);
+      config.scripts.splice(idx, 1);
+    }
+    config.save();
 
-  var chkUninstallPrefs = document.getElementById('chkUninstallPrefs');
-  for (var i = 0, script = null; (script = uninstallList[i]); i++) {
-    file = getScriptBasedir(script);
-    file.normalize();
-    if(file.path != getScriptDir().path){
-      if (file.exists()) {
-        file.remove(true); // file==base directory recursive delete
+    var chkUninstallPrefs = document.getElementById('chkUninstallPrefs');
+    for (var i = 0, script = null; (script = uninstallList[i]); i++) {
+      file = getScriptBasedir(script);
+      if (!file.equals(getScriptDir())) {
+        if (file.exists()) {
+          file.remove(true); // file==base directory recursive delete
+        }
+      } else {
+        file = getScriptFile(script);
+        if (file.exists()) {
+          file.remove(false);
+        }
       }
-    } else {
-      file = getScriptFile(script);
-      if (file.exists()) {
-        file.remove(false);
+      if (chkUninstallPrefs.checked) {
+         // Remove saved preferences
+         var scriptPrefRoot = ["scriptvals.",
+                    script.namespace,
+                    "/",
+                    script.name,
+                    "."].join("");
+         GM_prefRoot.remove(scriptPrefRoot);
       }
     }
-    if (chkUninstallPrefs.checked) {
-       // Remove saved preferences
-       var scriptPrefRoot = ["scriptvals.",
-                  script.namespace,
-                  "/",
-                  script.name,
-                  "."].join("");
-       GM_prefRoot.remove(scriptPrefRoot);
-    }
+    return true;
+  } catch (e) {
+    alert("error: " + e);
+    alert("Removing file: " + file.path);
+    alert("script dir path: " + getScriptDir().path);
   }
-  return true;
 };
 
 var listbox, header, description, chkEnabled, btnEdit, btnUninstall;
