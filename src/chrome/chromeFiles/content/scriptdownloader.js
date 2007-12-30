@@ -20,7 +20,15 @@ ScriptDownloader.prototype.startViewScript = function(uri) {
 };
 
 ScriptDownloader.prototype.startDownload = function() {
-  this.win_.GM_BrowserUI.statusImage.src = "chrome://global/skin/throbber/Throbber-small.gif";
+  var oImg = new Image;
+  oImg.src = "chrome://global/skin/throbber/Throbber-small.gif";
+
+  if ( oImg.complete ) { // Firefox
+    this.win_.GM_BrowserUI.statusImage.src = oImg.src;
+  } else { // SeaMonkey
+    this.win_.GM_BrowserUI.statusImage.src = "chrome://communicator/skin/icons/loading.gif";
+  }
+
   this.win_.GM_BrowserUI.statusImage.style.opacity = "0.5";
   this.win_.GM_BrowserUI.statusImage.tooltipText = this.bundle_.getString("tooltip.loading");
 
