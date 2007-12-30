@@ -52,7 +52,9 @@ function PerformInstall(tryAgain) {
 
   if (tryAgain) {
     // profile installs only work since 2003-03-06
-    InstToProfile = buildID > 2003030600 && confirm(MSG_PROMPT);
+    if (InstToProfile) {
+      InstToProfile = buildID > 2003030600 && confirm(MSG_PROMPT);
+    }
   }
 
   var chromef = InstToProfile ? getFolder("Profile", "chrome") : getFolder("chrome");
@@ -130,6 +132,6 @@ function PerformInstall(tryAgain) {
   }
 };
 
-var InstToProfile = true;
+var InstToProfile = false;
 
 PerformInstall(true);
