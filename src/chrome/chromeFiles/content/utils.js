@@ -289,11 +289,21 @@ function getContentDir() {
   var proto = Components.classes["@mozilla.org/network/protocol;1?name=file"]
                         .getService(Components.interfaces.nsIFileProtocolHandler);
 
+  // SeaMonkey
+  var rsSvc = Components.classes["@mozilla.org/network/protocol;1?name=resource"]
+                        .getService(Components.interfaces.nsIResProtocolHandler);
+
   var chromeURL = ioSvc.newURI("chrome://greasemonkey/content", null, null);
   var fileURL = reg.convertChromeURL(chromeURL);
-  var file = proto.getFileFromURLSpec(fileURL.spec).parent;
 
-  return file
+  var file;
+  if (!fileURL.spec.match(/^resource:/)) { // Firefox
+    file = proto.getFileFromURLSpec(fileURL.spec).parent;
+  } else { // SeaMonkey
+    var resFile = rsSvc.resolveURI(fileURL);
+    file = proto.getFileFromURLSpec(resFile).parent;
+  }
+  return file;
 };
 
 /**

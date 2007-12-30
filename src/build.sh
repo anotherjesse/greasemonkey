@@ -4,6 +4,7 @@ GMMIN=8
 GMREL=0
 
 GMNAME=greasemonkey
+GMCONTENT=chrome/chromeFiles/content
 GMLOCALE=chrome/chromeFiles/locale
 
 # Copy base structure to a temporary build directory and change to it
@@ -49,6 +50,9 @@ checkGMVER "<em:version>$GMREGEXVER<\/em:version>" install.rdf
 
 sed -r -i "s/const APP_VERSION =.*;/const APP_VERSION = \"$GMVER\";/" install.js
 checkGMVER "const APP_VERSION = \"$GMREGEXVER\";" install.js
+
+sed -r -i "s/GM_prefRoot.setValue\(\"version\", \".*\"\);/GM_prefRoot.setValue\(\"version\", \"$GMVER\"\);/" $GMCONTENT/versioning.js
+checkGMVER "GM_prefRoot.setValue\(\"version\", \"$GMREGEXVER\"\);" $GMCONTENT/versioning.js
 
 sed -r -i "s/const APP_LOCALES =.*;/const APP_LOCALES = [ $GMLOCALES ];/" install.js
 

@@ -17,12 +17,16 @@ function GM_updateVersion() {
   }
 
   // update the currently initialized version so we don't do this work again.
-  var extMan = Components.classes["@mozilla.org/extensions/manager;1"]
-    .getService(Components.interfaces.nsIExtensionManager);
+  if (("nsIExtensionManager" in Components.interfaces) && ("@mozilla.org/extensions/manager;1" in Components.classes)) {
+    var extMan = Components.classes["@mozilla.org/extensions/manager;1"]
+                           .getService(Components.interfaces.nsIExtensionManager);
 
-  var item = extMan.getItemForID(GM_GUID);
-  GM_prefRoot.setValue("version", item.version);
-
+    var item = extMan.getItemForID(GM_GUID);
+    GM_prefRoot.setValue("version", item.version);
+  } else { // SeaMonkey
+    // NOTE: build.sh will automatically correct version, if applicable
+    GM_prefRoot.setValue("version", "0.8.20071208.0");
+  }
   log("< GM_updateVersion");
 };
 
