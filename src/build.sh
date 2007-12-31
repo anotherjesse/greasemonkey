@@ -13,7 +13,6 @@ GMXPI="$GMNAME-$GMVER.xpi"
 rm -rf build
 mkdir build
 cp chrome.manifest build/
-cp install.js build/
 cp install.rdf build/
 cp license.txt build/
 cp -r defaults build/
