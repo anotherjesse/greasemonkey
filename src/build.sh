@@ -53,7 +53,7 @@ replace '<em:version>.*</em:version>' \
 find . -name '.svn' -prune -or -name '.DS_Store' -or -name '*~' -or -name '#*' \
   -or -print | zip -9X -@ "$GMXPI"
 
-mv "$GMXPI" ../../downloads/
+mv "$GMXPI" ../
 
 echo "Created $GMXPI"
 exit 0
