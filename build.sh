@@ -1,8 +1,8 @@
 #!/bin/sh
 GMMAX=0
 GMMIN=8
-GMREL=0
 GMBUILD=`date +"%Y%m%d"`
+GMREL=0
 
 GMNAME=greasemonkey
 
@@ -31,23 +31,6 @@ for entry in $(ls chrome/chromeFiles/locale/); do
   fi
 done
 
-# Versioning checks
-GMREGEXVER=[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+
-
-checkGMVER () {
-  if [ "is`echo 'GNU grep' | grep -Eo GNU 2>/dev/null`" = "isGNU" ]; then
-    :
-  else
-    # checkGMVER not supported; don't try to bail out.
-    return 1
-  fi
-  GMVER=`grep -Eo "$1" $2 | grep -Eo "$GMREGEXVER"`
-  if [ ! $GMVER ]; then
-    echo ERROR: $2 HAS INVALID VERSION!
-    exit 1
-  fi
-}
-
 replace () {
   TMP=`mktemp -t Greasemonkey-build.sh`
   SRC=`echo "$1" | sed 's/[\/\\\\]/\\\\&/g'`
@@ -66,12 +49,10 @@ replace () {
 replace '<em:version>.*</em:version>' \
         '<em:version>'$GMVER'</em:version>' \
         install.rdf && echo "em:version updated" || echo "em:version unchanged"
-checkGMVER "<em:version>$GMREGEXVER<\/em:version>" install.rdf
 
 replace 'const APP_VERSION =.*' \
         'const APP_VERSION = "'$GMVER'";' \
         install.js && echo "APP_VERSION updated" || echo "APP_VERSION unchanged"
-checkGMVER "const APP_VERSION = \"$GMREGEXVER\";" install.js
 
 # sets up available locales for seamonkey
 replace 'const APP_LOCALES =.*;' \
