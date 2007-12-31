@@ -48,11 +48,11 @@ replace () {
 
 replace '<em:version>.*</em:version>' \
         '<em:version>'$GMVER'</em:version>' \
-        install.rdf && echo "em:version updated" || echo "em:version unchanged"
+        install.rdf
 
 replace 'const APP_VERSION =.*' \
         'const APP_VERSION = "'$GMVER'";' \
-        install.js && echo "APP_VERSION updated" || echo "APP_VERSION unchanged"
+        install.js
 
 # sets up available locales for seamonkey
 replace 'const APP_LOCALES =.*;' \
