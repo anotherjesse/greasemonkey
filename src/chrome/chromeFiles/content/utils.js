@@ -73,25 +73,48 @@ function GM_log(message, force) {
 // the UI and Config rely on it. Needs rethinking.
 
 function openInEditor(aFile, promptTitle) {
-  var editor, editorPath;
-  try {
-    editorPath = GM_prefRoot.getValue("editor");
-  } catch(e) {
-    GM_log( "Failed to get 'editor' value:" + e );
-    if (GM_prefRoot.exists("editor")) {
-      GM_log("A value for 'editor' exists, so let's remove it because it's causing problems");
-      GM_prefRoot.remove("editor");
-    }
-    editorPath = false;
+  var editor = getEditor(promptTitle);
+  if (!editor) {
+    // The user did not choose an editor.
+    return;
   }
+
+  try {
+    launchApplicationWithDoc(editor, aFile);
+  } catch (e) {
+    // Something may be wrong with the editor the user selected. Remove so that
+    // next time they can pick a different one.
+    GM_log("Launching editor failed with: " + e + " at line: " + e.lineNumber);
+    GM_prefRoot.remove("editor");
+    throw e;
+  }
+}
+
+function getEditor(promptTitle) {
+  var editorPath = GM_prefRoot.getValue("editor");
+
   if (editorPath) {
-    // check whether the editor path is valid
-    GM_log("Try editor with path " + editorPath);
-    editor = Components.classes["@mozilla.org/file/local;1"]
-                       .createInstance(Components.interfaces.nsILocalFile);
+    GM_log("Found saved editor preference: " + editorPath);
+
+    var editor = Components.classes["@mozilla.org/file/local;1"]
+                 .createInstance(Components.interfaces.nsILocalFile);
     editor.followLinks = true;
     editor.initWithPath(editorPath);
-  } else {
+
+    // make sure the editor preference is still valid
+    if (editor.exists() && editor.isExecutable()) {
+      return editor;
+    } else {
+      GM_log("Editor preference either does not exist or is not executable");
+      GM_prefRoot.remove("editor");
+    }
+  }
+
+  // Ask the user to choose a new editor. Sometimes users get confused and
+  // pick a non-executable file, so we set this up in a loop so that if they do
+  // that we can give them an error and try again.
+  while (true) {
+    GM_log("Asking user to choose editor...");
     var nsIFilePicker = Components.interfaces.nsIFilePicker;
     var filePicker = Components.classes["@mozilla.org/filepicker;1"]
                                .createInstance(nsIFilePicker);
@@ -101,34 +124,40 @@ function openInEditor(aFile, promptTitle) {
     filePicker.appendFilters(nsIFilePicker.filterAll);
 
     if (filePicker.show() != nsIFilePicker.returnOK) {
-      return false;
+      // The user canceled, return null.
+      GM_log("User canceled file picker dialog");
+      return null;
     }
-    editor = filePicker.file;
-    GM_log("User selected: " + editor.path);
-    GM_prefRoot.setValue("editor", editor.path);
+
+    GM_log("User selected: " + filePicker.file.path);
+
+    if (filePicker.file.exists() && filePicker.file.isExecutable()) {
+      GM_prefRoot.setValue("editor", filePicker.file.path);
+      return filePicker.file;
+    } else {
+      // TODO: i18n
+      alert("Please pick an executable application to use to edit user " +
+            "scripts.");
+    }
   }
+}
 
-  if (editor.exists() && editor.isExecutable()) {
-    try {
-      GM_log("launching ...");
-
-      var process = Components.classes["@mozilla.org/process/util;1"]
-                              .getService(Components.interfaces.nsIProcess);
-      process.init(editor);
-      process.run(false, // non-blocking
-                  [aFile.path],
-                  1); // number of arguments in second param
-      return true;
-    } catch (e) {
-      GM_log("Failed to launch editor: " + e, true);
-    }
+function launchApplicationWithDoc(appFile, docFile) {
+  if (Components.interfaces.nsILocalFileMac) {
+    // Mac is weird because the "application" can actually be a folder in the
+    // case of application bundles, or it could be an actual binary. Luckily,
+    // Mozilla exposes an interface that handles all this logic.
+    appFile.QueryInterface(Components.interfaces.nsILocalFileMac);
+    appFile.launchWithDoc(docFile);
   } else {
-    GM_log("Editor '" + editorPath + "' does not exist or isn't executable. " +
-           "Put it back, check the permissions, or just give up and reset " +
-           "editor using about:config", true);
+    var process = Components.classes["@mozilla.org/process/util;1"]
+                            .getService(Components.interfaces.nsIProcess);
+    process.init(appFile);
+    process.run(false, // non-blocking
+                [docFile.path],
+                1); // number of arguments in second param
   }
-  return false;
-};
+}
 
 function parseScriptName(sourceUri) {
   var name = sourceUri.spec;
