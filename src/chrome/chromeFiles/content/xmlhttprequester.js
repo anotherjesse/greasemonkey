@@ -76,13 +76,10 @@ GM_xmlhttpRequester.prototype.isXHRAllowed = function(currentUri, remoteUri) {
     remember: false
   }
 
-  // Weird, this dialog does not stay on top, like the install dialog does.
-  // Why? $10 says that putting a setTimeout before this call fixes it.
-  // Also, it isn't centered. Wuddup?
-  this.chromeWindow.openDialog(
+  this.safeContentWin.openDialog(
       "chrome://greasemonkey/content/xhrwarning.xul",
       "xhrwarning",
-      "chrome,centerscreen,modal,dialog,titlebar,resizable",
+      "resizable,centerscreen,modal",
       args);
 
   if (args.remember) {

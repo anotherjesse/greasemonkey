@@ -6,11 +6,11 @@
 <dialog id="greasemonkey"
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
   buttons="accept,cancel"
-  buttonlabelaccept="Allow"
-  buttonlabelcancel="Deny"
+  buttonlabelaccept="&xhrwarning.allow;"
+  buttonlabelcancel="&xhrwarning.deny;"
   ondialogaccept="allow(); return true;"
   ondialogcancel="deny(); return true;"
-  title="Greasemonkey Warning"
+  title="&xhrwarning.title;"
   maxwidth="350"
   orient="vertical"
   onload="init()">
@@ -20,25 +20,23 @@
   <stringbundle id="gm-browser-bundle" src="chrome://greasemonkey/locale/gm-browser.properties" />
 
   <vbox>
-    <description>A Greasemonkey script is trying to make a connection between the following two sites:</description>
+    <description>&xhrwarning.intro;</description>
     <separator class="thin" />
     <vbox style="overflow-x:auto; -moz-appearance:textfield; margin:1px 5px 4px 5px; padding:1px;">
       <label id="from" style="font-size:1.2em; font-weight:bold; font-family:monospace;"/>
       <label id="to" style="font-size:1.2em; font-weight:bold; font-family:monospace;"/>
     </vbox>
     <separator class="thin" />
-    <label value="Do you want to allow this?"/>
+    <label value="&xhrwarning.question;"/>
 
     <separator />
     <vbox style="background:InfoBackground; border:1px black dotted; margin:0 5px; padding:0.5em;">
       <label style="font-weight:bold; color:red;" value="Warning:"/>
-      <description style="font-weight:bold;">You should only allow
-        connections if you trust both sites and you want them to be able to share
-        information.</description>
+      <description style="font-weight:bold;">&xhrwarning.warning;</description>
     </vbox>
     <separator />
 
-    <checkbox id="remember" label="Remember this decision" checked="false"/>
+    <checkbox id="remember" label="&xhrwarning.remember;" checked="false"/>
   </vbox>
 
 </dialog>
