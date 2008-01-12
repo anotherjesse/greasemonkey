@@ -1,9 +1,8 @@
-
-
 function GM_xmlhttpRequester(unsafeContentWin, chromeWindow) {
   this.unsafeContentWin = unsafeContentWin;
+  this.safeContentWin = new XPCNativeWrapper(unsafeContentWin);
   this.chromeWindow = chromeWindow;
-}
+};
 
 // this function gets called by user scripts in content security scope to
 // start a cross-domain xmlhttp request.
@@ -32,23 +31,66 @@ GM_xmlhttpRequester.prototype.contentStartRequest = function(details) {
 
   var ioService = Components.classes["@mozilla.org/network/io-service;1"]
                   .getService(Components.interfaces.nsIIOService);
-  var scheme = ioService.extractScheme(url);
+  var currentUri = ioService.newURI(this.safeContentWin.location.href, null, null);
+  var remoteUri = ioService.newURI(url, null, currentUri);
 
   // This is important - without it, GM_xmlhttpRequest can be used to get
   // access to things like files and chrome. Careful.
-  switch (scheme) {
-    case "http":
-    case "https":
-    case "ftp":
-      this.chromeWindow.setTimeout(
-        GM_hitch(this, "chromeStartRequest", url, details), 0);
-      break;
-    default:
-      throw new Error("Invalid url: " + url);
+  if (remoteUri.scheme != "http" && remoteUri.scheme != "https" &&
+      remoteUri.scheme != "ftp") {
+    throw new Error("Invalid url: " + remoteUri.spec);
   }
 
+  if (!this.isXHRAllowed(currentUri, remoteUri)) {
+    GM_log("GM_xmlhttpRequest denied by user");
+    return;
+  }
+
+  this.chromeWindow.setTimeout(
+    GM_hitch(this, "chromeStartRequest", url, details), 0);
+
   GM_log("< GM_xmlhttpRequest.contentStartRequest");
-}
+};
+
+GM_xmlhttpRequester.prototype.isXHRAllowed = function(currentUri, remoteUri) {
+  if (currentUri.prePath == remoteUri.prePath) {
+    // Same origin, this is always allowed.
+    return true;
+  }
+
+  // Check if there is a remembered decision.
+  var prefPath = "xhr-allowed.";
+  prefPath += currentUri.prePath.replace(/\./g, "%2E");
+  prefPath += ".";
+  prefPath += remoteUri.prePath.replace(/\./g, "%2E");
+
+  if (GM_prefRoot.exists(prefPath)) {
+    return GM_prefRoot.getValue(prefPath);
+  }
+
+  // Ask the user if this cross-origin request is OK.
+  var args = {
+    from: currentUri.prePath,
+    to: remoteUri.prePath,
+    result: false,
+    remember: false
+  }
+
+  // Weird, this dialog does not stay on top, like the install dialog does.
+  // Why? $10 says that putting a setTimeout before this call fixes it.
+  // Also, it isn't centered. Wuddup?
+  this.chromeWindow.openDialog(
+      "chrome://greasemonkey/content/xhrwarning.xul",
+      "xhrwarning",
+      "chrome,centerscreen,modal,dialog,titlebar,resizable",
+      args);
+
+  if (args.remember) {
+    GM_prefRoot.setValue(prefPath, args.result);
+  }
+
+  return args.result;
+};
 
 // this function is intended to be called in chrome's security context, so
 // that it can access other domains without security warning
@@ -73,7 +115,7 @@ GM_xmlhttpRequester.prototype.chromeStartRequest = function(safeUrl, details) {
     }
   }
 
-  req.send(details.data);
+  req.send((details.data) ? details.data : null);
   GM_log("< GM_xmlhttpRequest.chromeStartRequest");
 }
 
@@ -97,7 +139,8 @@ function(unsafeContentWin, req, event, details) {
                          req.getAllResponseHeaders() :
                          ''),
         status:(req.readyState == 4 ? req.status : 0),
-        statusText:(req.readyState == 4 ? req.statusText : '')
+        statusText:(req.readyState == 4 ? req.statusText : ''),
+        finalUrl:(req.readyState == 4 ? req.channel.URI.spec : '')
       }
 
       // Pop back onto browser thread and call event handler.
@@ -112,4 +155,4 @@ function(unsafeContentWin, req, event, details) {
   }
 
   GM_log("< GM_xmlhttpRequester.setupRequestEvent");
-}
+};
