@@ -76,10 +76,23 @@ GM_xmlhttpRequester.prototype.isXHRAllowed = function(currentUri, remoteUri) {
     remember: false
   }
 
-  this.safeContentWin.openDialog(
-      "chrome://greasemonkey/content/xhrwarning.xul",
+  // For some reason, Mozilla is not able to display a chrome:// modal dialog
+  // in this context but it will display a file:// one. I traced through the
+  // code and could not find the problem.
+  // file:// seems to work, except for it reports a single js error to the
+  // console.
+  var reg = Components.classes["@mozilla.org/chrome/chrome-registry;1"]
+                      .getService(Components.interfaces.nsIChromeRegistry);
+  var ioSvc = Components.classes["@mozilla.org/network/io-service;1"]
+                        .getService(Components.interfaces.nsIIOService);
+  var chromeURL = ioSvc.newURI("chrome://greasemonkey/content/xhrwarning.xul",
+                               null, null);
+  var fileURL = reg.convertChromeURL(chromeURL);
+
+  this.chromeWindow.openDialog(
+      fileURL.spec,
       "xhrwarning",
-      "resizable,centerscreen,modal",
+      "modal,chrome,centerscreen,titlebar,resizable",
       args);
 
   if (args.remember) {
