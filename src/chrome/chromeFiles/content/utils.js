@@ -118,8 +118,8 @@ function openInEditor(aFile, promptTitle) {
 
       if (appInfo.OS.toLowerCase().indexOf("win") == 0) {
         // FF3 broke mimeInfoService.getFromTypeAndExtension(), below.
-        // TODO(aa): Bug mozilla and remove this special case when no longer
-        // necessary.
+        // TODO(aa): Monitor https://bugzilla.mozilla.org/show_bug.cgi?id=411819
+        // and update this when/if it's fixed.
         var process = Components.classes["@mozilla.org/process/util;1"]
                                 .getService(Components.interfaces.nsIProcess);
         process.init(editor);
