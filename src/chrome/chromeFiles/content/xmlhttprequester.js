@@ -86,11 +86,14 @@ GM_xmlhttpRequester.prototype.initCookieDestroyer = function() {
     return;
   }
 
-  // Always allow cookies for FF3
+  // XPCSafeJSObjectWrapper was introduced in Gecko 1.9 and made cross-domain
+  // XHR with cookies OK.
   var appInfo = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo);
-  var versionChecker = Cc["@mozilla.org/xpcom/version-comparator;1"]
-                         .getService(Ci.nsIVersionComparator);
-  if(versionChecker.compare(appInfo.version, "3.0") >= 0) {
+
+  // nsIVersionComparator doesn't seem to work when the version numbers have
+  // letters in them.
+  var version = appInfo.platformVersion.split(".");
+  if (parseInt(version[0]) >= 1 && parseInt(version[1]) >= 9) {
     return;
   }
 
