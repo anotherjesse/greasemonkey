@@ -1,8 +1,8 @@
-var config = Components.classes["@greasemonkey.mozdev.org/greasemonkey-service;1"]
-                       .getService().wrappedJSObject.config;
+var config = new Config();
 var uninstallList = [];
 
 window.addEventListener("load", function(ev) {
+  config.load();
   loadControls();
 
   if (!config.scripts.length == 0) {
@@ -21,8 +21,7 @@ function handleOkButton() {
   var chkUninstallPrefs = document.getElementById('chkUninstallPrefs');
   for (var i = 0, script = null; (script = uninstallList[i]); i++) {
     file = getScriptBasedir(script);
-    file.normalize();
-    if(file.path != getScriptDir().path){
+    if (!file.equals(getScriptDir())) {
       if (file.exists()) {
         file.remove(true); // file==base directory recursive delete
       }
