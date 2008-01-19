@@ -7,10 +7,14 @@ function GM_ScriptStorage(script) {
 };
 
 GM_ScriptStorage.prototype.setValue = function(name, val) {
+  GM_apiLeakCheck();
+
   this.prefMan.setValue(name, val);
 };
 
 GM_ScriptStorage.prototype.getValue = function(name, defVal) {
+  GM_apiLeakCheck();
+
   return this.prefMan.getValue(name, defVal);
 };
 
@@ -19,6 +23,8 @@ function GM_Resources(script){
 };
 
 GM_Resources.prototype.getResourceURL = function(name) {
+  GM_apiLeakCheck();
+
   var dep = this.getDep_(name);
 
   var ioService = Components.classes["@mozilla.org/network/io-service;1"]
@@ -39,6 +45,8 @@ GM_Resources.prototype.getResourceURL = function(name) {
 };
 
 GM_Resources.prototype.getResourceText = function(name) {
+  GM_apiLeakCheck();
+
   var dep = this.getDep_(name);
   return getContents(getDependencyFileURI(this.script, dep));
 };
@@ -64,6 +72,8 @@ function GM_ScriptLogger(script) {
 };
 
 GM_ScriptLogger.prototype.log = function(message) {
+  GM_apiLeakCheck();
+
   GM_log(this.prefix + message, true);
 };
 

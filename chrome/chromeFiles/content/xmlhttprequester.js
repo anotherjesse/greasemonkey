@@ -12,6 +12,8 @@ function GM_xmlhttpRequester(unsafeContentWin, chromeWindow) {
 // can't support mimetype because i think it's only used for forcing
 // text/xml and we can't support that
 GM_xmlhttpRequester.prototype.contentStartRequest = function(details) {
+  GM_apiLeakCheck();
+
   // don't actually need the timer functionality, but this pops it
   // out into chromeWindow's thread so that we get that security
   // context.
@@ -96,7 +98,7 @@ function(unsafeContentWin, req, event, details) {
                          ''),
         status:(req.readyState == 4 ? req.status : 0),
         statusText:(req.readyState == 4 ? req.statusText : ''),
-        finalUri:(req.readyState == 4 ? req.channel.URI.spec : '')
+        finalUrl:(req.readyState == 4 ? req.channel.URI.spec : '')
       }
 
       // Pop back onto browser thread and call event handler.
