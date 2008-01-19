@@ -226,97 +226,64 @@ ScriptDownloader.prototype.showScriptView = function() {
 };
 
 ScriptDownloader.prototype.parseScript = function(source, uri) {
+  function resolveURL(url, baseurl) {
+    url = ioservice.newURI(url, null, baseurl);
+    return url.spec;
+  }
   var ioservice = Components.classes["@mozilla.org/network/io-service;1"]
                             .getService();
 
   var script = new Script();
   script.uri = uri;
   script.enabled = true;
-  script.includes = [];
-  script.excludes = [];
+  var headers = GM_parseScriptHeaders(source, {
+    // verbatim string, last value only:
+    name:1,
+    namespace:1,
+    description:1,
 
-  // read one line at a time looking for start meta delimiter or EOF
-  var lines = source.match(/.+/g);
-  var lnIdx = 0;
-  var result = {};
-  var foundMeta = false;
+    // verbatim array of strings, all occurrences:
+    include:0,
+    exclude:0,
 
-  while ((result = lines[lnIdx++])) {
-    if (result.indexOf("// ==UserScript==") == 0) {
-      foundMeta = true;
-      break;
-    }
-  }
-
-  // gather up meta lines
-  if (foundMeta) {
-    // used for duplicate resource name detection
-    var previousResourceNames = {};
-
-    while ((result = lines[lnIdx++])) {
-      if (result.indexOf("// ==/UserScript==") == 0) {
-        break;
+    // derived data, all occurrences:
+    require:function(url, prior) {
+      url = resolveURL(url, uri);
+      if (url == uri.spec)
+        return null;
+      for (var i = 0; i < prior.length; i++) {
+        var seen = prior[i];
+        if (seen && seen.url == url)
+          return null;
       }
-
-      var match = result.match(/\/\/ \@(\S+)\s+([^\n]+)/);
-      if (match != null) {
-        switch (match[1]) {
-          case "name":
-          case "namespace":
-          case "description":
-            script[match[1]] = match[2];
-            break;
-          case "include":
-          case "exclude":
-            script[match[1]+"s"].push(match[2]);
-            break;
-          case "require":
-            var reqUri = ioservice.newURI(match[2], null, uri);
-            var scriptDependency = new ScriptDependency();
-            scriptDependency.url = reqUri.spec;
-            script.requires.push(scriptDependency);
-            break;
-          case "resource":
-            var res = match[2].match(/(\S+)\s+(.*)/);
-            if (res === null) {
-              // NOTE: Unlocalized strings
-              throw new Error("Invalid syntax for @resource declaration '" +
-                              match[2] + "'. Resources are declared like: " +
-                              "@resource <name> <url>.");
-            }
-
-            var resName = res[1];
-            if (previousResourceNames[resName]) {
-              throw new Error("Duplicate resource name '" + resName + "' " +
-                              "detected. Each resource must have a unique " +
-                              "name.");
-            } else {
-              previousResourceNames[resName] = true;
-            }
-
-            var resUri = ioservice.newURI(res[2], null, uri);
-            var scriptResource = new ScriptResource();
-            scriptResource.name = resName;
-            scriptResource.url = resUri.spec;
-            script.resources.push(scriptResource);
-            break;
-        }
+      return new ScriptDependency(url);
+    },
+    resource:function(name_url, prior) {
+      var args = name_url.match(/(\S+)\s+(.*)/);
+      if (args === null) {
+        throw new Error("Invalid syntax for @resource declaration '" +
+                        name_url + "'. Resources are declared like: " +
+                        "@resource <name> <url>."); // TODO: i18n
       }
+      var name = args[1];
+      for (var i = 0; i < prior.length; i++) {
+        if (prior[i].name == name)
+          throw new Error("Duplicate resource name '" + resName + "' " +
+                          "detected. Each resource must have a unique " +
+                          "name."); // TODO: i18n
+      }
+      var url = args[2];
+      return new ScriptResource(name, resolveURL(url, uri));
     }
-  }
+  });
 
-  // if no meta info, default to reasonable values
-  if (script.name == null) {
-    script.name = parseScriptName(uri);
-  }
-
-  if (script.namespace == null) {
-    script.namespace = uri.host;
-  }
-
-  if (script.includes.length == 0) {
-    script.includes.push("*");
-  }
+  script.name = headers.name || parseScriptName(uri);
+  script.namespace = headers.namespace || uri.host;
+  script.description = headers.description || "";
+  script.includes = headers.include || ["*"];
+  script.excludes = headers.exclude || [];
+  script.requires = (headers.require || []).filter(function(r) { return r; });
+  script.resources = headers.resource || [];
 
   this.script = script;
 };

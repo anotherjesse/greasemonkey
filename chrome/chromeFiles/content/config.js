@@ -282,15 +282,15 @@ function Script() {
   this.resources = [];
 };
 
-function ScriptDependency(){
-  this.url = null
+function ScriptDependency(url) {
+  this.url = url || null;
   this.file = null;
   this.filename = null;
 };
 
-function ScriptResource(){
-  this.url = null;
-  this.name = null;
+function ScriptResource(name, url) {
+  this.url = url || null;
+  this.name = name || null;
   this.file = null;
   this.filename = null;
   this.mimetype = null;

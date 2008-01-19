@@ -473,6 +473,9 @@ function gen_loggify_wrapper(meth, objName, methName) {
   }
 };
 
+/**
+ * Returns true if the given script should be invoked on url, otherwise false.
+ */
 function GM_scriptMatchesUrl(script, url) {
   for (var i = 0, glob; glob = script.includes[i]; i++) {
     var re = convert2RegExp(glob);
@@ -487,3 +490,67 @@ function GM_scriptMatchesUrl(script, url) {
   }
   return false;
 }
+
+/**
+ * Returns an associative array from header name (sans @ prefix) to value.
+ * Values are arrays, unless headerSpec[name] was 1, in which case the value
+ * is a string only (the value of the last header with that name).
+ *
+ * If, instead of 1, a callback function is provided, the return value of that
+ * callback is becomes appended to the array instead. This callback is invoked
+ * with two arguments: the raw header, and the array with all prior callback
+ * results for this header (or the empty array).
+ *
+ * oldHeaders (optional) is used as the target object headers are appended to.
+ */
+function GM_parseScriptHeaders(source, headerSpec, oldHeaders) {
+  var headerRe = /.*/;
+  if (headerSpec) {
+    var allHeaders = [];
+    for (var header in headerSpec)
+      allHeaders.push(header);
+    headerRe = new RegExp("^(" + allHeaders.join("|") + ")$");
+  }
+
+  // read one line at a time looking for start meta delimiter or EOF
+  var lines = source.match(/.+/g);
+  var lnIdx = 0;
+  var result;
+  var foundMeta = false;
+  var headers = oldHeaders || {};
+
+  while ((result = lines[lnIdx++])) {
+    if (result.indexOf("// ==UserScript==") == 0) {
+      GM_log("* found metadata");
+      foundMeta = true;
+      break;
+    }
+  }
+
+  // gather up meta lines
+  if (foundMeta) {
+    while ((result = lines[lnIdx++])) {
+      if (result.indexOf("// ==/UserScript==") == 0) {
+        break;
+      }
+
+      var match = result.match(/\/\/ \@(\S+)\s+([^\n]+)/);
+      if (match != null) {
+        var name = match[1], value = match[2];
+        if (!name.match(headerRe))
+          continue;
+        if (headerSpec && headerSpec[name] == 1) {
+          headers[name] = value; // only wanted the last value
+        }
+        else { // want an array of all values
+          if (!headers.hasOwnProperty(name))
+            headers[name] = [];
+          var callback = headerSpec && headerSpec[name] ||
+            function(header) { return header; };
+          headers[name].push(callback(value, headers[name]));
+        }
+      }
+    }
+  }
+  return headers;
+};
