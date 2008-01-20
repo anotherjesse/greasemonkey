@@ -26,8 +26,11 @@ function GM_isDef(thing) {
 };
 
 function GM_hitch(obj, meth) {
-  if (!obj[meth]) {
-    throw "method '" + meth + "' does not exist on object '" + obj + "'";
+  if (typeof meth != "function") {
+    if (!obj[meth]) {
+      throw "method '" + meth + "' does not exist on object '" + obj + "'";
+    }
+    meth = obj[meth];
   }
 
   var staticArgs = Array.prototype.splice.call(arguments, 2, arguments.length);
@@ -44,7 +47,7 @@ function GM_hitch(obj, meth) {
 
     // invoke the original function with the correct this obj and the combined
     // list of static and dynamic arguments.
-    return obj[meth].apply(obj, args);
+    return meth.apply(obj, args);
   };
 };
 
@@ -497,7 +500,7 @@ function GM_scriptMatchesUrl(script, url) {
  * is a string only (the value of the last header with that name).
  *
  * If, instead of 1, a callback function is provided, the return value of that
- * callback is becomes appended to the array instead. This callback is invoked
+ * callback becomes appended to the array instead. This callback is invoked
  * with two arguments: the raw header, and the array with all prior callback
  * results for this header (or the empty array).
  *

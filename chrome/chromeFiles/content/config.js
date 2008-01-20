@@ -286,6 +286,7 @@ function ScriptDependency(url) {
   this.url = url || null;
   this.file = null;
   this.filename = null;
+  this.charset = null;
 };
 
 function ScriptResource(name, url) {
@@ -294,4 +295,5 @@ function ScriptResource(name, url) {
   this.file = null;
   this.filename = null;
   this.mimetype = null;
+  this.charset = null;
 };

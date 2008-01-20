@@ -43,10 +43,10 @@ ScriptDownloader.prototype.handleScriptDownloadComplete = function() {
   try {
     // If loading from file, status might be zero on success
     if (this.req_.status != 200 && this.req_.status != 0) {
-      // NOTE: Unlocalized string
-      alert('Error loading user script:\n' +
-      this.req_.status + ": " +
-      this.req_.statusText);
+      // NOTE: i18n
+      alert("Error loading user script:\n" +
+            this.req_.status + ": " +
+            this.req_.statusText);
       return;
     }
 
@@ -75,13 +75,13 @@ ScriptDownloader.prototype.handleScriptDownloadComplete = function() {
 
     window.setTimeout(GM_hitch(this, "fetchDependencies"), 0);
 
-    if(this.installing_){
+    if (this.installing_) {
       this.showInstallDialog();
-    }else{
+    } else {
       this.showScriptView();
     }
   } catch (e) {
-    // NOTE: unlocalized string
+    // NOTE: i18n
     alert("Script could not be installed " + e);
     throw e;
   }
@@ -103,35 +103,11 @@ ScriptDownloader.prototype.fetchDependencies = function(){
   this.downloadNextDependency();
 };
 
-ScriptDownloader.prototype.downloadNextDependency = function(){
+ScriptDownloader.prototype.downloadNextDependency = function() {
   if (this.depQueue_.length > 0) {
     var dep = this.depQueue_.pop();
-    try {
-      var persist = Components.classes[
-        "@mozilla.org/embedding/browser/nsWebBrowserPersist;1"]
-        .createInstance(Components.interfaces.nsIWebBrowserPersist);
-      persist.persistFlags =
-        persist.PERSIST_FLAGS_BYPASS_CACHE |
-        persist.PERSIST_FLAGS_REPLACE_EXISTING_FILES; //doesn't work?
-      var ioservice =
-        Components.classes["@mozilla.org/network/io-service;1"]
-        .getService();
-      var sourceUri = ioservice.newURI(dep.url, null, null);
-      var sourceChannel = ioservice.newChannelFromURI(sourceUri);
-      sourceChannel.notificationCallbacks = new NotificationCallbacks();
-
-      var file = getTempFile();
-
-      var progressListener = new PersistProgressListener(persist);
-      progressListener.onFinish = GM_hitch(this,
-        "handleDependencyDownloadComplete", dep, file, sourceChannel);
-      persist.progressListener = progressListener;
-
-      persist.saveChannel(sourceChannel,  file);
-    } catch(e) {
-      GM_log("Download exception " + e);
-      this.errorInstallDependency(this.script, dep, e);
-    }
+    this.downloadFile(dep.url, "handleDependencyDownloadComplete",
+                      "errorInstallDependency", dep);
   } else {
     this.dependenciesLoaded_ = true;
     this.finishInstall();
@@ -139,7 +115,7 @@ ScriptDownloader.prototype.downloadNextDependency = function(){
 };
 
 ScriptDownloader.prototype.handleDependencyDownloadComplete =
-function(dep, file, channel) {
+function(file, channel, dep) {
   GM_log("Dependency Download complete " + dep.url);
   try {
     var httpChannel =
@@ -151,15 +127,17 @@ function(dep, file, channel) {
   if (httpChannel) {
     if (httpChannel.requestSucceeded) {
       dep.file = file;
-      dep.mimetype= channel.contentType;
+      if (dep.hasOwnProperty("mimetype"))
+        dep.mimetype = channel.contentType;
       if (channel.contentCharset) {
         dep.charset = channel.contentCharset;
       }
       this.downloadNextDependency();
     } else {
-      this.errorInstallDependency(this.script, dep,
-        "Error! Server Returned : " + httpChannel.responseStatus + ": " +
-        httpChannel.responseStatusText);
+      var error = new Error("Error! Server returned: " +
+                            httpChannel.responseStatus + ": " +
+                            httpChannel.responseStatusText);
+      this.errorInstallDependency(error, dep);
     }
   } else {
     dep.file = file;
@@ -179,7 +157,7 @@ ScriptDownloader.prototype.checkDependencyURL = function(url) {
         return true;
     case "file":
         var scriptScheme = ioService.extractScheme(this.uri_.spec);
-        return (scriptScheme == "file")
+        return (scriptScheme == "file");
     default:
       return false;
   }
@@ -191,7 +169,8 @@ ScriptDownloader.prototype.finishInstall = function(){
   }
 };
 
-ScriptDownloader.prototype.errorInstallDependency = function(script, dep, msg){
+ScriptDownloader.prototype.errorInstallDependency = function(e, dep) {
+  var msg = e.message;
   GM_log("Error loading dependency " + dep.url + "\n" + msg)
   if (this.installOnCompletion_) {
     alert("Error loading dependency " + dep.url + "\n" + msg);
@@ -225,7 +204,7 @@ ScriptDownloader.prototype.showScriptView = function() {
   this.win_.GM_BrowserUI.showScriptView(this);
 };
 
-ScriptDownloader.prototype.parseScript = function(source, uri) {
+ScriptDownloader.prototype.parseScript = function(source, uri, script, headers) {
   function resolveURL(url, baseurl) {
     url = ioservice.newURI(url, null, baseurl);
     return url.spec;
@@ -233,10 +212,7 @@ ScriptDownloader.prototype.parseScript = function(source, uri) {
   var ioservice = Components.classes["@mozilla.org/network/io-service;1"]
                             .getService();
 
-  var script = new Script();
-  script.uri = uri;
-  script.enabled = true;
-  var headers = GM_parseScriptHeaders(source, {
+  headers = GM_parseScriptHeaders(source, {
     // verbatim string, last value only:
     name:1,
     namespace:1,
@@ -275,19 +251,52 @@ ScriptDownloader.prototype.parseScript = function(source, uri) {
       var url = args[2];
       return new ScriptResource(name, resolveURL(url, uri));
     }
-  });
+  }, headers);
 
-  script.name = headers.name || parseScriptName(uri);
-  script.namespace = headers.namespace || uri.host;
-  script.description = headers.description || "";
+  if (!script) {
+    script = this.script = new Script();
+    script.uri = uri;
+    script.enabled = true;
+    script.name = headers.name || parseScriptName(uri);
+    script.namespace = headers.namespace || uri.host;
+    script.description = headers.description || "";
+  }
   script.includes = headers.include || ["*"];
   script.excludes = headers.exclude || [];
   script.requires = (headers.require || []).filter(function(r) { return r; });
   script.resources = headers.resource || [];
 
-  this.script = script;
+  return headers;
 };
 
+/**
+ * Download and save url into a temporary file. On successful completion, call
+ * onOK(file, channel), otherwise onFail(exception). Additional arguments get
+ * passed on to either callback, and the this object is retained.
+ */
+ScriptDownloader.prototype.downloadFile = function(url, onOK, onFail) {
+  var args = [].slice.call(arguments, 3); // trailing args for the callbacks
+  try {
+    var ioservice =
+      Components.classes["@mozilla.org/network/io-service;1"].getService();
+    var uri = ioservice.newURI(url, null, null);
+
+    var channel = ioservice.newChannelFromURI(uri);
+    channel.notificationCallbacks = new NotificationCallbacks();
+
+    var file = getTempFile();
+
+    args.unshift(this, onOK, file, channel);
+    onOK = GM_hitch.apply(args);
+    var progressListener = new PersistProgressListener(onOK);
+    progressListener.persist.saveChannel(channel, file);
+  } catch(e) {
+    GM_log("Download exception " + e);
+    args.unshift(this, onFail, e);
+    onFail = GM_hitch.apply(args);
+    onFail();
+  }
+}
 
 function NotificationCallbacks() {
 };
@@ -309,10 +318,17 @@ NotificationCallbacks.prototype.getInterface = function(aIID) {
 };
 
 
-function PersistProgressListener(persist){
+function PersistProgressListener(doneCallback) {
+  var persist = Components.classes[
+    "@mozilla.org/embedding/browser/nsWebBrowserPersist;1"]
+    .createInstance(Components.interfaces.nsIWebBrowserPersist);
+  persist.persistFlags =
+    persist.PERSIST_FLAGS_BYPASS_CACHE |
+    persist.PERSIST_FLAGS_REPLACE_EXISTING_FILES; //doesn't work?
+  persist.progressListener = this;
+
+  this.onFinish = doneCallback;
   this.persist = persist;
-  this.onFinish = function(){};
-  this.persiststate = "";
 };
 
 PersistProgressListener.prototype.QueryInterface = function(aIID) {
