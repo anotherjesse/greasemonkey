@@ -1,11 +1,9 @@
-function GM_xmlhttpRequester(unsafeContentWin, safeContentWin, chromeWindow) {
+
+
+function GM_xmlhttpRequester(unsafeContentWin, chromeWindow) {
   this.unsafeContentWin = unsafeContentWin;
-  this.safeContentWin = safeContentWin;
   this.chromeWindow = chromeWindow;
-  this.currentUri_ = null;
-  this.remoteUri_ = null;
-  this.req_ = null;
-};
+}
 
 // this function gets called by user scripts in content security scope to
 // start a cross-domain xmlhttp request.
@@ -34,75 +32,49 @@ GM_xmlhttpRequester.prototype.contentStartRequest = function(details) {
 
   var ioService = Components.classes["@mozilla.org/network/io-service;1"]
                   .getService(Components.interfaces.nsIIOService);
-  this.currentUri_ = ioService.newURI(this.safeContentWin.location.href, null,
-                                      null);
-  this.remoteUri_ = ioService.newURI(url, null, this.currentUri_);
+  var scheme = ioService.extractScheme(url);
 
   // This is important - without it, GM_xmlhttpRequest can be used to get
   // access to things like files and chrome. Careful.
-  if (this.remoteUri_.scheme != "http" && this.remoteUri_.scheme != "https" &&
-      this.remoteUri_.scheme != "ftp") {
-    throw new Error("Invalid url: " + this.remoteUri_.spec);
+  switch (scheme) {
+    case "http":
+    case "https":
+    case "ftp":
+      this.chromeWindow.setTimeout(
+        GM_hitch(this, "chromeStartRequest", url, details), 0);
+      break;
+    default:
+      throw new Error("Invalid url: " + url);
   }
 
-  this.chromeWindow.setTimeout(
-    GM_hitch(this, "chromeStartRequest", url, details), 0);
-
   GM_log("< GM_xmlhttpRequest.contentStartRequest");
-};
+}
 
 // this function is intended to be called in chrome's security context, so
 // that it can access other domains without security warning
 GM_xmlhttpRequester.prototype.chromeStartRequest = function(safeUrl, details) {
   GM_log("> GM_xmlhttpRequest.chromeStartRequest");
-  this.req_ = new this.chromeWindow.XMLHttpRequest();
+  var req = new this.chromeWindow.XMLHttpRequest();
 
-  this.setupRequestEvent(this.unsafeContentWin, this.req_, "onload", details);
-  this.setupRequestEvent(this.unsafeContentWin, this.req_, "onerror", details);
-  this.setupRequestEvent(this.unsafeContentWin, this.req_, "onreadystatechange",
+  this.setupRequestEvent(this.unsafeContentWin, req, "onload", details);
+  this.setupRequestEvent(this.unsafeContentWin, req, "onerror", details);
+  this.setupRequestEvent(this.unsafeContentWin, req, "onreadystatechange",
                          details);
 
-  this.req_.open(details.method, safeUrl);
+  req.open(details.method, safeUrl);
 
   if (details.overrideMimeType) {
-    this.req_.overrideMimeType(details.overrideMimeType);
+    req.overrideMimeType(details.overrideMimeType);
   }
 
   if (details.headers) {
     for (var prop in details.headers) {
-      this.req_.setRequestHeader(prop, details.headers[prop]);
+      req.setRequestHeader(prop, details.headers[prop]);
     }
   }
 
-  this.initCookieDestroyer();
-
-  this.req_.send((details.data) ? details.data : null);
+  req.send(details.data);
   GM_log("< GM_xmlhttpRequest.chromeStartRequest");
-}
-
-GM_xmlhttpRequester.prototype.initCookieDestroyer = function() {
-  // Always allow cookies for same-origin.
-  if (this.currentUri_.prePath == this.remoteUri_.prePath) {
-    return;
-  }
-
-  // XPCSafeJSObjectWrapper was introduced in Gecko 1.9 and made cross-domain
-  // XHR with cookies OK.
-  var appInfo = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo);
-
-  // nsIVersionComparator doesn't seem to work when the version numbers have
-  // letters in them.
-  var version = appInfo.platformVersion.split(".");
-  if (parseInt(version[0]) >= 1 && parseInt(version[1]) >= 9) {
-    return;
-  }
-
-  // This is a cross-origin request on FF < 3. Strip the cookies.
-  this.obsSvc_ = Cc["@mozilla.org/observer-service;1"]
-                   .getService(Ci.nsIObserverService);
-  this.obsSvc_.addObserver(this, "http-on-modify-request",
-                           false); // strong reference, weak references not
-                                   // supported for JS :(
 }
 
 // arranges for the specified 'event' on xmlhttprequest 'req' to call the
@@ -125,8 +97,7 @@ function(unsafeContentWin, req, event, details) {
                          req.getAllResponseHeaders() :
                          ''),
         status:(req.readyState == 4 ? req.status : 0),
-        statusText:(req.readyState == 4 ? req.statusText : ''),
-        finalUrl:(req.readyState == 4 ? req.channel.URI.spec : '')
+        statusText:(req.readyState == 4 ? req.statusText : '')
       }
 
       // Pop back onto browser thread and call event handler.
@@ -141,18 +112,4 @@ function(unsafeContentWin, req, event, details) {
   }
 
   GM_log("< GM_xmlhttpRequester.setupRequestEvent");
-};
-
-GM_xmlhttpRequester.prototype.observe = function(subject, topic, data) {
-  if (topic != "http-on-modify-request" || subject != this.req_.channel) {
-    return;
-  }
-
-  this.req_.channel.QueryInterface(Ci.nsIHttpChannel);
-  // The false final parameter makes the empty string overwrite the existing
-  // cookies.
-  this.req_.channel.setRequestHeader("Cookie", "", false);
-
-  // We're done, remove observer so that we don't leak.
-  this.obsSvc_.removeObserver(this, "http-on-modify-request");
 }

@@ -38,13 +38,3 @@
 <!ENTITY newscript.description "Description">
 <!ENTITY newscript.includes "Includes (One per line)">
 <!ENTITY newscript.excludes "Excludes (One per line)">
-
-<!ENTITY xhrwarning.allow "Allow">
-<!ENTITY xhrwarning.allow.accesskey "A">
-<!ENTITY xhrwarning.deny "Deny">
-<!ENTITY xhrwarning.deny.accesskey "D">
-<!ENTITY xhrwarning.title "Greasemonkey Warning">
-<!ENTITY xhrwarning.intro "A Greasemonkey script is trying to make a connection between the following two sites:">
-<!ENTITY xhrwarning.question "Do you want to allow this?">
-<!ENTITY xhrwarning.warning "You should only allow connections if you trust both sites and you want them to be able to share information.">
-<!ENTITY xhrwarning.remember "Remember this decision">

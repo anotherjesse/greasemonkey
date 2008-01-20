@@ -113,29 +113,14 @@ function openInEditor(aFile, promptTitle) {
     try {
       GM_log("launching ...");
 
-      var appInfo = Components.classes["@mozilla.org/xre/app-info;1"]
-                              .getService(Components.interfaces.nsIXULRuntime);
-
-      if (appInfo.OS.toLowerCase().indexOf("win") == 0) {
-        // FF3 broke mimeInfoService.getFromTypeAndExtension(), below.
-        // TODO(aa): Monitor https://bugzilla.mozilla.org/show_bug.cgi?id=411819
-        // and update this when/if it's fixed.
-        var process = Components.classes["@mozilla.org/process/util;1"]
-                                .getService(Components.interfaces.nsIProcess);
-        process.init(editor);
-        process.run(false, // non-blocking
-                    [aFile.path],
-                    1); // number of elements in second argument
-      } else {
-        var mimeInfoService = Components
-          .classes["@mozilla.org/uriloader/external-helper-app-service;1"]
-          .getService(Components.interfaces.nsIMIMEService);
-        var mimeInfo = mimeInfoService
-          .getFromTypeAndExtension( "application/x-userscript+javascript", "user.js" );
-        mimeInfo.preferredAction = mimeInfo.useHelperApp
-        mimeInfo.preferredApplicationHandler = editor;
-        mimeInfo.launchWithFile( aFile );
-      }
+      var mimeInfoService = Components
+        .classes["@mozilla.org/uriloader/external-helper-app-service;1"]
+        .getService(Components.interfaces.nsIMIMEService);
+      var mimeInfo = mimeInfoService
+        .getFromTypeAndExtension( "application/x-userscript+javascript", "user.js" );
+      mimeInfo.preferredAction = mimeInfo.useHelperApp
+      mimeInfo.preferredApplicationHandler = editor;
+      mimeInfo.launchWithFile( aFile );
       return true;
     } catch (e) {
       GM_log("Failed to launch editor: " + e, true);

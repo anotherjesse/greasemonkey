@@ -239,8 +239,8 @@ var greasemonkeyService = {
       console = firebugConsole ? firebugConsole : new GM_console(script);
 
       storage = new GM_ScriptStorage(script);
-      xmlhttpRequester = new GM_xmlhttpRequester(unsafeContentWin, safeWin,
-                                                 chromeWin);
+      xmlhttpRequester = new GM_xmlhttpRequester(unsafeContentWin,
+                                                 appSvc.hiddenDOMWindow);
 
       sandbox.window = safeWin;
       sandbox.document = sandbox.window.document;
