@@ -89,14 +89,14 @@ ScriptDownloader.prototype.handleScriptDownloadComplete = function() {
 
 ScriptDownloader.prototype.fetchDependencies = function(){
   GM_log("Fetching Dependencies");
-  var deps = this.script.requires.concat(this.script.resources);
-  for (var i = 0; i < deps.length; i++) {
-    var dep = deps[i];
+  var dep, deps = this.script.requires.concat(this.script.resources);
+  while ((dep = deps.shift())) {
     if (this.checkDependencyURL(dep.url)) {
       this.depQueue_.push(dep);
     } else {
-      this.errorInstallDependency(this.script, dep,
-        "SecurityException: Request to local and chrome url's is forbidden");
+      var error = new Error("SecurityException: " +
+                            "Request to local and chrome urls is forbidden");
+      this.errorInstallDependency(error, dep);
       return;
     }
   }
@@ -287,13 +287,13 @@ ScriptDownloader.prototype.downloadFile = function(url, onOK, onFail) {
     var file = getTempFile();
 
     args.unshift(this, onOK, file, channel);
-    onOK = GM_hitch.apply(args);
+    onOK = GM_hitch.apply(this, args);
     var progressListener = new PersistProgressListener(onOK);
     progressListener.persist.saveChannel(channel, file);
   } catch(e) {
     GM_log("Download exception " + e);
     args.unshift(this, onFail, e);
-    onFail = GM_hitch.apply(args);
+    onFail = GM_hitch.apply(this, args);
     onFail();
   }
 }
