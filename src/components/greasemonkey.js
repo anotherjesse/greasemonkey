@@ -8,11 +8,39 @@ const Ci = Components.interfaces;
 const appSvc = Cc["@mozilla.org/appshell/appShellService;1"]
                  .getService(Ci.nsIAppShellService);
 
+const gmSvcFilename = Components.stack.filename;
+
 function alert(msg) {
   Cc["@mozilla.org/embedcomp/prompt-service;1"]
     .getService(Ci.nsIPromptService)
     .alert(null, "Greasemonkey alert", msg);
 }
+
+// Examines the stack to determine if an API should be callable.
+function GM_apiLeakCheck(apiName) {
+  var stack = Components.stack;
+
+  do {
+    // Valid stack frames for GM api calls are: native and js when coming from
+    // chrome:// URLs and the greasemonkey.js component's file:// URL.
+    if (2 == stack.language) {
+      // NOTE: In FF 2.0.0.0, I saw that stack.filename can be null for JS/XPCOM
+      // services. This didn't happen in FF 2.0.0.11; I'm not sure when it
+      // changed.
+      if (stack.filename != null && 
+          stack.filename != gmSvcFilename &&
+          stack.filename.substr(0, 6) != 'chrome') {
+        GM_logError(new Error("Greasemonkey access violation: unsafeWindow " +
+                    "cannot call " + apiName + "."));
+        return false;
+      }
+    }
+
+    stack = stack.caller;
+  } while (stack);
+
+  return true;
+};
 
 var greasemonkeyService = {
 

@@ -9,10 +9,18 @@ function GM_ScriptStorage(script) {
 }
 
 GM_ScriptStorage.prototype.setValue = function(name, val) {
+  if (!GM_apiLeakCheck("GM_setValue")) {
+    return;
+  }
+
   this.prefMan.setValue(name, val);
 }
 
 GM_ScriptStorage.prototype.getValue = function(name, defVal) {
+  if (!GM_apiLeakCheck("GM_getValue")) {
+    return;
+  }
+
   return this.prefMan.getValue(name, defVal);
 }
 
