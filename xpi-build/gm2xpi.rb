@@ -2,24 +2,7 @@
 
 class GreasemonkeyScript
 
-	def name
-		@name
-	end
-	def namespace
-		@namespace
-	end
-	def description
-		@description
-	end
-	def includes
-		@includes
-	end
-	def excludes
-		@excludes
-	end
-	def requires
-		@requires
-	end
+	attr_reader :name, :namespace, :description, :includes, :excludes, :requires, :resources
 
 	def initialize(path)
 
@@ -29,16 +12,18 @@ class GreasemonkeyScript
 		@includes = []
 		@excludes = []
 		@requires = []
+		@resources = []
 
 		File.open(path, "r") do |infile|
 		    while (line = infile.gets)
-				@name = line.scan(/@name[\s]+(.*)$/)[0][0].chomp if line =~ /@name[\s]+.*$/
-				@namespace = line.scan(/@namespace[\s]+(.*)$/)[0][0].chomp if line =~ /@namespace[\s]+.*$/
-				@description = line.scan(/@description[\s]+(.*)$/)[0][0].chomp if line =~ /@description[\s]+.*$/
-				@includes.push line.scan(/@include[\s]+(.*)$/)[0][0].chomp if line =~ /@include[\s]+.*$/
-				@excludes.push line.scan(/@exclude[\s]+(.*)$/)[0][0].chomp if line =~ /@exclude[\s]+.*$/
-				@requires.push line.scan(/@require[\s]+(.*)$/)[0][0].chomp if line =~ /@require[\s]+.*$/
-				break if line =~ /\/\/ ==\/UserScript==/
+				@name = line.scan(/^\/\/ @name[\s]+(.*)$/)[0][0].chomp if line =~ /^\/\/ @name[\s]+.*$/
+				@namespace = line.scan(/^\/\/ @namespace[\s]+(.*)$/)[0][0].chomp if line =~ /^\/\/ @namespace[\s]+.*$/
+				@description = line.scan(/^\/\/ @description[\s]+(.*)$/)[0][0].chomp if line =~ /^\/\/ @description[\s]+.*$/
+				@includes.push line.scan(/^\/\/ @include[\s]+(.*)$/)[0][0].chomp if line =~ /^\/\/ @include[\s]+.*$/
+				@excludes.push line.scan(/^\/\/ @exclude[\s]+(.*)$/)[0][0].chomp if line =~ /^\/\/ @exclude[\s]+.*$/
+				@requires.push line.scan(/^\/\/ @require[\s]+(.*)$/)[0][0].chomp if line =~ /^\/\/ @require[\s]+.*$/
+				@resources.push({:name => line.scan(/^\/\/ @resource[\s]+(.*?)[\s]+.*$/)[0][0].chomp, :filename => line.scan(/^\/\/ @resource[\s]+.*?[\s]+(.*)$/)[0][0].chomp}) if line =~ /^\/\/ @resource[\s]+.*$/
+				break if line =~ /^\/\/ ==\/UserScript==/
 		    end
 		end
 
@@ -93,12 +78,14 @@ end
 scriptmeta = File.open('./build/content/scriptmeta.js', "w")
 scriptmeta << "var XPI_SCRIPTS = [\n"
 
-xpiname = ARGV[4].slice 0, ARGV[4] =~ /\./
+xpiname = ARGV[4].split(/\//).reverse[0]
+xpiname = xpiname.slice 0, xpiname =~ /\./
 name = false
 description = false
 
 1.upto ARGV.length - 4 do |i|
 	gmscript = ARGV[i+3]
+	gmfilename = gmscript.split(/\//).reverse[0]
 	`cp "#{gmscript}" ./build/content/`
 	meta = GreasemonkeyScript.new(gmscript)
 	name = meta.name unless name
@@ -108,8 +95,21 @@ description = false
 	scriptmeta << "\t\tnamespace: '#{meta.namespace}',\n"
 	scriptmeta << "\t\tincludes: #{meta.includes.to_json},\n"
 	scriptmeta << "\t\texcludes: #{meta.excludes.to_json},\n"
-	scriptmeta << "\t\trequires: #{meta.requires.to_json},\n"
-	scriptmeta << "\t\turi: 'chrome://#{xpiname}/content/#{gmscript}'\n"
+
+	require_json = '[{\'filename\':\'' + meta.requires.join('\'},{\'filename\':\'') + '\'}]'
+	require_json = '[]' if meta.requires.length < 1
+	scriptmeta << "\t\trequires: " + require_json + ",\n"
+
+	scriptmeta << "\t\tresources: ["
+	meta.resources.each do |resource|
+		scriptmeta << '{'
+		scriptmeta << '\'name\': \'' + resource[:name] + '\','
+		scriptmeta << '\'filename\': \'' + resource[:filename] + '\''
+		scriptmeta << '},'
+	end
+	scriptmeta << "],\n"
+
+	scriptmeta << "\t\turi: 'chrome://#{xpiname}/content/#{gmfilename}'\n"
 	scriptmeta << "\t},\n"
 end
 
