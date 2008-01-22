@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+
+<!-- Note: Contains Firefox-specific overlay -->
+
+<overlay
+  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+  <script type="application/x-javascript" src="chrome://XPINAME/content/scriptmeta.js" />
+  <script type="application/x-javascript" src="chrome://XPINAME/content/utils.js" />
+  <script type="application/x-javascript" src="chrome://XPINAME/content/prefmanager.js" />
+  <script type="application/x-javascript" src="chrome://XPINAME/content/convert2RegExp.js" />
+  <script type="application/x-javascript" src="chrome://XPINAME/content/versioning.js" />
+  <script type="application/x-javascript" src="chrome://XPINAME/content/menucommander.js" />
+  <script type="application/x-javascript" src="chrome://XPINAME/content/xmlhttprequester.js" />
+  <script type="application/x-javascript" src="chrome://XPINAME/content/miscapis.js" />
+  <script type="application/x-javascript" src="chrome://XPINAME/content/scriptdownloader.js" />
+  <script type="application/x-javascript" src="chrome://XPINAME/content/config.js" />
+  <script type="application/x-javascript" src="chrome://XPINAME/content/accelimation.js" />
+  <script type="application/x-javascript" src="chrome://XPINAME/content/browser.js" />
+
+</overlay>

@@ -1,0 +1,3 @@
+content    XPINAME    content/
+overlay	   chrome://browser/content/browser.xul    chrome://XPINAME/content/browser.xul
+overlay	   chrome://songbird/content/xul/mainScriptsOverlay.xul    chrome://XPINAME/content/browser.xul
