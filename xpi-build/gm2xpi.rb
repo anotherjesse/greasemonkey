@@ -128,4 +128,4 @@ FindReplace './build/install.rdf', 'GUID', ARGV[3]
 FindReplace './build/install.rdf', 'DESCRIPTION', description
 
 `cd ./build/ && zip -r ../#{xpiname}.xpi * && cd ..`
-`rm ./build/ -rf`
+`rm -rf ./build/`
