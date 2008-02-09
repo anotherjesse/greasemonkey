@@ -1,7 +1,8 @@
 function Config() {
   this.onload = null;
   this.scripts = null;
-  this.configFile = getConfigFile();
+  this.configFile = this.scriptDir;
+  this.configFile.append("config.xml");
 };
 
 Config.prototype.find = function(namespace, name) {
@@ -50,7 +51,7 @@ Config.prototype.initFilename = function(script) {
 
     if (!index[filename]) {
       // Check to make sure there's no file already in that space.
-      var file = getScriptDir().clone();
+      var file = this.scriptDir.clone();
       file.append(filename);
       if (!file.exists()) {
         script.filename = filename;
@@ -92,7 +93,7 @@ Config.prototype.initDependencyFilename = function(script, req) {
   for (var count = 0; count < Number.MAX_VALUE; count++) {
     var stamp = (count > 0) ? "(" + count + ")" : "";
     var filename = base + stamp + ext;
-    var file = getScriptBasedir(script)
+    var file = script.basedirFile;
     file.append(filename);
 
     if (!file.exists()) {
@@ -106,14 +107,14 @@ Config.prototype.load = function() {
   var domParser = Components.classes["@mozilla.org/xmlextras/domparser;1"]
                             .createInstance(Components.interfaces.nsIDOMParser);
 
-  var configContents = getContents(getConfigFileURI());
+  var configContents = getContents(this.configFile);
   var doc = domParser.parseFromString(configContents, "text/xml");
   var nodes = doc.evaluate("/UserScriptConfig/Script", doc, null, 0, null);
 
   this.scripts = [];
 
   for (var node = null; (node = nodes.iterateNext()); ) {
-    var script = new Script();
+    var script = new Script(this);
 
     for (var i = 0, childNode = null; (childNode = node.childNodes[i]); i++) {
       if (childNode.nodeName == "Include") {
@@ -121,12 +122,16 @@ Config.prototype.load = function() {
       } else if (childNode.nodeName == "Exclude") {
         script.excludes.push(childNode.firstChild.nodeValue);
       } else if (childNode.nodeName == "Require") {
-        script.requires.push({ filename : childNode.getAttribute("filename")});
+        var scriptRequire = new ScriptRequire(script);
+        scriptRequire.filename = childNode.getAttribute("filename");
+        script.requires.push(scriptRequire);
       } else if (childNode.nodeName == "Resource") {
-        script.resources.push({ name : childNode.getAttribute("name"),
-                                filename : childNode.getAttribute("filename"),
-                                mimetype : childNode.getAttribute("mimetype"),
-                                charset  : childNode.getAttribute("charset")});
+        var scriptResource = new ScriptResource(script);
+        scriptResource.name = childNode.getAttribute("name");
+        scriptResource.filename = childNode.getAttribute("filename");
+        scriptResource.mimetype = childNode.getAttribute("mimetype");
+        scriptResource.charset  = childNode.getAttribute("charset");
+        script.resources.push(scriptResource);
       }
     }
 
@@ -211,18 +216,18 @@ Config.prototype.install = function(script) {
 
   try {
     // initialize a new script object
-    script.filename = script.file.leafName;
+    script.filename = script.tempFile.leafName;
 
-    var newDir = getScriptDir();
+    var newDir = this.scriptDir;
     var existingIndex = this.find(script.namespace, script.name);
     var existingFile = null;
     var oldScripts = new Array(this.scripts);
 
     if (existingIndex > -1) {
-        existingFile = getScriptBasedir(this.scripts[existingIndex]);
+        existingFile = this.scripts[existingIndex].basedirFile;
         existingFile.normalize();
-        if (existingFile.equals(getScriptDir())) {
-          existingFile = getScriptFile(this.scripts[existingIndex]);
+        if (existingFile.equals(this.scriptDir)) {
+          existingFile = this.scripts[existingIndex].file;
         }
         if (existingFile.exists()) {
           existingFile.remove(true);
@@ -232,7 +237,7 @@ Config.prototype.install = function(script) {
 
     this.initFilename(script);
     newDir.append(script.basedir);
-    script.file.copyTo(newDir, script.filename);
+    script.tempFile.copyTo(newDir, script.filename);
 
     for (var i = 0; i < script.requires.length; i++) {
       this.installDependency(script, script.requires[i]);
@@ -253,9 +258,9 @@ Config.prototype.install = function(script) {
 };
 
 Config.prototype.installDependency = function(script, req){
-  GM_log("Installing dependency: " + req.url  + " from " + req.file.path);
+  GM_log("Installing dependency: " + req.url  + " from " + req.tempFile.path);
 
-  var scriptDir = getScriptDir();
+  var scriptDir = this.scriptDir;
   GM_log("Installing to " + script.basedir);
   scriptDir.append(script.basedir);
 
@@ -263,13 +268,47 @@ Config.prototype.installDependency = function(script, req){
   GM_log("Installing as: " + req.filename);
 
   try {
-    req.file.copyTo(scriptDir, req.filename)
+    req.tempFile.copyTo(scriptDir, req.filename)
   } catch(e) {
     throw e;
   }
 };
 
-function Script() {
+Config.prototype.__defineGetter__("scriptDir", function() {
+  var dir = this.newScriptDir;
+
+  if (dir.exists()) {
+    return dir;
+  } else {
+    var oldDir = this.oldScriptDir;
+    if (oldDir.exists()) {
+      return oldDir;
+    } else {
+      // if we called this function, we want a script dir.
+      // but, at this branch, neither the old nor new exists, so create one
+      return GM_createScriptsDir(dir);
+    }
+  }
+});
+
+Config.prototype.__defineGetter__("newScriptDir", function() {
+  var file = Components.classes["@mozilla.org/file/directory_service;1"]
+                       .getService(Components.interfaces.nsIProperties)
+                       .get("ProfD", Components.interfaces.nsILocalFile);
+  file.append("gm_scripts");
+  return file;
+});
+
+Config.prototype.__defineGetter__("oldScriptDir", function() {
+  var file = getContentDir();
+  file.append("scripts");
+  return file;
+});
+
+function Script(config)
+{
+  this._config = config;
+  this.tempFile = null; // Only for scripts not installed
   this.filename = null;
   this.name = null;
   this.namespace = null;
@@ -280,18 +319,57 @@ function Script() {
   this.basedir = null;
   this.requires = [];
   this.resources = [];
-};
+}
 
-function ScriptDependency(){
-  this.url = null
-  this.file = null;
+Script.prototype = {
+  get file()
+  {
+    var file = this.basedirFile;
+    file.append(this.filename);
+    return file;
+  },
+
+  get basedirFile()
+  {
+    var file = this._config.scriptDir;
+    file.append(this.basedir);
+    return file;
+  }
+}
+
+function ScriptRequire(script)
+{
+  this._script = script;
+  this.url = null; // Only for scripts not installed
+  this.tempFile = null; // Only for scripts not installed
   this.filename = null;
-};
+}
 
-function ScriptResource(){
-  this.url = null;
+ScriptRequire.prototype = {
+  get file()
+  {
+    var file = this._script.basedirFile;
+    file.append(this.filename);
+    return file;
+  }
+}
+
+function ScriptResource(script)
+{
+  this._script = script;
+  this.url = null; // Only for scripts not installed
+  this.tempFile = null; // Only for scripts not installed
   this.name = null;
-  this.file = null;
   this.filename = null;
   this.mimetype = null;
-};
+  this.charset = null;
+}
+
+ScriptResource.prototype = {
+  get file()
+  {
+    var file = this._script.basedirFile;
+    file.append(this.filename);
+    return file;
+  }
+}

@@ -311,17 +311,16 @@ var greasemonkeyService = {
 
       sandbox.__proto__ = safeWin;
 
-      var contents = getContents(getScriptFileURI(script))
+      var contents = getContents(script.file);
 
       var requires = [];
       var offsets = [];
       var offset = 0;
 
       script.requires.forEach(function(req){
-        var uri = getDependencyFileURI(script, req);
-        var contents = getContents(uri);
+        var contents = getContents(req.file);
         var lineCount = contents.split("\n").length;
-        requires.push(getContents(uri));
+        requires.push(contents);
         offset += lineCount;
         offsets.push(offset);
       })
@@ -397,7 +396,7 @@ var greasemonkeyService = {
           GM_logError(
             e, // error obj
             0, // 0 = error (1 = warning)
-            getScriptFileURI(script).spec,
+            GM_getUriFromFile(script.file).spec,
             0
           );
         }
@@ -413,7 +412,7 @@ var greasemonkeyService = {
       end = script.offsets[i];
       if (lineNumber < end) {
         return {
-          uri: getDependencyFileURI(script, script.requires[i]).spec,
+          uri: GM_getUriFromFile(script.requires[i].file).spec,
           lineNumber: (lineNumber - start)
         };
       }
@@ -421,7 +420,7 @@ var greasemonkeyService = {
     }
 
     return {
-      uri: getScriptFileURI(script).spec,
+      uri: GM_getUriFromFile(script.file).spec,
       lineNumber: (lineNumber - end)
     };
   },

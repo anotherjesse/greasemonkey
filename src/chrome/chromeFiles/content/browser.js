@@ -234,7 +234,7 @@ GM_BrowserUI.showScriptView = function(scriptDownloader) {
 
   var ioSvc = Components.classes["@mozilla.org/network/io-service;1"]
                         .getService(Components.interfaces.nsIIOService);
-  var uri = ioSvc.newFileURI(scriptDownloader.script.file);
+  var uri = ioSvc.newFileURI(scriptDownloader.script.tempFile);
 
   var tab = this.tabBrowser.addTab(uri.spec);
   var browser = this.tabBrowser.getBrowserForTab(tab);

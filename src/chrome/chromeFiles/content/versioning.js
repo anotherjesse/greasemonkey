@@ -36,7 +36,8 @@ function GM_updateVersion() {
  * paranoid and backup the folder the first time 0.8 runs.
  */
 function GM_pointEightBackup() {
-  var scriptDir = getNewScriptDir();
+  var config = new Config();
+  var scriptDir = config.newScriptDir;
   var scriptDirBackup = scriptDir.clone();
   scriptDirBackup.leafName += "_08bak";
   if (scriptDir.exists() && !scriptDirBackup.exists()) {
@@ -50,8 +51,9 @@ function GM_pointEightBackup() {
 function GM_pointFourMigrate() {
   log("> GM_pointFourMigrate");
 
-  var oldDir = getOldScriptDir();
-  var newDir = getNewScriptDir();
+  var config = new Config();
+  var oldDir = config.oldScriptDir;
+  var newDir = config.newScriptDir;
 
   if (!oldDir.exists() && !newDir.exists()) {
     GM_createScriptsDir(newDir);
@@ -135,7 +137,7 @@ function GM_pointThreeMigrate() {
     log("config saved.");
 
     // now, load config normally and reinitialize all scripts's filenames
-    var config = new Config(GM_getPointThreeScriptFile("config.xml"));
+    var config = new Config();
     config.load();
 
     log("config reloaded, moving files.");

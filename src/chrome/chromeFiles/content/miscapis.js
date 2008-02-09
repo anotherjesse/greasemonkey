@@ -39,7 +39,7 @@ GM_Resources.prototype.getResourceURL = function(name) {
                          .getService(Components.interfaces.nsIAppShellService);
 
   var window = appSvc.hiddenDOMWindow;
-  var binaryContents = getBinaryContents(getDependencyFileURI(this.script, dep));
+  var binaryContents = getBinaryContents(dep.file);
 
   var mimetype = dep.mimetype;
   if(dep.charset && dep.charset.length > 0){
@@ -56,7 +56,7 @@ GM_Resources.prototype.getResourceText = function(name) {
   }
 
   var dep = this.getDep_(name);
-  return getContents(getDependencyFileURI(this.script, dep));
+  return getContents(dep.file);
 };
 
 GM_Resources.prototype.getDep_ = function(name) {

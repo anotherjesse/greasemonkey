@@ -73,7 +73,7 @@ function GM_log(message, force) {
 // the UI and Config rely on it. Needs rethinking.
 
 function openInEditor(script) {
-  var file = getScriptFile(script);
+  var file = script.file;
   var stringBundle = Components
     .classes["@mozilla.org/intl/stringbundle;1"]
     .getService(Components.interfaces.nsIStringBundleService)
@@ -190,11 +190,11 @@ function getTempFile() {
   return file;
 };
 
-function getBinaryContents(url){
+function getBinaryContents(file){
     var ioService = Components.classes["@mozilla.org/network/io-service;1"]
                               .getService(Components.interfaces.nsIIOService);
 
-    var channel = ioService.newChannelFromURI(url);
+    var channel = ioService.newChannelFromURI(GM_getUriFromFile(file));
     var input = channel.open();
 
     var bstream = Components.classes["@mozilla.org/binaryinputstream;1"]
@@ -206,7 +206,7 @@ function getBinaryContents(url){
     return bytes;
 };
 
-function getContents(aURL, charset){
+function getContents(file, charset){
   if( !charset ) {
     charset = "UTF-8"
   }
@@ -221,7 +221,7 @@ function getContents(aURL, charset){
     .createInstance(Components.interfaces.nsIScriptableUnicodeConverter);
   unicodeConverter.charset = charset;
 
-  var channel=ioService.newChannelFromURI(aURL);
+  var channel=ioService.newChannelFromURI(GM_getUriFromFile(file));
   var input=channel.open();
   scriptableStream.init(input);
   var str=scriptableStream.read(input.available());
@@ -244,80 +244,12 @@ function getWriteStream(file) {
   return stream;
 };
 
-function getConfigFile(){
-  var file = getScriptDir();
-  file.append("config.xml");
-  return file;
-};
-
-function getConfigFileURI(){
+function GM_getUriFromFile(file)
+{
   return Components.classes["@mozilla.org/network/io-service;1"]
                    .getService(Components.interfaces.nsIIOService)
-                   .newFileURI(getConfigFile());
-};
-
-function getDependencyFileURI(script, dep){
-  return Components.classes["@mozilla.org/network/io-service;1"]
-                   .getService(Components.interfaces.nsIIOService)
-                   .newFileURI(getDependencyFile(script, dep));
-};
-
-function getDependencyFile(script, dep){
-  var file = getScriptDir();
-  file.append(script.basedir);
-  file.append(dep.filename);
-  return file;
-};
-
-function getScriptFileURI(script) {
-  return Components.classes["@mozilla.org/network/io-service;1"]
-                   .getService(Components.interfaces.nsIIOService)
-                   .newFileURI(getScriptFile(script));
-};
-
-function getScriptBasedir(script) {
-  var file = getScriptDir();
-  file.append(script.basedir);
-  return file;
-};
-
-function getScriptFile(script) {
-  var file = getScriptDir();
-  file.append(script.basedir);
-  file.append(script.filename);
-  return file;
-};
-
-function getScriptDir() {
-  var dir = getNewScriptDir();
-
-  if (dir.exists()) {
-    return dir;
-  } else {
-    var oldDir = getOldScriptDir();
-    if (oldDir.exists()) {
-      return oldDir;
-    } else {
-      // if we called this function, we want a script dir.
-      // but, at this branch, neither the old nor new exists, so create one
-      return GM_createScriptsDir(dir);
-    }
-  }
-};
-
-function getNewScriptDir() {
-  var file = Components.classes["@mozilla.org/file/directory_service;1"]
-                       .getService(Components.interfaces.nsIProperties)
-                       .get("ProfD", Components.interfaces.nsILocalFile);
-  file.append("gm_scripts");
-  return file;
-};
-
-function getOldScriptDir() {
-  var file = getContentDir();
-  file.append("scripts");
-  return file;
-};
+                   .newFileURI(file);
+}
 
 function getContentDir() {
   var reg = Components.classes["@mozilla.org/chrome/chrome-registry;1"]

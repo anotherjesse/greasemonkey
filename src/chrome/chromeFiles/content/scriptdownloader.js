@@ -71,7 +71,7 @@ ScriptDownloader.prototype.handleScriptDownloadComplete = function() {
     ws.write(source, source.length);
     ws.close();
 
-    this.script.file = file;
+    this.script.tempFile = file;
 
     window.setTimeout(GM_hitch(this, "fetchDependencies"), 0);
 
@@ -115,7 +115,7 @@ ScriptDownloader.prototype.downloadNextDependency = function(){
         persist.PERSIST_FLAGS_REPLACE_EXISTING_FILES; //doesn't work?
       var ioservice =
         Components.classes["@mozilla.org/network/io-service;1"]
-        .getService();
+        .getService(Components.interfaces.nsIIOService);
       var sourceUri = ioservice.newURI(dep.url, null, null);
       var sourceChannel = ioservice.newChannelFromURI(sourceUri);
       sourceChannel.notificationCallbacks = new NotificationCallbacks();
@@ -150,7 +150,7 @@ function(dep, file, channel) {
 
   if (httpChannel) {
     if (httpChannel.requestSucceeded) {
-      dep.file = file;
+      dep.tempFile = file;
       dep.mimetype= channel.contentType;
       if (channel.contentCharset) {
         dep.charset = channel.contentCharset;
@@ -162,7 +162,7 @@ function(dep, file, channel) {
         httpChannel.responseStatusText);
     }
   } else {
-    dep.file = file;
+    dep.tempFile = file;
     this.downloadNextDependency();
   }
 };
@@ -227,10 +227,10 @@ ScriptDownloader.prototype.showScriptView = function() {
 
 ScriptDownloader.prototype.parseScript = function(source, uri) {
   var ioservice = Components.classes["@mozilla.org/network/io-service;1"]
-                            .getService();
+                            .getService(Components.interfaces.nsIIOService);
 
-  var script = new Script();
-  script.uri = uri;
+  var config = new Config(); // This is fragile, but temporary until config becomes a service
+  var script = new Script(config);
   script.enabled = true;
   script.includes = [];
   script.excludes = [];
@@ -272,9 +272,9 @@ ScriptDownloader.prototype.parseScript = function(source, uri) {
             break;
           case "require":
             var reqUri = ioservice.newURI(match[2], null, uri);
-            var scriptDependency = new ScriptDependency();
-            scriptDependency.url = reqUri.spec;
-            script.requires.push(scriptDependency);
+            var scriptRequire = new ScriptRequire(script);
+            scriptRequire.url = reqUri.spec;
+            script.requires.push(scriptRequire);
             break;
           case "resource":
             var res = match[2].match(/(\S+)\s+(.*)/);
@@ -295,7 +295,7 @@ ScriptDownloader.prototype.parseScript = function(source, uri) {
             }
 
             var resUri = ioservice.newURI(res[2], null, uri);
-            var scriptResource = new ScriptResource();
+            var scriptResource = new ScriptResource(script);
             scriptResource.name = resName;
             scriptResource.url = resUri.spec;
             script.resources.push(scriptResource);
