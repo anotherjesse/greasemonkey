@@ -45,7 +45,6 @@ function doInstall() {
 
   // finish making the script object ready to install
   script.tempFile = tempFile;
-  config.initFilename(script);
 
   // install this script
   config.install(script);

@@ -1,3 +1,6 @@
+// In this file protected properties (prefixed with an underscore) may be
+// used anywhere within this file and config.js
+
 /**
  * Checks whether the version has changed since the last run and performs
  * any necessary upgrades.
@@ -128,9 +131,7 @@ Config.prototype._pointThreeMigrate = function()
       if (script.filename.match(/^\d+$/)) {
         var scriptFile = this.oldScriptDir;
         scriptFile.append(script.filename);
-        this.initFilename(script);
-        log("renaming script " + scriptFile.leafName + " to " + script.filename);
-        scriptFile.moveTo(scriptFile.parent, script.filename);
+        script._initFile(scriptFile);
       }
     }
 
