@@ -5,6 +5,10 @@ function Config() {
   this.configFile.append("config.xml");
 };
 
+Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
+  .getService(Components.interfaces.mozIJSSubScriptLoader)
+  .loadSubScript("chrome://greasemonkey/content/versioning.js");
+
 Config.prototype.find = function(namespace, name) {
   namespace = namespace.toLowerCase();
   name = name.toLowerCase();
@@ -289,20 +293,25 @@ Config.prototype.installDependency = function(script, req){
 };
 
 Config.prototype.__defineGetter__("scriptDir", function() {
-  var dir = this.newScriptDir;
+  var newDir = this.newScriptDir;
+  if (newDir.exists())
+    return newDir;
 
-  if (dir.exists()) {
-    return dir;
-  } else {
-    var oldDir = this.oldScriptDir;
-    if (oldDir.exists()) {
-      return oldDir;
-    } else {
-      // if we called this function, we want a script dir.
-      // but, at this branch, neither the old nor new exists, so create one
-      return GM_createScriptsDir(dir);
-    }
-  }
+  var oldDir = this.oldScriptDir;
+  if (oldDir.exists())
+    return oldDir;
+
+  // if we called this function, we want a script dir.
+  // but, at this branch, neither the old nor new exists, so create one
+  newDir.create(Components.interfaces.nsIFile.DIRECTORY_TYPE, 0755);
+
+  var defaultConfigFile = getContentDir();
+  defaultConfigFile.append("default-config.xml");
+
+  defaultConfigFile.copyTo(newDir, "config.xml");
+  defaultConfigFile.permissions = 0644;
+
+  return newDir;
 });
 
 Config.prototype.__defineGetter__("newScriptDir", function() {

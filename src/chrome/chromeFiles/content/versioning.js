@@ -2,22 +2,23 @@
  * Checks whether the version has changed since the last run and performs
  * any necessary upgrades.
  */
-function GM_updateVersion() {
+Config.prototype.updateVersion = function()
+{
   log("> GM_updateVersion");
 
   // this is the last version which has been run at least once
   var initialized = GM_prefRoot.getValue("version", "0.0");
 
   if (GM_compareVersions(initialized, "0.3") == -1) {
-    GM_pointThreeMigrate();
+    this._pointThreeMigrate();
   }
 
   if (GM_compareVersions(initialized, "0.4.2") == -1) {
-    GM_pointFourMigrate();
+    this._pointFourMigrate();
   }
 
   if (GM_compareVersions(initialized, "0.8") == -1) {
-    GM_pointEightBackup();
+    this._pointEightBackup();
   }
 
   // update the currently initialized version so we don't do this work again.
@@ -28,64 +29,47 @@ function GM_updateVersion() {
   GM_prefRoot.setValue("version", item.version);
 
   log("< GM_updateVersion");
-};
+}
 
 /**
  * In Greasemonkey 0.8 there was a format change to the gm_scripts folder and
  * testing found several bugs where the entire folder would get nuked. So we are
  * paranoid and backup the folder the first time 0.8 runs.
  */
-function GM_pointEightBackup() {
-  var config = new Config();
-  var scriptDir = config.newScriptDir;
+Config.prototype._pointEightBackup = function()
+{
+  var scriptDir = this.newScriptDir;
   var scriptDirBackup = scriptDir.clone();
   scriptDirBackup.leafName += "_08bak";
   if (scriptDir.exists() && !scriptDirBackup.exists()) {
     scriptDir.copyTo(scriptDirBackup.parent, scriptDirBackup.leafName);
   }
-};
+}
 
 /**
  * Copies the entire scripts directory to the new location, if it exists.
  */
-function GM_pointFourMigrate() {
+Config.prototype._pointFourMigrate = function()
+{
   log("> GM_pointFourMigrate");
 
-  var config = new Config();
-  var oldDir = config.oldScriptDir;
-  var newDir = config.newScriptDir;
-
-  if (!oldDir.exists() && !newDir.exists()) {
-    GM_createScriptsDir(newDir);
-  }
+  // Create a scripts dir if it does not exist
+  this.scriptDir;
 
   log("< GM_pointFourMigrate");
-};
-
-/**
- * Given a nsILocalFile object, create a directory of that name and fill
- * it with the default (empty) config.js.
- */
-function GM_createScriptsDir(newDir) {
-  newDir.create(Components.interfaces.nsIFile.DIRECTORY_TYPE, 0755);
-
-  var defaultConfigFile = getContentDir();
-  defaultConfigFile.append("default-config.xml");
-
-  defaultConfigFile.copyTo(newDir, "config.xml");
-  defaultConfigFile.permissions = 0644;
-
-  return newDir;
-};
+}
 
 /**
  * Migrates the configuration directory from the old format to the new one
  */
-function GM_pointThreeMigrate() {
+Config.prototype._pointThreeMigrate = function()
+{
   log("> GM_pointThreeMigrate");
 
   // check to see whether there's any config to migrate
-  var configExists = GM_getPointThreeScriptFile("config.xml").exists();
+  var configFile = this.oldScriptDir;
+  configFile.append("config.xml");
+  var configExists = configFile.exists();
 
   log("config file exists: " + configExists);
   if (!configExists) {
@@ -95,7 +79,7 @@ function GM_pointThreeMigrate() {
   // back up the config directory
   // if an error happens, report it and exit
   try {
-    var scriptDir = GM_getPointThreeScriptDir();
+    var scriptDir = this.oldScriptDir;
     var tempDir = getTempFile();
 
     log("script dir: " + scriptDir.path);
@@ -107,7 +91,6 @@ function GM_pointThreeMigrate() {
     var script = null;
     var scriptFile = null;
     var doc = document.implementation.createDocument("", "", null);
-    var configFile = GM_getPointThreeScriptFile("config.xml");
 
     var configURI = Components.classes["@mozilla.org/network/io-service;1"]
                               .getService(Components.interfaces.nsIIOService)
@@ -137,15 +120,15 @@ function GM_pointThreeMigrate() {
     log("config saved.");
 
     // now, load config normally and reinitialize all scripts's filenames
-    var config = new Config();
-    config.load();
+    this.load();
 
     log("config reloaded, moving files.");
 
-    for (var i = 0; (script = config.scripts[i]); i++) {
+    for (var i = 0; (script = this.scripts[i]); i++) {
       if (script.filename.match(/^\d+$/)) {
-        scriptFile = GM_getPointThreeScriptFile(script.filename);
-        config.initFilename(script);
+        var scriptFile = this.oldScriptDir;
+        scriptFile.append(script.filename);
+        this.initFilename(script);
         log("renaming script " + scriptFile.leafName + " to " + script.filename);
         scriptFile.moveTo(scriptFile.parent, script.filename);
       }
@@ -154,7 +137,7 @@ function GM_pointThreeMigrate() {
     log("moving complete. saving configuration.");
 
     // save the config file
-    config.save();
+    this.save();
 
     log("0.3 migration completed successfully!");
   } catch (e) {
@@ -166,16 +149,4 @@ function GM_pointThreeMigrate() {
   } finally {
     log("< GM_pointThreeMigrate");
   }
-};
-
-function GM_getPointThreeScriptDir() {
-  var file = getContentDir();
-  file.append("scripts");
-  return file;
-};
-
-function GM_getPointThreeScriptFile(fileName) {
-  var file = GM_getPointThreeScriptDir();
-  file.append(fileName);
-  return file;
-};
+}

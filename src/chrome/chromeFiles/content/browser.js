@@ -28,7 +28,7 @@ GM_BrowserUI.init = function() {
   this.menuCommanders = [];
   this.currentMenuCommander = null;
 
-  GM_updateVersion();
+  (new Config()).updateVersion();
 
   GM_listen(window, "load", GM_hitch(this, "chromeLoad"));
   GM_listen(window, "unload", GM_hitch(this, "chromeUnload"));
