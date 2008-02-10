@@ -257,6 +257,20 @@ Config.prototype.install = function(script) {
   }
 };
 
+Config.prototype.uninstall = function(script, uninstallPrefs)
+{
+  var idx = this.find(script.namespace, script.name);
+  this.scripts.splice(idx, 1);
+
+  if (script.basedir) // if script has its own dir, remove the dir + contents
+    script.basedirFile.remove(true);
+  else // if script is in the root, just remove the file
+    script.file.remove(false);
+
+  if (uninstallPrefs) // Remove saved preferences
+     GM_prefRoot.remove("scriptvals." + script.namespace + "/" + script.name + ".");
+}
+
 Config.prototype.installDependency = function(script, req){
   GM_log("Installing dependency: " + req.url  + " from " + req.tempFile.path);
 

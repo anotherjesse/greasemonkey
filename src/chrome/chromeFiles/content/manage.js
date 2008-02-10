@@ -12,36 +12,12 @@ window.addEventListener("load", function(ev) {
 }, false);
 
 function handleOkButton() {
+  var uninstallPrefs = document.getElementById('chkUninstallPrefs').checked;
+
   for (var i = 0, script = null; (script = uninstallList[i]); i++) {
-    var idx = config.find(script.namespace, script.name);
-    config.scripts.splice(idx, 1);
+    config.uninstall(script, uninstallPrefs);
   }
   config.save();
-
-  var chkUninstallPrefs = document.getElementById('chkUninstallPrefs');
-  for (var i = 0, script = null; (script = uninstallList[i]); i++) {
-    file = script.basedirFile;
-    file.normalize();
-    if (!file.equals(config.scriptDir)) {
-      if (file.exists()) {
-        file.remove(true); // file==base directory recursive delete
-      }
-    } else {
-      file = script.file;
-      if (file.exists()) {
-        file.remove(false);
-      }
-    }
-    if (chkUninstallPrefs.checked) {
-       // Remove saved preferences
-       var scriptPrefRoot = ["scriptvals.",
-                  script.namespace,
-                  "/",
-                  script.name,
-                  "."].join("");
-       GM_prefRoot.remove(scriptPrefRoot);
-    }
-  }
   return true;
 };
 
