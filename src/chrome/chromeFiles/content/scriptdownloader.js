@@ -52,7 +52,8 @@ ScriptDownloader.prototype.handleScriptDownloadComplete = function() {
 
     var source = this.req_.responseText;
 
-    this.parseScript(source, this.uri_);
+    var config = new Config(); // This is fragile, but temporary until config becomes a service
+    this.script = config.parse(source, this.uri_);
 
     var file = Components.classes["@mozilla.org/file/directory_service;1"]
                          .getService(Components.interfaces.nsIProperties)
@@ -224,103 +225,6 @@ ScriptDownloader.prototype.showInstallDialog = function(timer) {
 ScriptDownloader.prototype.showScriptView = function() {
   this.win_.GM_BrowserUI.showScriptView(this);
 };
-
-ScriptDownloader.prototype.parseScript = function(source, uri) {
-  var ioservice = Components.classes["@mozilla.org/network/io-service;1"]
-                            .getService(Components.interfaces.nsIIOService);
-
-  var config = new Config(); // This is fragile, but temporary until config becomes a service
-  var script = new Script(config);
-  script.enabled = true;
-  script.includes = [];
-  script.excludes = [];
-
-  // read one line at a time looking for start meta delimiter or EOF
-  var lines = source.match(/.+/g);
-  var lnIdx = 0;
-  var result = {};
-  var foundMeta = false;
-
-  while ((result = lines[lnIdx++])) {
-    if (result.indexOf("// ==UserScript==") == 0) {
-      foundMeta = true;
-      break;
-    }
-  }
-
-  // gather up meta lines
-  if (foundMeta) {
-    // used for duplicate resource name detection
-    var previousResourceNames = {};
-
-    while ((result = lines[lnIdx++])) {
-      if (result.indexOf("// ==/UserScript==") == 0) {
-        break;
-      }
-
-      var match = result.match(/\/\/ \@(\S+)\s+([^\n]+)/);
-      if (match != null) {
-        switch (match[1]) {
-          case "name":
-          case "namespace":
-          case "description":
-            script[match[1]] = match[2];
-            break;
-          case "include":
-          case "exclude":
-            script[match[1]+"s"].push(match[2]);
-            break;
-          case "require":
-            var reqUri = ioservice.newURI(match[2], null, uri);
-            var scriptRequire = new ScriptRequire(script);
-            scriptRequire.url = reqUri.spec;
-            script.requires.push(scriptRequire);
-            break;
-          case "resource":
-            var res = match[2].match(/(\S+)\s+(.*)/);
-            if (res === null) {
-              // NOTE: Unlocalized strings
-              throw new Error("Invalid syntax for @resource declaration '" +
-                              match[2] + "'. Resources are declared like: " +
-                              "@resource <name> <url>.");
-            }
-
-            var resName = res[1];
-            if (previousResourceNames[resName]) {
-              throw new Error("Duplicate resource name '" + resName + "' " +
-                              "detected. Each resource must have a unique " +
-                              "name.");
-            } else {
-              previousResourceNames[resName] = true;
-            }
-
-            var resUri = ioservice.newURI(res[2], null, uri);
-            var scriptResource = new ScriptResource(script);
-            scriptResource.name = resName;
-            scriptResource.url = resUri.spec;
-            script.resources.push(scriptResource);
-            break;
-        }
-      }
-    }
-  }
-
-  // if no meta info, default to reasonable values
-  if (script.name == null) {
-    script.name = parseScriptName(uri);
-  }
-
-  if (script.namespace == null) {
-    script.namespace = uri.host;
-  }
-
-  if (script.includes.length == 0) {
-    script.includes.push("*");
-  }
-
-  this.script = script;
-};
-
 
 function NotificationCallbacks() {
 };

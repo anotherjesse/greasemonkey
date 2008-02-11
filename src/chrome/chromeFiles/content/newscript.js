@@ -31,10 +31,7 @@ function doInstall() {
   foStream.close();
 
   // create a script object with parsed metadata,
-  // via the script downloader object
-  var sd = new ScriptDownloader(null, tempFile, null);
-  sd.parseScript(script, tempFile);
-  script = sd.script;
+  script = config.parse(script, tempFile);
 
   // make sure entered details will not ruin an existing file
   var existingIndex = config.find(script.namespace, script.name);
