@@ -132,21 +132,6 @@ function toggleScript(index, enableFlag) {
 };
 
 function reorderScript(from, to) {
-  // make sure to and from are in range
-  if (from < 0 || to < 0 ||
-    from > config.scripts.length || to > config.scripts.length
-  ) {
-    return false;
-  }
-
-  // REORDER CONFIG:
-  // save item-to-move
-  var tmp = config.scripts[from];
-  // remove it
-  config.scripts.splice(from, 1);
-  // put it back in the new spot
-  config.scripts.splice(to, 0, tmp);
-
   // REORDER DISPLAY:
   var tmp = listbox.childNodes[from];
   listbox.removeChild(tmp);
@@ -158,8 +143,6 @@ function reorderScript(from, to) {
 
   // then re-select the dropped script
   listbox.selectedIndex = to;
-
-  return true;
 };
 
 // allow reordering scripts with keyboard (alt- up and down)
@@ -169,17 +152,14 @@ function listboxKeypress(event) {
 
   var index = listbox.selectedIndex;
 
-  if (KeyEvent.DOM_VK_UP == event.keyCode) {
-    if (0 == index) return;
+  var move = null;
+  if (KeyEvent.DOM_VK_UP == event.keyCode)
+    move = config.move(listbox.selectedItem.script, -1);
+  else if (KeyEvent.DOM_VK_DOWN == event.keyCode)
+    move = config.move(listbox.selectedItem.script, 1);
 
-    !reorderScript(index, index - 1);
-    listbox.selectedIndex = index - 1;
-  } else if (KeyEvent.DOM_VK_DOWN == event.keyCode) {
-    if (index == config.scripts.length - 1) return;
-
-    !reorderScript(index, index + 1);
-    listbox.selectedIndex = index + 1;
-  }
+  if (move)
+    reorderScript(move.from, move.to);
 };
 
 // allow reordering scripts with drag-and-drop
@@ -222,7 +202,9 @@ var dndObserver = {
     if (newIndex > index) newIndex--;
 
     // do the move
-    reorderScript(index, newIndex);
+    var move = config.move(config.scripts[index], config.scripts[newIndex]);
+    if (move)
+      reorderScript(move.from, move.to);
   },
 
   //////////////////////////////////////////////////////////////////////////////

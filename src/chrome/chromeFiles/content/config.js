@@ -271,6 +271,40 @@ Config.prototype.uninstall = function(script, uninstallPrefs)
      GM_prefRoot.remove("scriptvals." + script.namespace + "/" + script.name + ".");
 }
 
+/**
+ * Moves an installed user script to a new position in the array of installed scripts.
+ *
+ * @param script The script to be moved.
+ * @param destination Can be either (a) a numeric offset for the script to be
+ *                    moved or (b) another installet script to which position
+ *                    the script will be moved.
+ */
+Config.prototype.move = function(script, destination)
+{
+  var from = this.scripts.indexOf(script);
+  var to = -1;
+
+  // Make sure the user script is installed
+  if (from == -1)
+    return null;
+
+  if (typeof destination == 'number') { // if destination is an offset
+    to = from + destination;
+    to = Math.max(0, to);
+    to = Math.min(this.scripts.length - 1, to);
+  } else { // if destination is a script object
+    to = this.scripts.indexOf(destination);
+  }
+
+  if (to == -1)
+    return null;
+
+  var tmp = this.scripts.splice(from, 1)[0];
+  this.scripts.splice(to, 0, tmp);
+
+  return {from: from, to: to};
+};
+
 Config.prototype.__defineGetter__("scriptDir", function() {
   var newDir = this.newScriptDir;
   if (newDir.exists())
