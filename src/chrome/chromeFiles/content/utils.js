@@ -10,6 +10,13 @@ function GM_isDef(thing) {
   return typeof(thing) != "undefined";
 };
 
+function GM_getConfig() {
+  return Components
+    .classes["@greasemonkey.mozdev.org/greasemonkey-service;1"]
+    .getService(Components.interfaces.gmIGreasemonkeyService)
+    .wrappedJSObject.config;
+};
+
 function GM_hitch(obj, meth) {
   if (!obj[meth]) {
     throw "method '" + meth + "' does not exist on object '" + obj + "'";
@@ -69,11 +76,26 @@ function GM_log(message, force) {
   }
 };
 
+function GM_openUserScriptManager()
+{
+  var win = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+                      .getService(Components.interfaces.nsIWindowMediator)
+                      .getMostRecentWindow("Greasemonkey:Manage");
+  if (win) {
+    win.focus();
+  } else {
+    var parentWindow = (!window.opener || window.opener.closed) ?
+      window : window.opener;
+    parentWindow.openDialog("chrome://greasemonkey/content/manage.xul",
+      "_blank", "resizable,dialog=no,centerscreen");
+  }
+}
+
 // TODO: this stuff was copied wholesale and not refactored at all. Lots of
 // the UI and Config rely on it. Needs rethinking.
 
 function openInEditor(script) {
-  var file = script.file;
+  var file = script.editFile;
   var stringBundle = Components
     .classes["@mozilla.org/intl/stringbundle;1"]
     .getService(Components.interfaces.nsIStringBundleService)

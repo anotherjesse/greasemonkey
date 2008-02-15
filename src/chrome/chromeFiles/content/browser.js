@@ -28,8 +28,6 @@ GM_BrowserUI.init = function() {
   this.menuCommanders = [];
   this.currentMenuCommander = null;
 
-  (new Config()).updateVersion();
-
   GM_listen(window, "load", GM_hitch(this, "chromeLoad"));
   GM_listen(window, "unload", GM_hitch(this, "chromeUnload"));
 };
@@ -232,11 +230,7 @@ GM_BrowserUI.startInstallScript = function(uri, timer) {
 GM_BrowserUI.showScriptView = function(scriptDownloader) {
   this.scriptDownloader_ = scriptDownloader;
 
-  var ioSvc = Components.classes["@mozilla.org/network/io-service;1"]
-                        .getService(Components.interfaces.nsIIOService);
-  var uri = ioSvc.newFileURI(scriptDownloader.script.tempFile);
-
-  var tab = this.tabBrowser.addTab(uri.spec);
+  var tab = this.tabBrowser.addTab(scriptDownloader.script.urlToDownload);
   var browser = this.tabBrowser.getBrowserForTab(tab);
 
   this.tabBrowser.selectedTab = tab;
@@ -264,9 +258,7 @@ GM_BrowserUI.installCurrentScript = function() {
 };
 
 GM_BrowserUI.installScript = function(script){
-  var config = new Config();
-  config.load();
-  config.install(script);
+  GM_getConfig().install(script);
   this.showHorrayMessage(script.name);
 };
 
@@ -428,8 +420,6 @@ function GM_showGeneralPopup(aEvent) {
 };
 
 function GM_showPopup(aEvent) {
-  var config = new Config();
-  config.load();
   var popup = aEvent.target;
   var url = getBrowser().contentWindow.document.location.href;
 
@@ -443,22 +433,9 @@ function GM_showPopup(aEvent) {
     }
   }
 
-  var foundInjectedScript = false;
-
   // build the new list of scripts
-  for (var i = 0, script = null; script = config.scripts[i]; i++) {
-    incloop: for (var j = 0; j < script.includes.length; j++) {
-      var pattern = convert2RegExp(script.includes[j]);
-      if (pattern.test(url)) {
-        for (var k = 0; k < script.excludes.length; k++) {
-          pattern = convert2RegExp(script.excludes[k]);
-          if (pattern.test(url)) {
-            break incloop;
-          }
-        }
-
-        foundInjectedScript = true;
-
+  var scripts = GM_getConfig().getScriptsForUrl(url, true);
+  for (var i = 0, script = null; script = scripts[i]; i++) {
         var mi = document.createElement('menuitem');
         mi.setAttribute('label', script.name);
         mi.setAttribute('value', i);
@@ -466,13 +443,9 @@ function GM_showPopup(aEvent) {
         mi.setAttribute('checked', script.enabled.toString());
 
         popup.insertBefore(mi, document.getElementById("gm-status-no-scripts-sep"));
-
-        break incloop;
-      }
-    }
   }
 
-  document.getElementById("gm-status-no-scripts").collapsed = foundInjectedScript;
+  document.getElementById("gm-status-no-scripts").collapsed = scripts.length;
 };
 
 /**
@@ -481,19 +454,14 @@ function GM_showPopup(aEvent) {
  */
 function GM_popupClicked(aEvent) {
   if (aEvent.button == 0 || aEvent.button == 2) {
-    var config = new Config();
-    config.load();
     var scriptNum=aEvent.target.value;
-    if (!config.scripts[scriptNum]) return;
+    var script = GM_getConfig().scripts[scriptNum];
+    if (!script) return;
 
-    if (aEvent.button == 0) {
-      // left-click: toggle enabled state
-      config.scripts[scriptNum].enabled=!config.scripts[scriptNum].enabled;
-      config.save();
-    } else {
-      // right-click: open in editor
-      openInEditor(config.scripts[scriptNum]);
-    }
+    if (aEvent.button == 0) // left-click: toggle enabled state
+      script.enabled=!script.enabled;
+    else // right-click: open in editor
+      openInEditor(script);
 
     closeMenus(aEvent.target);
   }
@@ -629,8 +597,7 @@ GM_BrowserUI.viewContextItemClicked = function() {
 };
 
 GM_BrowserUI.manageMenuItemClicked = function() {
-   window.openDialog("chrome://greasemonkey/content/manage.xul", "manager",
-    "resizable,centerscreen,modal");
+   GM_openUserScriptManager();
 };
 
 //loggify(GM_BrowserUI, "GM_BrowserUI");

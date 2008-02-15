@@ -2,22 +2,54 @@
 // used anywhere within this file and versioning.js
 
 function Config() {
-  this.onload = null;
-  this.scripts = null;
-  this.configFile = this.scriptDir;
-  this.configFile.append("config.xml");
+  this._scripts = null;
+  this._configFile = this._scriptDir;
+  this._configFile.append("config.xml");
+
+  this._observers = [];
+
+  this._updateVersion();
+  this._load();
 };
 
 Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
   .getService(Components.interfaces.mozIJSSubScriptLoader)
   .loadSubScript("chrome://greasemonkey/content/versioning.js");
 
-Config.prototype.find = function(namespace, name) {
-  namespace = namespace.toLowerCase();
-  name = name.toLowerCase();
+Config.prototype.addObserver = function(observer, script) {
+  var observers = script ? script._observers : this._observers;
+  observers.push(observer);
+};
 
-  for (var i = 0, script = null; (script = this.scripts[i]); i++) {
-    if (script.namespace.toLowerCase() == namespace && script.name.toLowerCase() == name) {
+Config.prototype.removeObserver = function(observer, script) {
+  var observers = script ? script._observers : this._observers;
+  var index = observers.indexOf(observer);
+  if (index == -1) throw new Error("Observer not found");
+  observers.splice(index, 1);
+};
+
+Config.prototype._notifyObservers = function(script, event, data) {
+  var observers = this._observers.concat(script._observers);
+  for (var i = 0, observer; observer = observers[i]; i++)
+    observer.notifyEvent(script, event, data);
+};
+
+Config.prototype._changed = function(script, event, data) {
+  this._save();
+  this._notifyObservers(script, event, data);
+};
+
+Config.prototype.installIsUpdate = function(script)
+{
+  return this._find(script) > -1;
+};
+
+Config.prototype._find = function(aScript) {
+  namespace = aScript._namespace.toLowerCase();
+  name = aScript._name.toLowerCase();
+
+  for (var i = 0, script = null; (script = this._scripts[i]); i++) {
+    if (script._namespace.toLowerCase() == namespace && script._name.toLowerCase() == name) {
       return i;
     }
   }
@@ -25,88 +57,90 @@ Config.prototype.find = function(namespace, name) {
   return -1;
 };
 
-Config.prototype.load = function() {
+Config.prototype._load = function() {
   var domParser = Components.classes["@mozilla.org/xmlextras/domparser;1"]
                             .createInstance(Components.interfaces.nsIDOMParser);
 
-  var configContents = getContents(this.configFile);
+  var configContents = getContents(this._configFile);
   var doc = domParser.parseFromString(configContents, "text/xml");
   var nodes = doc.evaluate("/UserScriptConfig/Script", doc, null, 0, null);
 
-  this.scripts = [];
+  this._scripts = [];
 
   for (var node = null; (node = nodes.iterateNext()); ) {
     var script = new Script(this);
 
     for (var i = 0, childNode = null; (childNode = node.childNodes[i]); i++) {
       if (childNode.nodeName == "Include") {
-        script.includes.push(childNode.firstChild.nodeValue);
+        script._includes.push(childNode.firstChild.nodeValue);
       } else if (childNode.nodeName == "Exclude") {
-        script.excludes.push(childNode.firstChild.nodeValue);
+        script._excludes.push(childNode.firstChild.nodeValue);
       } else if (childNode.nodeName == "Require") {
         var scriptRequire = new ScriptRequire(script);
-        scriptRequire.filename = childNode.getAttribute("filename");
-        script.requires.push(scriptRequire);
+        scriptRequire._filename = childNode.getAttribute("filename");
+        script._requires.push(scriptRequire);
       } else if (childNode.nodeName == "Resource") {
         var scriptResource = new ScriptResource(script);
-        scriptResource.name = childNode.getAttribute("name");
-        scriptResource.filename = childNode.getAttribute("filename");
-        scriptResource.mimetype = childNode.getAttribute("mimetype");
-        scriptResource.charset  = childNode.getAttribute("charset");
-        script.resources.push(scriptResource);
+        scriptResource._name = childNode.getAttribute("name");
+        scriptResource._filename = childNode.getAttribute("filename");
+        scriptResource._mimetype = childNode.getAttribute("mimetype");
+        scriptResource._charset  = childNode.getAttribute("charset");
+        script._resources.push(scriptResource);
       }
     }
 
-    script.filename = node.getAttribute("filename");
-    script.name = node.getAttribute("name");
-    script.namespace = node.getAttribute("namespace");
-    script.description = node.getAttribute("description");
-    script.enabled = node.getAttribute("enabled") == true.toString();
-    script.basedir = node.getAttribute("basedir") || ".";
+    script._filename = node.getAttribute("filename");
+    script._name = node.getAttribute("name");
+    script._namespace = node.getAttribute("namespace");
+    script._description = node.getAttribute("description");
+    script._enabled = node.getAttribute("enabled") == true.toString();
+    script._basedir = node.getAttribute("basedir") || ".";
 
-    this.scripts.push(script);
+    this._scripts.push(script);
   }
 };
 
-Config.prototype.save = function() {
-  var doc = document.implementation.createDocument("", "UserScriptConfig", null);
+Config.prototype._save = function() {
+  var doc = Components.classes["@mozilla.org/xmlextras/domparser;1"]
+    .createInstance(Components.interfaces.nsIDOMParser)
+    .parseFromString("<UserScriptConfig></UserScriptConfig>", "text/xml");
 
-  for (var i = 0, scriptObj = null; (scriptObj = this.scripts[i]); i++) {
+  for (var i = 0, scriptObj = null; (scriptObj = this._scripts[i]); i++) {
     var scriptNode = doc.createElement("Script");
 
-    for (var j = 0; j < scriptObj.includes.length; j++) {
+    for (var j = 0; j < scriptObj._includes.length; j++) {
       var includeNode = doc.createElement("Include");
-      includeNode.appendChild(doc.createTextNode(scriptObj.includes[j]));
+      includeNode.appendChild(doc.createTextNode(scriptObj._includes[j]));
       scriptNode.appendChild(doc.createTextNode("\n\t\t"));
       scriptNode.appendChild(includeNode);
     }
 
-    for (var j = 0; j < scriptObj.excludes.length; j++) {
+    for (var j = 0; j < scriptObj._excludes.length; j++) {
       var excludeNode = doc.createElement("Exclude");
-      excludeNode.appendChild(doc.createTextNode(scriptObj.excludes[j]));
+      excludeNode.appendChild(doc.createTextNode(scriptObj._excludes[j]));
       scriptNode.appendChild(doc.createTextNode("\n\t\t"));
       scriptNode.appendChild(excludeNode);
     }
 
-    for (var j = 0; j < scriptObj.requires.length; j++) {
-      var req = scriptObj.requires[j];
+    for (var j = 0; j < scriptObj._requires.length; j++) {
+      var req = scriptObj._requires[j];
       var resourceNode = doc.createElement("Require");
 
-      resourceNode.setAttribute("filename", req.filename);
+      resourceNode.setAttribute("filename", req._filename);
 
       scriptNode.appendChild(doc.createTextNode("\n\t\t"));
       scriptNode.appendChild(resourceNode);
     }
 
-    for (var j = 0; j< scriptObj.resources.length; j++) {
-      var imp = scriptObj.resources[j];
+    for (var j = 0; j< scriptObj._resources.length; j++) {
+      var imp = scriptObj._resources[j];
       var resourceNode = doc.createElement("Resource");
 
-      resourceNode.setAttribute("name", imp.name);
-      resourceNode.setAttribute("filename", imp.filename);
-      resourceNode.setAttribute("mimetype", imp.mimetype);
-      if (imp.charset) {
-        resourceNode.setAttribute("charset", imp.charset);
+      resourceNode.setAttribute("name", imp._name);
+      resourceNode.setAttribute("filename", imp._filename);
+      resourceNode.setAttribute("mimetype", imp._mimetype);
+      if (imp._charset) {
+        resourceNode.setAttribute("charset", imp._charset);
       }
 
       scriptNode.appendChild(doc.createTextNode("\n\t\t"));
@@ -115,12 +149,12 @@ Config.prototype.save = function() {
 
     scriptNode.appendChild(doc.createTextNode("\n\t"));
 
-    scriptNode.setAttribute("filename", scriptObj.filename);
-    scriptNode.setAttribute("name", scriptObj.name);
-    scriptNode.setAttribute("namespace", scriptObj.namespace);
-    scriptNode.setAttribute("description", scriptObj.description);
-    scriptNode.setAttribute("enabled", scriptObj.enabled);
-    scriptNode.setAttribute("basedir", scriptObj.basedir);
+    scriptNode.setAttribute("filename", scriptObj._filename);
+    scriptNode.setAttribute("name", scriptObj._name);
+    scriptNode.setAttribute("namespace", scriptObj._namespace);
+    scriptNode.setAttribute("description", scriptObj._description);
+    scriptNode.setAttribute("enabled", scriptObj._enabled);
+    scriptNode.setAttribute("basedir", scriptObj._basedir);
 
     doc.firstChild.appendChild(doc.createTextNode("\n\t"));
     doc.firstChild.appendChild(scriptNode);
@@ -128,8 +162,10 @@ Config.prototype.save = function() {
 
   doc.firstChild.appendChild(doc.createTextNode("\n"));
 
-  var configStream = getWriteStream(this.configFile);
-  new XMLSerializer().serializeToStream(doc, configStream, "utf-8");
+  var configStream = getWriteStream(this._configFile);
+  Components.classes["@mozilla.org/xmlextras/xmlserializer;1"]
+    .createInstance(Components.interfaces.nsIDOMSerializer)
+    .serializeToStream(doc, configStream, "utf-8");
   configStream.close();
 };
 
@@ -139,9 +175,8 @@ Config.prototype.parse = function(source, uri)
                             .getService(Components.interfaces.nsIIOService);
 
   var script = new Script(this);
-  script.enabled = true;
-  script.includes = [];
-  script.excludes = [];
+  script._downloadUrl = uri.spec;
+  script._enabled = true;
 
   // read one line at a time looking for start meta delimiter or EOF
   var lines = source.match(/.+/g);
@@ -172,17 +207,19 @@ Config.prototype.parse = function(source, uri)
           case "name":
           case "namespace":
           case "description":
-            script[match[1]] = match[2];
+            script["_" + match[1]] = match[2];
             break;
           case "include":
+            script._includes.push(match[2]);
+            break;
           case "exclude":
-            script[match[1]+"s"].push(match[2]);
+            script._excludes.push(match[2]);
             break;
           case "require":
             var reqUri = ioservice.newURI(match[2], null, uri);
             var scriptRequire = new ScriptRequire(script);
-            scriptRequire.url = reqUri.spec;
-            script.requires.push(scriptRequire);
+            scriptRequire._downloadUrl = reqUri.spec;
+            script._requires.push(scriptRequire);
             break;
           case "resource":
             var res = match[2].match(/(\S+)\s+(.*)/);
@@ -204,9 +241,9 @@ Config.prototype.parse = function(source, uri)
 
             var resUri = ioservice.newURI(res[2], null, uri);
             var scriptResource = new ScriptResource(script);
-            scriptResource.name = resName;
-            scriptResource.url = resUri.spec;
-            script.resources.push(scriptResource);
+            scriptResource._name = resName;
+            scriptResource._downloadUrl = resUri.spec;
+            script._resources.push(scriptResource);
             break;
         }
       }
@@ -214,16 +251,19 @@ Config.prototype.parse = function(source, uri)
   }
 
   // if no meta info, default to reasonable values
-  if (script.name == null) {
-    script.name = parseScriptName(uri);
+  if (script._name == null) {
+    script._name = parseScriptName(uri);
   }
 
-  if (script.namespace == null) {
-    script.namespace = uri.host;
+  if (script._namespace == null) {
+    script._namespace = uri.host;
   }
 
-  if (script.includes.length == 0) {
-    script.includes.push("*");
+  if (!script._description)
+    script._description = "";
+
+  if (script._includes.length == 0) {
+    script._includes.push("*");
   }
 
   return script;
@@ -233,21 +273,21 @@ Config.prototype.install = function(script) {
   GM_log("> Config.install");
 
   try {
-    var existingIndex = this.find(script.namespace, script.name);
+    var existingIndex = this._find(script);
     if (existingIndex > -1)
-      this.uninstall(this.scripts[existingIndex], false);
+      this.uninstall(this._scripts[existingIndex], false);
 
-    script._initFile(script.tempFile);
-    script.tempFile = null;
+    script._initFile(script._tempFile);
+    script._tempFile = null;
 
-    for (var i = 0; i < script.requires.length; i++)
-      script.requires[i]._initFile();
+    for (var i = 0; i < script._requires.length; i++)
+      script._requires[i]._initFile();
 
-    for (var i = 0; i < script.resources.length; i++)
-      script.resources[i]._initFile();
+    for (var i = 0; i < script._resources.length; i++)
+      script._resources[i]._initFile();
 
-    this.scripts.push(script);
-    this.save();
+    this._scripts.push(script);
+    this._changed(script, "install", null);
 
     GM_log("< Config.install");
   } catch (e2) {
@@ -259,16 +299,17 @@ Config.prototype.install = function(script) {
 
 Config.prototype.uninstall = function(script, uninstallPrefs)
 {
-  var idx = this.find(script.namespace, script.name);
-  this.scripts.splice(idx, 1);
+  var idx = this._find(script);
+  this._scripts.splice(idx, 1); // TODO
+  this._changed(script, "uninstall", null);
 
-  if (script.basedir) // if script has its own dir, remove the dir + contents
-    script.basedirFile.remove(true);
+  if (script._basedir) // if script has its own dir, remove the dir + contents
+    script._basedirFile.remove(true);
   else // if script is in the root, just remove the file
-    script.file.remove(false);
+    script._file.remove(false);
 
   if (uninstallPrefs) // Remove saved preferences
-     GM_prefRoot.remove("scriptvals." + script.namespace + "/" + script.name + ".");
+     GM_prefRoot.remove("scriptvals." + script._namespace + "/" + script._name + ".");
 }
 
 /**
@@ -281,7 +322,7 @@ Config.prototype.uninstall = function(script, uninstallPrefs)
  */
 Config.prototype.move = function(script, destination)
 {
-  var from = this.scripts.indexOf(script);
+  var from = this._scripts.indexOf(script);
   var to = -1;
 
   // Make sure the user script is installed
@@ -291,26 +332,25 @@ Config.prototype.move = function(script, destination)
   if (typeof destination == 'number') { // if destination is an offset
     to = from + destination;
     to = Math.max(0, to);
-    to = Math.min(this.scripts.length - 1, to);
+    to = Math.min(this._scripts.length - 1, to);
   } else { // if destination is a script object
-    to = this.scripts.indexOf(destination);
+    to = this._scripts.indexOf(destination);
   }
 
   if (to == -1)
     return null;
 
-  var tmp = this.scripts.splice(from, 1)[0];
-  this.scripts.splice(to, 0, tmp);
-
-  return {from: from, to: to};
+  var tmp = this._scripts.splice(from, 1)[0];
+  this._scripts.splice(to, 0, tmp);
+  this._changed(script, 'move', to);
 };
 
-Config.prototype.__defineGetter__("scriptDir", function() {
-  var newDir = this.newScriptDir;
+Config.prototype.__defineGetter__("_scriptDir", function() {
+  var newDir = this._newScriptDir;
   if (newDir.exists())
     return newDir;
 
-  var oldDir = this.oldScriptDir;
+  var oldDir = this._oldScriptDir;
   if (oldDir.exists())
     return oldDir;
 
@@ -327,7 +367,7 @@ Config.prototype.__defineGetter__("scriptDir", function() {
   return newDir;
 });
 
-Config.prototype.__defineGetter__("newScriptDir", function() {
+Config.prototype.__defineGetter__("_newScriptDir", function() {
   var file = Components.classes["@mozilla.org/file/directory_service;1"]
                        .getService(Components.interfaces.nsIProperties)
                        .get("ProfD", Components.interfaces.nsILocalFile);
@@ -335,42 +375,97 @@ Config.prototype.__defineGetter__("newScriptDir", function() {
   return file;
 });
 
-Config.prototype.__defineGetter__("oldScriptDir", function() {
+Config.prototype.__defineGetter__("_oldScriptDir", function() {
   var file = getContentDir();
   file.append("scripts");
   return file;
 });
 
+Config.prototype.__defineGetter__("scripts", function() {
+  return this._scripts.concat();
+});
+
+Config.prototype.getScriptsForUrl = function(url, onlyEnabled)
+{
+  var scripts = [];
+
+  scriptLoop:
+  for (var i = 0, script; script = this._scripts[i]; i++) {
+    if (script.enabled || !onlyEnabled) {
+      for (var j = 0, include; include = script._includes[j]; j++) {
+        if (convert2RegExp(include).test(url)) {
+          for (var k = 0, exclude; exclude = script._excludes[k]; k++) {
+            if (convert2RegExp(exclude).test(url)) {
+              continue scriptLoop;
+            }
+          }
+          scripts.push(script);
+          continue scriptLoop;
+        }
+      }
+    }
+  }
+
+  return scripts;
+};
+
 function Script(config)
 {
   this._config = config;
-  this.tempFile = null; // Only for scripts not installed
-  this.filename = null;
-  this.name = null;
-  this.namespace = null;
-  this.description = null;
-  this.enabled = true;
-  this.includes = [];
-  this.excludes = [];
-  this.basedir = null;
-  this.requires = [];
-  this.resources = [];
+  this._observers = [];
+
+  this._downloadUrl = null; // Only for scripts not installed
+  this._tempFile = null; // Only for scripts not installed
+  this._basedir = null;
+  this._filename = null;
+
+  this._name = null;
+  this._namespace = null;
+  this._description = null;
+  this._enabled = true;
+  this._includes = [];
+  this._excludes = [];
+  this._requires = [];
+  this._resources = [];
 }
 
 Script.prototype = {
-  get file()
+  _changed: function(event, data) { this._config._changed(this, event, data); },
+
+  get name() { return this._name; },
+  get namespace() { return this._namespace; },
+  get description() { return this._description; },
+  get enabled() { return this._enabled; },
+  set enabled(enabled) { this._enabled = enabled; this._changed('edit-enabled', enabled); },
+
+  get includes() { return this._includes.concat(); },
+  get excludes() { return this._excludes.concat(); },
+  addInclude: function(url) { this._includes.push(url); this._changed('edit-include-add', url); },
+  removeIncludeAt: function(index) { this._includes.splice(index, 1); this._changed('edit-include-remove', index); },
+  addExclude: function(url) { this._excludes.push(url); this._changed('edit-exclude-add', url); },
+  removeExcludeAt: function(index) { this._excludes.splice(index, 1); this._changed('edit-exclude-remove', index); },
+
+  get requires() { return this._requires.concat(); },
+  get resources() { return this._resources.concat(); },
+
+  get _file()
   {
-    var file = this.basedirFile;
-    file.append(this.filename);
+    var file = this._basedirFile;
+    file.append(this._filename);
     return file;
   },
 
-  get basedirFile()
+  get editFile() { return this._file; },
+
+  get _basedirFile()
   {
-    var file = this._config.scriptDir;
-    file.append(this.basedir);
+    var file = this._config._scriptDir;
+    file.append(this._basedir);
     return file;
   },
+
+  get fileUrl() { return GM_getUriFromFile(this._file).spec; },
+  get textContent() { return getContents(this._file); },
 
   _initFileName: function(name, useExt)
   {
@@ -402,78 +497,119 @@ Script.prototype = {
 
   _initFile: function(tempFile)
   {
-    var file = this._config.scriptDir;
-    var name = this._initFileName(this.name, false);
+    var file = this._config._scriptDir;
+    var name = this._initFileName(this._name, false);
 
     file.append(name);
     file.createUnique(Components.interfaces.nsIFile.DIRECTORY_TYPE, 0755);
-    this.basedir = file.leafName;
+    this._basedir = file.leafName;
 
     file.append(name + ".user.js");
     file.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 0644);
-    this.filename = file.leafName;
+    this._filename = file.leafName;
 
     GM_log("Moving script file from " + tempFile.path + " to " + file.path);
 
     file.remove(true);
     tempFile.moveTo(file.parent, file.leafName);
-  }
+  },
+
+  get urlToDownload() { return this._downloadUrl; },
+  setDownloadedFile: function(file) { this._tempFile = file; }
 }
 
 function ScriptRequire(script)
 {
   this._script = script;
-  this.url = null; // Only for scripts not installed
-  this.tempFile = null; // Only for scripts not installed
-  this.filename = null;
+
+  this._downloadUrl = null; // Only for scripts not installed
+  this._tempFile = null; // Only for scripts not installed
+  this._filename = null;
 }
 
 ScriptRequire.prototype = {
-  get file()
+  get _file()
   {
-    var file = this._script.basedirFile;
-    file.append(this.filename);
+    var file = this._script._basedirFile;
+    file.append(this._filename);
     return file;
   },
 
+  get fileUrl() { return GM_getUriFromFile(this._file).spec; },
+  get textContent() { return getContents(this._file); },
+
   _initFile: function()
   {
-    var name = this.url.substr(this.url.lastIndexOf("/") + 1);
+    var name = this.url.substr(this._downloadUrl.lastIndexOf("/") + 1);
     if(name.indexOf("?") > 0)
       name = name.substr(0, name.indexOf("?"));
     name = this._script._initFileName(name, true);
 
-    var file = this._script.basedirFile;
+    var file = this._script._basedirFile;
     file.append(name);
     file.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 0644);
-    this.filename = file.leafName;
+    this._filename = file.leafName;
 
-    GM_log("Moving dependency file from " + this.tempFile.path + " to " + file.path);
+    GM_log("Moving dependency file from " + this._tempFile.path + " to " + file.path);
 
     file.remove(true);
-    this.tempFile.moveTo(file.parent, file.leafName);
-    this.tempFile = null;
-  }
+    this._tempFile.moveTo(file.parent, file.leafName);
+    this._tempFile = null;
+  },
+
+  get urlToDownload() { return this._downloadUrl; },
+  setDownloadedFile: function(file) { this._tempFile = file; }
 }
 
 function ScriptResource(script)
 {
   this._script = script;
-  this.url = null; // Only for scripts not installed
-  this.tempFile = null; // Only for scripts not installed
-  this.name = null;
-  this.filename = null;
-  this.mimetype = null;
-  this.charset = null;
+
+  this._downloadUrl = null; // Only for scripts not installed
+  this._tempFile = null; // Only for scripts not installed
+  this._filename = null;
+  this._mimetype = null;
+  this._charset = null;
+
+  this._name = null;
 }
 
 ScriptResource.prototype = {
-  get file()
+  get name() { return this._name; },
+
+  get _file()
   {
-    var file = this._script.basedirFile;
-    file.append(this.filename);
+    var file = this._script._basedirFile;
+    file.append(this._filename);
     return file;
   },
-  
-  _initFile: ScriptRequire.prototype._initFile
+
+  get textContent() { return getContents(this._file); },
+
+  get dataContent()
+  {
+    var appSvc = Components.classes["@mozilla.org/appshell/appShellService;1"]
+                           .getService(Components.interfaces.nsIAppShellService);
+
+    var window = appSvc.hiddenDOMWindow;
+    var binaryContents = getBinaryContents(this._file);
+
+    var mimetype = this._mimetype;
+    if(this._charset && this._charset.length > 0){
+      mimetype += ";charset=" + this._charset;
+    }
+
+    return "data:" + mimetype + ";base64," +
+      window.encodeURIComponent(window.btoa(binaryContents));
+  },
+
+  _initFile: ScriptRequire.prototype._initFile,
+
+  get urlToDownload() { return this._downloadUrl; },
+  setDownloadedFile: function(tempFile, mimetype, charset)
+  {
+    this._tempFile = tempFile;
+    this._mimetype = mimetype;
+    this._charset = charset;
+  }
 }

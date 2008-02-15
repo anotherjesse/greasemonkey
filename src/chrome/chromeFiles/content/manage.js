@@ -1,24 +1,57 @@
-var config = new Config();
-var uninstallList = [];
+var config = GM_getConfig();
 
 window.addEventListener("load", function(ev) {
-  config.load();
   loadControls();
 
   if (!config.scripts.length == 0) {
     populateChooser();
     chooseScript(0);
   }
+
+  config.addObserver(observer);
 }, false);
 
-function handleOkButton() {
-  var uninstallPrefs = document.getElementById('chkUninstallPrefs').checked;
+window.addEventListener("unload", function(ev) {
+  pagesControl.clear();
+  config.removeObserver(observer);
+}, false);
 
-  for (var i = 0, script = null; (script = uninstallList[i]); i++) {
-    config.uninstall(script, uninstallPrefs);
+var observer = {
+  notifyEvent: function(script, event, data)
+  {
+    var node = null;
+    for (var i = 0; node = listbox.childNodes[i]; i++)
+      if (node.script == script)
+        break;
+
+    switch (event) {
+    case "edit-enabled":
+      node.style.color = data ? '' : 'gray';
+      if (script == selectedScript)
+        chkEnabled.checked = data;
+      break;
+    case "install":
+      addListitem(script, -1);
+      break;
+    case "uninstall":
+      var selected = listbox.selectedItem == node;
+      listbox.removeChild(node);
+
+      if (selected && listbox.childNodes.length > 0) {
+        chooseScript(Math.max(Math.min(listbox.selectedIndex, listbox.childNodes.length - 1), 0));
+      }
+      break;
+    case "move":
+      listbox.removeChild(node);
+      listbox.insertBefore(node, listbox.childNodes[data]);
+      // then re-select the dropped script
+      listbox.selectedIndex = data;
+      break;
+    }
+
+    // fix the listbox indexes
+    for (var i=0, n=null; n=listbox.childNodes[i]; i++) n.index=i;
   }
-  config.save();
-  return true;
 };
 
 var listbox, header, description, chkEnabled, btnEdit, btnUninstall;
@@ -38,14 +71,8 @@ function loadControls() {
   btnEdit.addEventListener("command", function() { handleEditButton(); }, false);
   btnUninstall.addEventListener("command", function() { handleUninstallButton(); }, false);
   chkEnabled.addEventListener("command", function() {
-     if (selectedScript) {
+     if (selectedScript)
        selectedScript.enabled = chkEnabled.checked;
-       if (selectedScript.enabled) {
-         listbox.selectedItem.style.color = '';
-       } else {
-         listbox.selectedItem.style.color = 'gray';
-       }
-     }
   }, false);
 };
 
@@ -56,7 +83,6 @@ function updateDetails() {
     description.textContent = " ";
     chkEnabled.checked = true;
     pagesControl.clear();
-    document.documentElement.getButton("accept").disabled = false;
   } else {
     selectedScript = listbox.getSelectedItem(0).script;
 
@@ -85,64 +111,34 @@ function handleEditButton() {
 };
 
 function handleUninstallButton() {
-  var index=listbox.selectedIndex;
-
-  // mark script to be uninstalled on "OK"
-  uninstallList.push(selectedScript);
-
-  // remove it from the display
-  listbox.removeChild(listbox.childNodes[index]);
-
-  if (listbox.childNodes.length > 0) {
-    chooseScript(Math.max(Math.min(listbox.selectedIndex, listbox.childNodes.length - 1), 0));
-  }
+  var uninstallPrefs = document.getElementById('chkUninstallPrefs').checked;
+  config.uninstall(selectedScript, uninstallPrefs);
 };
 
 function populateChooser() {
-  for (var i = 0, script = null; (script = config.scripts[i]); i++) {
-    var listitem = document.createElement("listitem");
+  var scripts = config.scripts;
+  for (var i = 0, script = null; (script = scripts[i]); i++)
+    addListitem(script, i);
+};
 
-    listitem.setAttribute("label", script.name);
-    listitem.setAttribute("crop", "end");
-    listitem.script = script;
-    listitem.index = i;
+function addListitem(script, i) {
+  var listitem = document.createElement("listitem");
 
-    if (!script.enabled) {
-      listitem.style.color = 'gray';
-    }
+  listitem.setAttribute("label", script.name);
+  listitem.setAttribute("crop", "end");
+  listitem.script = script;
+  listitem.index = i;
+
+  if (!script.enabled) {
+    listitem.style.color = 'gray';
+  }
 
   listbox.appendChild(listitem);
-  }
 };
 
 function chooseScript(index) {
   listbox.selectedIndex = index;
   listbox.focus();
-};
-
-function toggleScript(index, enableFlag) {
-  var listitem = listbox.childNodes[index];
-  if (enableFlag) {
-    listitem.script.enabled = true;
-    listitem.style.color = '';
-  } else {
-    listitem.script.enabled = false;
-    listitem.style.color = 'gray';
-  }
-};
-
-function reorderScript(from, to) {
-  // REORDER DISPLAY:
-  var tmp = listbox.childNodes[from];
-  listbox.removeChild(tmp);
-  listbox.insertBefore(tmp, listbox.childNodes[to]);
-  // fix the listbox indexes
-  for (var i=0, node=null; node=listbox.childNodes[i]; i++) {
-    node.index=i;
-  }
-
-  // then re-select the dropped script
-  listbox.selectedIndex = to;
 };
 
 // allow reordering scripts with keyboard (alt- up and down)
@@ -157,9 +153,6 @@ function listboxKeypress(event) {
     move = config.move(listbox.selectedItem.script, -1);
   else if (KeyEvent.DOM_VK_DOWN == event.keyCode)
     move = config.move(listbox.selectedItem.script, 1);
-
-  if (move)
-    reorderScript(move.from, move.to);
 };
 
 // allow reordering scripts with drag-and-drop
@@ -203,8 +196,6 @@ var dndObserver = {
 
     // do the move
     var move = config.move(config.scripts[index], config.scripts[newIndex]);
-    if (move)
-      reorderScript(move.from, move.to);
   },
 
   //////////////////////////////////////////////////////////////////////////////

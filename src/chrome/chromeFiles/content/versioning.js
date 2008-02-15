@@ -5,7 +5,7 @@
  * Checks whether the version has changed since the last run and performs
  * any necessary upgrades.
  */
-Config.prototype.updateVersion = function()
+Config.prototype._updateVersion = function()
 {
   log("> GM_updateVersion");
 
@@ -41,7 +41,7 @@ Config.prototype.updateVersion = function()
  */
 Config.prototype._pointEightBackup = function()
 {
-  var scriptDir = this.newScriptDir;
+  var scriptDir = this._newScriptDir;
   var scriptDirBackup = scriptDir.clone();
   scriptDirBackup.leafName += "_08bak";
   if (scriptDir.exists() && !scriptDirBackup.exists()) {
@@ -57,7 +57,7 @@ Config.prototype._pointFourMigrate = function()
   log("> GM_pointFourMigrate");
 
   // Create a scripts dir if it does not exist
-  this.scriptDir;
+  this._scriptDir;
 
   log("< GM_pointFourMigrate");
 }
@@ -70,7 +70,7 @@ Config.prototype._pointThreeMigrate = function()
   log("> GM_pointThreeMigrate");
 
   // check to see whether there's any config to migrate
-  var configFile = this.oldScriptDir;
+  var configFile = this._oldScriptDir;
   configFile.append("config.xml");
   var configExists = configFile.exists();
 
@@ -82,7 +82,7 @@ Config.prototype._pointThreeMigrate = function()
   // back up the config directory
   // if an error happens, report it and exit
   try {
-    var scriptDir = this.oldScriptDir;
+    var scriptDir = this._oldScriptDir;
     var tempDir = getTempFile();
 
     log("script dir: " + scriptDir.path);
@@ -95,13 +95,9 @@ Config.prototype._pointThreeMigrate = function()
     var scriptFile = null;
     var doc = document.implementation.createDocument("", "", null);
 
-    var configURI = Components.classes["@mozilla.org/network/io-service;1"]
-                              .getService(Components.interfaces.nsIIOService)
-                              .newFileURI(configFile);
-
     // first, load config.xml raw and add the new required filename attribute
     doc.async = false;
-    doc.load(configURI.spec);
+    doc._load();
 
     log("loaded existing config...");
 
@@ -123,14 +119,14 @@ Config.prototype._pointThreeMigrate = function()
     log("config saved.");
 
     // now, load config normally and reinitialize all scripts's filenames
-    this.load();
+    this._load();
 
     log("config reloaded, moving files.");
 
-    for (var i = 0; (script = this.scripts[i]); i++) {
-      if (script.filename.match(/^\d+$/)) {
-        var scriptFile = this.oldScriptDir;
-        scriptFile.append(script.filename);
+    for (var i = 0; (script = this._scripts[i]); i++) {
+      if (script._filename.match(/^\d+$/)) {
+        var scriptFile = this._oldScriptDir;
+        scriptFile.append(script._filename);
         script._initFile(scriptFile);
       }
     }
@@ -138,7 +134,7 @@ Config.prototype._pointThreeMigrate = function()
     log("moving complete. saving configuration.");
 
     // save the config file
-    this.save();
+    this._save();
 
     log("0.3 migration completed successfully!");
   } catch (e) {

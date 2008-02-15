@@ -43,7 +43,13 @@ function GM_apiLeakCheck(apiName) {
 };
 
 var greasemonkeyService = {
-
+  _config: null,
+  get config()
+  {
+    if (!this._config)
+      this._config = new Config();
+    return this._config;
+  },
   browserWindows: [],
   updater: null,
 
@@ -225,34 +231,7 @@ var greasemonkeyService = {
   },
 
   initScripts: function(url) {
-    var config = new Config();
-    var scripts = [];
-    config.load();
-
-    outer:
-    for (var i = 0; i < config.scripts.length; i++) {
-      var script = config.scripts[i];
-      if (script.enabled) {
-        for (var j = 0; j < script.includes.length; j++) {
-          var pattern = convert2RegExp(script.includes[j]);
-
-          if (pattern.test(url)) {
-            for (var k = 0; k < script.excludes.length; k++) {
-              pattern = convert2RegExp(script.excludes[k]);
-
-              if (pattern.test(url)) {
-                continue outer;
-              }
-            }
-
-            scripts.push(script);
-
-            continue outer;
-          }
-        }
-      }
-    }
-
+    var scripts = GM_getConfig().getScriptsForUrl(url, true);
     log("* number of matching scripts: " + scripts.length);
     return scripts;
   },
@@ -307,14 +286,14 @@ var greasemonkeyService = {
 
       sandbox.__proto__ = safeWin;
 
-      var contents = getContents(script.file);
+      var contents = script.textContent;
 
       var requires = [];
       var offsets = [];
       var offset = 0;
 
       script.requires.forEach(function(req){
-        var contents = getContents(req.file);
+        var contents = req.textContent;
         var lineCount = contents.split("\n").length;
         requires.push(contents);
         offset += lineCount;
@@ -392,7 +371,7 @@ var greasemonkeyService = {
           GM_logError(
             e, // error obj
             0, // 0 = error (1 = warning)
-            GM_getUriFromFile(script.file).spec,
+            script.fileUrl,
             0
           );
         }
@@ -408,7 +387,7 @@ var greasemonkeyService = {
       end = script.offsets[i];
       if (lineNumber < end) {
         return {
-          uri: GM_getUriFromFile(script.requires[i].file).spec,
+          uri: script.requires[i].fileUrl,
           lineNumber: (lineNumber - start)
         };
       }
@@ -416,7 +395,7 @@ var greasemonkeyService = {
     }
 
     return {
-      uri: GM_getUriFromFile(script.file).spec,
+      uri: script.fileUrl,
       lineNumber: (lineNumber - end)
     };
   },

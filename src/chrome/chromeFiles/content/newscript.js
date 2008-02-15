@@ -1,8 +1,5 @@
 /////////////////////////////// global variables ///////////////////////////////
 
-var config = new Config();
-config.load();
-
 var bundle = null;
 window.addEventListener("load", function() {
   // init the global string bundle
@@ -30,18 +27,19 @@ function doInstall() {
   foStream.write(script, script.length);
   foStream.close();
 
+  var config = GM_getConfig();
+
   // create a script object with parsed metadata,
   script = config.parse(script, tempFile);
 
   // make sure entered details will not ruin an existing file
-  var existingIndex = config.find(script.namespace, script.name);
-  if (existingIndex > -1) {
+  if (config.installIsUpdate(script)) {
     var overwrite = confirm(bundle.getString("newscript.exists"));
     if (!overwrite) return false;
   }
 
   // finish making the script object ready to install
-  script.tempFile = tempFile;
+  script.setDownloadedFile(tempFile);
 
   // install this script
   config.install(script);
