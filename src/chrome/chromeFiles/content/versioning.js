@@ -32,7 +32,7 @@ Config.prototype._updateVersion = function()
   GM_prefRoot.setValue("version", item.version);
 
   log("< GM_updateVersion");
-}
+};
 
 /**
  * In Greasemonkey 0.8 there was a format change to the gm_scripts folder and
@@ -47,7 +47,7 @@ Config.prototype._pointEightBackup = function()
   if (scriptDir.exists() && !scriptDirBackup.exists()) {
     scriptDir.copyTo(scriptDirBackup.parent, scriptDirBackup.leafName);
   }
-}
+};
 
 /**
  * Copies the entire scripts directory to the new location, if it exists.
@@ -60,7 +60,7 @@ Config.prototype._pointFourMigrate = function()
   this._scriptDir;
 
   log("< GM_pointFourMigrate");
-}
+};
 
 /**
  * Migrates the configuration directory from the old format to the new one
@@ -146,4 +146,4 @@ Config.prototype._pointThreeMigrate = function()
   } finally {
     log("< GM_pointThreeMigrate");
   }
-}
+};

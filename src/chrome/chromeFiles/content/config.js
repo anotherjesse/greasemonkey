@@ -1,7 +1,8 @@
 // In this file protected properties (prefixed with an underscore) may be
 // used anywhere within this file and versioning.js
 
-function Config() {
+function Config()
+{
   this._scripts = null;
   this._configFile = this._scriptDir;
   this._configFile.append("config.xml");
@@ -12,267 +13,274 @@ function Config() {
   this._load();
 };
 
-Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
-  .getService(Components.interfaces.mozIJSSubScriptLoader)
-  .loadSubScript("chrome://greasemonkey/content/versioning.js");
+Config.prototype = {
+  addObserver: function(observer, script)
+  {
+    var observers = script ? script._observers : this._observers;
+    observers.push(observer);
+  },
 
-Config.prototype.addObserver = function(observer, script) {
-  var observers = script ? script._observers : this._observers;
-  observers.push(observer);
-};
+  removeObserver: function(observer, script)
+  {
+    var observers = script ? script._observers : this._observers;
+    var index = observers.indexOf(observer);
+    if (index == -1) throw new Error("Observer not found");
+    observers.splice(index, 1);
+  },
 
-Config.prototype.removeObserver = function(observer, script) {
-  var observers = script ? script._observers : this._observers;
-  var index = observers.indexOf(observer);
-  if (index == -1) throw new Error("Observer not found");
-  observers.splice(index, 1);
-};
+  _notifyObservers: function(script, event, data)
+  {
+    var observers = this._observers.concat(script._observers);
+    for (var i = 0, observer; observer = observers[i]; i++)
+      observer.notifyEvent(script, event, data);
+  },
 
-Config.prototype._notifyObservers = function(script, event, data) {
-  var observers = this._observers.concat(script._observers);
-  for (var i = 0, observer; observer = observers[i]; i++)
-    observer.notifyEvent(script, event, data);
-};
+  _changed: function(script, event, data)
+  {
+    this._save();
+    this._notifyObservers(script, event, data);
+  },
 
-Config.prototype._changed = function(script, event, data) {
-  this._save();
-  this._notifyObservers(script, event, data);
-};
+  installIsUpdate: function(script)
+  {
+    return this._find(script) > -1;
+  },
 
-Config.prototype.installIsUpdate = function(script)
-{
-  return this._find(script) > -1;
-};
+  _find: function(aScript)
+  {
+    namespace = aScript._namespace.toLowerCase();
+    name = aScript._name.toLowerCase();
 
-Config.prototype._find = function(aScript) {
-  namespace = aScript._namespace.toLowerCase();
-  name = aScript._name.toLowerCase();
+    for (var i = 0, script; script = this._scripts[i]; i++)
+      if (script._namespace.toLowerCase() == namespace && script._name.toLowerCase() == name)
+        return i;
 
-  for (var i = 0, script = null; (script = this._scripts[i]); i++) {
-    if (script._namespace.toLowerCase() == namespace && script._name.toLowerCase() == name) {
-      return i;
+    return -1;
+  },
+
+  _load: function()
+  {
+    var domParser = Components.classes["@mozilla.org/xmlextras/domparser;1"]
+                              .createInstance(Components.interfaces.nsIDOMParser);
+
+    var configContents = getContents(this._configFile);
+    var doc = domParser.parseFromString(configContents, "text/xml");
+    var nodes = doc.evaluate("/UserScriptConfig/Script", doc, null, 0, null);
+
+    this._scripts = [];
+
+    for (var node = null; node = nodes.iterateNext(); ) {
+      var script = new Script(this);
+
+      for (var i = 0, childNode; childNode = node.childNodes[i]; i++) {
+        switch (childNode.nodeName) {
+        case "Include":
+          script._includes.push(childNode.firstChild.nodeValue);
+          break;
+        case "Exclude":
+          script._excludes.push(childNode.firstChild.nodeValue);
+          break;
+        case "Require":
+          var scriptRequire = new ScriptRequire(script);
+          scriptRequire._filename = childNode.getAttribute("filename");
+          script._requires.push(scriptRequire);
+          break;
+        case "Resource":
+          var scriptResource = new ScriptResource(script);
+          scriptResource._name = childNode.getAttribute("name");
+          scriptResource._filename = childNode.getAttribute("filename");
+          scriptResource._mimetype = childNode.getAttribute("mimetype");
+          scriptResource._charset  = childNode.getAttribute("charset");
+          script._resources.push(scriptResource);
+          break;
+        }
+      }
+
+      script._filename = node.getAttribute("filename");
+      script._name = node.getAttribute("name");
+      script._namespace = node.getAttribute("namespace");
+      script._description = node.getAttribute("description");
+      script._enabled = node.getAttribute("enabled") == true.toString();
+      script._basedir = node.getAttribute("basedir") || ".";
+
+      this._scripts.push(script);
     }
-  }
+  },
 
-  return -1;
-};
+  _save: function()
+  {
+    var doc = Components.classes["@mozilla.org/xmlextras/domparser;1"]
+      .createInstance(Components.interfaces.nsIDOMParser)
+      .parseFromString("<UserScriptConfig></UserScriptConfig>", "text/xml");
 
-Config.prototype._load = function() {
-  var domParser = Components.classes["@mozilla.org/xmlextras/domparser;1"]
-                            .createInstance(Components.interfaces.nsIDOMParser);
+    for (var i = 0, scriptObj; scriptObj = this._scripts[i]; i++) {
+      var scriptNode = doc.createElement("Script");
 
-  var configContents = getContents(this._configFile);
-  var doc = domParser.parseFromString(configContents, "text/xml");
-  var nodes = doc.evaluate("/UserScriptConfig/Script", doc, null, 0, null);
+      for (var j = 0; j < scriptObj._includes.length; j++) {
+        var includeNode = doc.createElement("Include");
+        includeNode.appendChild(doc.createTextNode(scriptObj._includes[j]));
+        scriptNode.appendChild(doc.createTextNode("\n\t\t"));
+        scriptNode.appendChild(includeNode);
+      }
 
-  this._scripts = [];
+      for (var j = 0; j < scriptObj._excludes.length; j++) {
+        var excludeNode = doc.createElement("Exclude");
+        excludeNode.appendChild(doc.createTextNode(scriptObj._excludes[j]));
+        scriptNode.appendChild(doc.createTextNode("\n\t\t"));
+        scriptNode.appendChild(excludeNode);
+      }
 
-  for (var node = null; (node = nodes.iterateNext()); ) {
+      for (var j = 0; j < scriptObj._requires.length; j++) {
+        var req = scriptObj._requires[j];
+        var resourceNode = doc.createElement("Require");
+
+        resourceNode.setAttribute("filename", req._filename);
+
+        scriptNode.appendChild(doc.createTextNode("\n\t\t"));
+        scriptNode.appendChild(resourceNode);
+      }
+
+      for (var j = 0; j< scriptObj._resources.length; j++) {
+        var imp = scriptObj._resources[j];
+        var resourceNode = doc.createElement("Resource");
+
+        resourceNode.setAttribute("name", imp._name);
+        resourceNode.setAttribute("filename", imp._filename);
+        resourceNode.setAttribute("mimetype", imp._mimetype);
+        if (imp._charset) {
+          resourceNode.setAttribute("charset", imp._charset);
+        }
+
+        scriptNode.appendChild(doc.createTextNode("\n\t\t"));
+        scriptNode.appendChild(resourceNode);
+      }
+
+      scriptNode.appendChild(doc.createTextNode("\n\t"));
+
+      scriptNode.setAttribute("filename", scriptObj._filename);
+      scriptNode.setAttribute("name", scriptObj._name);
+      scriptNode.setAttribute("namespace", scriptObj._namespace);
+      scriptNode.setAttribute("description", scriptObj._description);
+      scriptNode.setAttribute("enabled", scriptObj._enabled);
+      scriptNode.setAttribute("basedir", scriptObj._basedir);
+
+      doc.firstChild.appendChild(doc.createTextNode("\n\t"));
+      doc.firstChild.appendChild(scriptNode);
+    }
+
+    doc.firstChild.appendChild(doc.createTextNode("\n"));
+
+    var configStream = getWriteStream(this._configFile);
+    Components.classes["@mozilla.org/xmlextras/xmlserializer;1"]
+      .createInstance(Components.interfaces.nsIDOMSerializer)
+      .serializeToStream(doc, configStream, "utf-8");
+    configStream.close();
+  },
+
+  parse: function(source, uri)
+  {
+    var ioservice = Components.classes["@mozilla.org/network/io-service;1"]
+                              .getService(Components.interfaces.nsIIOService);
+
     var script = new Script(this);
+    script._downloadUrl = uri.spec;
+    script._enabled = true;
 
-    for (var i = 0, childNode = null; (childNode = node.childNodes[i]); i++) {
-      if (childNode.nodeName == "Include") {
-        script._includes.push(childNode.firstChild.nodeValue);
-      } else if (childNode.nodeName == "Exclude") {
-        script._excludes.push(childNode.firstChild.nodeValue);
-      } else if (childNode.nodeName == "Require") {
-        var scriptRequire = new ScriptRequire(script);
-        scriptRequire._filename = childNode.getAttribute("filename");
-        script._requires.push(scriptRequire);
-      } else if (childNode.nodeName == "Resource") {
-        var scriptResource = new ScriptResource(script);
-        scriptResource._name = childNode.getAttribute("name");
-        scriptResource._filename = childNode.getAttribute("filename");
-        scriptResource._mimetype = childNode.getAttribute("mimetype");
-        scriptResource._charset  = childNode.getAttribute("charset");
-        script._resources.push(scriptResource);
-      }
-    }
-
-    script._filename = node.getAttribute("filename");
-    script._name = node.getAttribute("name");
-    script._namespace = node.getAttribute("namespace");
-    script._description = node.getAttribute("description");
-    script._enabled = node.getAttribute("enabled") == true.toString();
-    script._basedir = node.getAttribute("basedir") || ".";
-
-    this._scripts.push(script);
-  }
-};
-
-Config.prototype._save = function() {
-  var doc = Components.classes["@mozilla.org/xmlextras/domparser;1"]
-    .createInstance(Components.interfaces.nsIDOMParser)
-    .parseFromString("<UserScriptConfig></UserScriptConfig>", "text/xml");
-
-  for (var i = 0, scriptObj = null; (scriptObj = this._scripts[i]); i++) {
-    var scriptNode = doc.createElement("Script");
-
-    for (var j = 0; j < scriptObj._includes.length; j++) {
-      var includeNode = doc.createElement("Include");
-      includeNode.appendChild(doc.createTextNode(scriptObj._includes[j]));
-      scriptNode.appendChild(doc.createTextNode("\n\t\t"));
-      scriptNode.appendChild(includeNode);
-    }
-
-    for (var j = 0; j < scriptObj._excludes.length; j++) {
-      var excludeNode = doc.createElement("Exclude");
-      excludeNode.appendChild(doc.createTextNode(scriptObj._excludes[j]));
-      scriptNode.appendChild(doc.createTextNode("\n\t\t"));
-      scriptNode.appendChild(excludeNode);
-    }
-
-    for (var j = 0; j < scriptObj._requires.length; j++) {
-      var req = scriptObj._requires[j];
-      var resourceNode = doc.createElement("Require");
-
-      resourceNode.setAttribute("filename", req._filename);
-
-      scriptNode.appendChild(doc.createTextNode("\n\t\t"));
-      scriptNode.appendChild(resourceNode);
-    }
-
-    for (var j = 0; j< scriptObj._resources.length; j++) {
-      var imp = scriptObj._resources[j];
-      var resourceNode = doc.createElement("Resource");
-
-      resourceNode.setAttribute("name", imp._name);
-      resourceNode.setAttribute("filename", imp._filename);
-      resourceNode.setAttribute("mimetype", imp._mimetype);
-      if (imp._charset) {
-        resourceNode.setAttribute("charset", imp._charset);
-      }
-
-      scriptNode.appendChild(doc.createTextNode("\n\t\t"));
-      scriptNode.appendChild(resourceNode);
-    }
-
-    scriptNode.appendChild(doc.createTextNode("\n\t"));
-
-    scriptNode.setAttribute("filename", scriptObj._filename);
-    scriptNode.setAttribute("name", scriptObj._name);
-    scriptNode.setAttribute("namespace", scriptObj._namespace);
-    scriptNode.setAttribute("description", scriptObj._description);
-    scriptNode.setAttribute("enabled", scriptObj._enabled);
-    scriptNode.setAttribute("basedir", scriptObj._basedir);
-
-    doc.firstChild.appendChild(doc.createTextNode("\n\t"));
-    doc.firstChild.appendChild(scriptNode);
-  }
-
-  doc.firstChild.appendChild(doc.createTextNode("\n"));
-
-  var configStream = getWriteStream(this._configFile);
-  Components.classes["@mozilla.org/xmlextras/xmlserializer;1"]
-    .createInstance(Components.interfaces.nsIDOMSerializer)
-    .serializeToStream(doc, configStream, "utf-8");
-  configStream.close();
-};
-
-Config.prototype.parse = function(source, uri)
-{
-  var ioservice = Components.classes["@mozilla.org/network/io-service;1"]
-                            .getService(Components.interfaces.nsIIOService);
-
-  var script = new Script(this);
-  script._downloadUrl = uri.spec;
-  script._enabled = true;
-
-  // read one line at a time looking for start meta delimiter or EOF
-  var lines = source.match(/.+/g);
-  var lnIdx = 0;
-  var result = {};
-  var foundMeta = false;
-
-  while ((result = lines[lnIdx++])) {
-    if (result.indexOf("// ==UserScript==") == 0) {
-      foundMeta = true;
-      break;
-    }
-  }
-
-  // gather up meta lines
-  if (foundMeta) {
-    // used for duplicate resource name detection
-    var previousResourceNames = {};
+    // read one line at a time looking for start meta delimiter or EOF
+    var lines = source.match(/.+/g);
+    var lnIdx = 0;
+    var result = {};
+    var foundMeta = false;
 
     while ((result = lines[lnIdx++])) {
-      if (result.indexOf("// ==/UserScript==") == 0) {
+      if (result.indexOf("// ==UserScript==") == 0) {
+        foundMeta = true;
         break;
       }
+    }
 
-      var match = result.match(/\/\/ \@(\S+)\s+([^\n]+)/);
-      if (match != null) {
-        switch (match[1]) {
-          case "name":
-          case "namespace":
-          case "description":
-            script["_" + match[1]] = match[2];
-            break;
-          case "include":
-            script._includes.push(match[2]);
-            break;
-          case "exclude":
-            script._excludes.push(match[2]);
-            break;
-          case "require":
-            var reqUri = ioservice.newURI(match[2], null, uri);
-            var scriptRequire = new ScriptRequire(script);
-            scriptRequire._downloadUrl = reqUri.spec;
-            script._requires.push(scriptRequire);
-            break;
-          case "resource":
-            var res = match[2].match(/(\S+)\s+(.*)/);
-            if (res === null) {
-              // NOTE: Unlocalized strings
-              throw new Error("Invalid syntax for @resource declaration '" +
-                              match[2] + "'. Resources are declared like: " +
-                              "@resource <name> <url>.");
-            }
+    // gather up meta lines
+    if (foundMeta) {
+      // used for duplicate resource name detection
+      var previousResourceNames = {};
 
-            var resName = res[1];
-            if (previousResourceNames[resName]) {
-              throw new Error("Duplicate resource name '" + resName + "' " +
-                              "detected. Each resource must have a unique " +
-                              "name.");
-            } else {
-              previousResourceNames[resName] = true;
-            }
+      while ((result = lines[lnIdx++])) {
+        if (result.indexOf("// ==/UserScript==") == 0) {
+          break;
+        }
 
-            var resUri = ioservice.newURI(res[2], null, uri);
-            var scriptResource = new ScriptResource(script);
-            scriptResource._name = resName;
-            scriptResource._downloadUrl = resUri.spec;
-            script._resources.push(scriptResource);
-            break;
+        var match = result.match(/\/\/ \@(\S+)\s+([^\n]+)/);
+        if (match != null) {
+          switch (match[1]) {
+            case "name":
+            case "namespace":
+            case "description":
+              script["_" + match[1]] = match[2];
+              break;
+            case "include":
+              script._includes.push(match[2]);
+              break;
+            case "exclude":
+              script._excludes.push(match[2]);
+              break;
+            case "require":
+              var reqUri = ioservice.newURI(match[2], null, uri);
+              var scriptRequire = new ScriptRequire(script);
+              scriptRequire._downloadUrl = reqUri.spec;
+              script._requires.push(scriptRequire);
+              break;
+            case "resource":
+              var res = match[2].match(/(\S+)\s+(.*)/);
+              if (res === null) {
+                // NOTE: Unlocalized strings
+                throw new Error("Invalid syntax for @resource declaration '" +
+                                match[2] + "'. Resources are declared like: " +
+                                "@resource <name> <url>.");
+              }
+
+              var resName = res[1];
+              if (previousResourceNames[resName]) {
+                throw new Error("Duplicate resource name '" + resName + "' " +
+                                "detected. Each resource must have a unique " +
+                                "name.");
+              } else {
+                previousResourceNames[resName] = true;
+              }
+
+              var resUri = ioservice.newURI(res[2], null, uri);
+              var scriptResource = new ScriptResource(script);
+              scriptResource._name = resName;
+              scriptResource._downloadUrl = resUri.spec;
+              script._resources.push(scriptResource);
+              break;
+          }
         }
       }
     }
-  }
 
-  // if no meta info, default to reasonable values
-  if (script._name == null) {
-    script._name = parseScriptName(uri);
-  }
+    // if no meta info, default to reasonable values
+    if (script._name == null) {
+      script._name = parseScriptName(uri);
+    }
 
-  if (script._namespace == null) {
-    script._namespace = uri.host;
-  }
+    if (script._namespace == null) {
+      script._namespace = uri.host;
+    }
 
-  if (!script._description)
-    script._description = "";
+    if (!script._description)
+      script._description = "";
 
-  if (script._includes.length == 0) {
-    script._includes.push("*");
-  }
+    if (script._includes.length == 0) {
+      script._includes.push("*");
+    }
 
-  return script;
-}
+    return script;
+  },
 
-Config.prototype.install = function(script) {
-  GM_log("> Config.install");
+  install: function(script)
+  {
+    GM_log("> Config.install");
 
-  try {
     var existingIndex = this._find(script);
     if (existingIndex > -1)
       this.uninstall(this._scripts[existingIndex], false);
@@ -290,124 +298,128 @@ Config.prototype.install = function(script) {
     this._changed(script, "install", null);
 
     GM_log("< Config.install");
-  } catch (e2) {
-    // NOTE: unlocalised string
-    alert("Error installing user script:\n\n" + (e2 ? e2 : ""));
-    throw e2;
-  }
-};
+  },
 
-Config.prototype.uninstall = function(script, uninstallPrefs)
-{
-  var idx = this._find(script);
-  this._scripts.splice(idx, 1); // TODO
-  this._changed(script, "uninstall", null);
+  uninstall: function(script, uninstallPrefs)
+  {
+    var idx = this._find(script);
+    this._scripts.splice(idx, 1);
+    this._changed(script, "uninstall", null);
 
-  if (script._basedir) // if script has its own dir, remove the dir + contents
-    script._basedirFile.remove(true);
-  else // if script is in the root, just remove the file
-    script._file.remove(false);
+    if (script._basedir) // if script has its own dir, remove the dir + contents
+      script._basedirFile.remove(true);
+    else // if script is in the root, just remove the file
+      script._file.remove(false);
 
-  if (uninstallPrefs) // Remove saved preferences
-     GM_prefRoot.remove("scriptvals." + script._namespace + "/" + script._name + ".");
-}
+    if (uninstallPrefs) // Remove saved preferences
+       GM_prefRoot.remove("scriptvals." + script._namespace + "/" + script._name + ".");
+  },
 
-/**
- * Moves an installed user script to a new position in the array of installed scripts.
- *
- * @param script The script to be moved.
- * @param destination Can be either (a) a numeric offset for the script to be
- *                    moved or (b) another installet script to which position
- *                    the script will be moved.
- */
-Config.prototype.move = function(script, destination)
-{
-  var from = this._scripts.indexOf(script);
-  var to = -1;
+  /**
+   * Moves an installed user script to a new position in the array of installed scripts.
+   *
+   * @param script The script to be moved.
+   * @param destination Can be either (a) a numeric offset for the script to be
+   *                    moved or (b) another installet script to which position
+   *                    the script will be moved.
+   */
+  move: function(script, destination)
+  {
+    var from = this._scripts.indexOf(script);
+    var to = -1;
 
-  // Make sure the user script is installed
-  if (from == -1)
-    return null;
+    // Make sure the user script is installed
+    if (from == -1)
+      return;
 
-  if (typeof destination == 'number') { // if destination is an offset
-    to = from + destination;
-    to = Math.max(0, to);
-    to = Math.min(this._scripts.length - 1, to);
-  } else { // if destination is a script object
-    to = this._scripts.indexOf(destination);
-  }
+    if (typeof destination == 'number') { // if destination is an offset
+      to = from + destination;
+      to = Math.max(0, to);
+      to = Math.min(this._scripts.length - 1, to);
+    } else { // if destination is a script object
+      to = this._scripts.indexOf(destination);
+    }
 
-  if (to == -1)
-    return null;
+    if (to == -1)
+      return;
 
-  var tmp = this._scripts.splice(from, 1)[0];
-  this._scripts.splice(to, 0, tmp);
-  this._changed(script, 'move', to);
-};
+    var tmp = this._scripts.splice(from, 1)[0];
+    this._scripts.splice(to, 0, tmp);
+    this._changed(script, 'move', to);
+  },
 
-Config.prototype.__defineGetter__("_scriptDir", function() {
-  var newDir = this._newScriptDir;
-  if (newDir.exists())
+  get _scriptDir()
+  {
+    var newDir = this._newScriptDir;
+    if (newDir.exists())
+      return newDir;
+
+    var oldDir = this._oldScriptDir;
+    if (oldDir.exists())
+      return oldDir;
+
+    // if we called this function, we want a script dir.
+    // but, at this branch, neither the old nor new exists, so create one
+    newDir.create(Components.interfaces.nsIFile.DIRECTORY_TYPE, 0755);
+
+    var defaultConfigFile = getContentDir();
+    defaultConfigFile.append("default-config.xml");
+
+    defaultConfigFile.copyTo(newDir, "config.xml");
+    defaultConfigFile.permissions = 0644;
+
     return newDir;
+  },
 
-  var oldDir = this._oldScriptDir;
-  if (oldDir.exists())
-    return oldDir;
+  get _newScriptDir()
+  {
+    var file = Components.classes["@mozilla.org/file/directory_service;1"]
+                         .getService(Components.interfaces.nsIProperties)
+                         .get("ProfD", Components.interfaces.nsILocalFile);
+    file.append("gm_scripts");
+    return file;
+  },
 
-  // if we called this function, we want a script dir.
-  // but, at this branch, neither the old nor new exists, so create one
-  newDir.create(Components.interfaces.nsIFile.DIRECTORY_TYPE, 0755);
+  get _oldScriptDir()
+  {
+    var file = getContentDir();
+    file.append("scripts");
+    return file;
+  },
 
-  var defaultConfigFile = getContentDir();
-  defaultConfigFile.append("default-config.xml");
+  get scripts()
+  {
+    return this._scripts.concat();
+  },
 
-  defaultConfigFile.copyTo(newDir, "config.xml");
-  defaultConfigFile.permissions = 0644;
+  getScriptsForUrl: function(url, onlyEnabled)
+  {
+    var scripts = [];
 
-  return newDir;
-});
-
-Config.prototype.__defineGetter__("_newScriptDir", function() {
-  var file = Components.classes["@mozilla.org/file/directory_service;1"]
-                       .getService(Components.interfaces.nsIProperties)
-                       .get("ProfD", Components.interfaces.nsILocalFile);
-  file.append("gm_scripts");
-  return file;
-});
-
-Config.prototype.__defineGetter__("_oldScriptDir", function() {
-  var file = getContentDir();
-  file.append("scripts");
-  return file;
-});
-
-Config.prototype.__defineGetter__("scripts", function() {
-  return this._scripts.concat();
-});
-
-Config.prototype.getScriptsForUrl = function(url, onlyEnabled)
-{
-  var scripts = [];
-
-  scriptLoop:
-  for (var i = 0, script; script = this._scripts[i]; i++) {
-    if (script.enabled || !onlyEnabled) {
-      for (var j = 0, include; include = script._includes[j]; j++) {
-        if (convert2RegExp(include).test(url)) {
-          for (var k = 0, exclude; exclude = script._excludes[k]; k++) {
-            if (convert2RegExp(exclude).test(url)) {
-              continue scriptLoop;
+    scriptLoop:
+    for (var i = 0, script; script = this._scripts[i]; i++) {
+      if (script.enabled || !onlyEnabled) {
+        for (var j = 0, include; include = script._includes[j]; j++) {
+          if (convert2RegExp(include).test(url)) {
+            for (var k = 0, exclude; exclude = script._excludes[k]; k++) {
+              if (convert2RegExp(exclude).test(url)) {
+                continue scriptLoop;
+              }
             }
+            scripts.push(script);
+            continue scriptLoop;
           }
-          scripts.push(script);
-          continue scriptLoop;
         }
       }
     }
-  }
 
-  return scripts;
+    return scripts;
+  }
 };
+
+Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
+  .getService(Components.interfaces.mozIJSSubScriptLoader)
+  .loadSubScript("chrome://greasemonkey/content/versioning.js");
 
 function Script(config)
 {
@@ -427,7 +439,7 @@ function Script(config)
   this._excludes = [];
   this._requires = [];
   this._resources = [];
-}
+};
 
 Script.prototype = {
   _changed: function(event, data) { this._config._changed(this, event, data); },
@@ -516,7 +528,7 @@ Script.prototype = {
 
   get urlToDownload() { return this._downloadUrl; },
   setDownloadedFile: function(file) { this._tempFile = file; }
-}
+};
 
 function ScriptRequire(script)
 {
@@ -525,7 +537,7 @@ function ScriptRequire(script)
   this._downloadUrl = null; // Only for scripts not installed
   this._tempFile = null; // Only for scripts not installed
   this._filename = null;
-}
+};
 
 ScriptRequire.prototype = {
   get _file()
@@ -559,7 +571,7 @@ ScriptRequire.prototype = {
 
   get urlToDownload() { return this._downloadUrl; },
   setDownloadedFile: function(file) { this._tempFile = file; }
-}
+};
 
 function ScriptResource(script)
 {
@@ -572,7 +584,7 @@ function ScriptResource(script)
   this._charset = null;
 
   this._name = null;
-}
+};
 
 ScriptResource.prototype = {
   get name() { return this._name; },
@@ -612,4 +624,4 @@ ScriptResource.prototype = {
     this._mimetype = mimetype;
     this._charset = charset;
   }
-}
+};
