@@ -428,7 +428,7 @@ function GM_showPopup(aEvent) {
 
   // remove all the scripts from the list
   for (var i = popup.childNodes.length - 1; i >= 0; i--) {
-    if (popup.childNodes[i].hasAttribute("value")) {
+    if (popup.childNodes[i].script) {
       popup.removeChild(popup.childNodes[i]);
     }
   }
@@ -438,7 +438,7 @@ function GM_showPopup(aEvent) {
   for (var i = 0, script = null; script = scripts[i]; i++) {
         var mi = document.createElement('menuitem');
         mi.setAttribute('label', script.name);
-        mi.setAttribute('value', i);
+        mi.script = script;
         mi.setAttribute('type', 'checkbox');
         mi.setAttribute('checked', script.enabled.toString());
 
@@ -454,8 +454,7 @@ function GM_showPopup(aEvent) {
  */
 function GM_popupClicked(aEvent) {
   if (aEvent.button == 0 || aEvent.button == 2) {
-    var scriptNum=aEvent.target.value;
-    var script = GM_getConfig().scripts[scriptNum];
+    var script = aEvent.target.script;
     if (!script) return;
 
     if (aEvent.button == 0) // left-click: toggle enabled state

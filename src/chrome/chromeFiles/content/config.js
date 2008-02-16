@@ -392,13 +392,13 @@ Config.prototype = {
     return this._scripts.concat();
   },
 
-  getScriptsForUrl: function(url, onlyEnabled)
+  getScriptsForUrl: function(url, includeDisabled)
   {
     var scripts = [];
 
     scriptLoop:
     for (var i = 0, script; script = this._scripts[i]; i++) {
-      if (script.enabled || !onlyEnabled) {
+      if (script.enabled || includeDisabled) {
         for (var j = 0, include; include = script._includes[j]; j++) {
           if (convert2RegExp(include).test(url)) {
             for (var k = 0, exclude; exclude = script._excludes[k]; k++) {

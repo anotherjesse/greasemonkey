@@ -231,7 +231,7 @@ var greasemonkeyService = {
   },
 
   initScripts: function(url) {
-    var scripts = GM_getConfig().getScriptsForUrl(url, true);
+    var scripts = GM_getConfig().getScriptsForUrl(url, false);
     log("* number of matching scripts: " + scripts.length);
     return scripts;
   },
