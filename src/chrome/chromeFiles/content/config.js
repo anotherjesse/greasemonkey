@@ -552,7 +552,7 @@ ScriptRequire.prototype = {
 
   _initFile: function()
   {
-    var name = this.url.substr(this._downloadUrl.lastIndexOf("/") + 1);
+    var name = this._downloadUrl.substr(this._downloadUrl.lastIndexOf("/") + 1);
     if(name.indexOf("?") > 0)
       name = name.substr(0, name.indexOf("?"));
     name = this._script._initFileName(name, true);
