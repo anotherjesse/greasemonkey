@@ -306,9 +306,12 @@ Config.prototype = {
     this._scripts.splice(idx, 1);
     this._changed(script, "uninstall", null);
 
-    if (script._basedir) // if script has its own dir, remove the dir + contents
+    // watch out for cases like basedir="." and basedir="../gm_scripts"
+    if (!script._basedirFile.equals(this._scriptDir))
+      // if script has its own dir, remove the dir + contents
       script._basedirFile.remove(true);
-    else // if script is in the root, just remove the file
+    else
+      // if script is in the root, just remove the file
       script._file.remove(false);
 
     if (uninstallPrefs) // Remove saved preferences
