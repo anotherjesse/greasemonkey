@@ -1,8 +1,7 @@
 // In this file protected properties (prefixed with an underscore) may be
 // used anywhere within this file and versioning.js
 
-function Config()
-{
+function Config() {
   this._scripts = null;
   this._configFile = this._scriptDir;
   this._configFile.append("config.xml");
@@ -14,40 +13,34 @@ function Config()
 };
 
 Config.prototype = {
-  addObserver: function(observer, script)
-  {
+  addObserver: function(observer, script) {
     var observers = script ? script._observers : this._observers;
     observers.push(observer);
   },
 
-  removeObserver: function(observer, script)
-  {
+  removeObserver: function(observer, script) {
     var observers = script ? script._observers : this._observers;
     var index = observers.indexOf(observer);
     if (index == -1) throw new Error("Observer not found");
     observers.splice(index, 1);
   },
 
-  _notifyObservers: function(script, event, data)
-  {
+  _notifyObservers: function(script, event, data) {
     var observers = this._observers.concat(script._observers);
     for (var i = 0, observer; observer = observers[i]; i++)
       observer.notifyEvent(script, event, data);
   },
 
-  _changed: function(script, event, data)
-  {
+  _changed: function(script, event, data) {
     this._save();
     this._notifyObservers(script, event, data);
   },
 
-  installIsUpdate: function(script)
-  {
+  installIsUpdate: function(script) {
     return this._find(script) > -1;
   },
 
-  _find: function(aScript)
-  {
+  _find: function(aScript) {
     namespace = aScript._namespace.toLowerCase();
     name = aScript._name.toLowerCase();
 
@@ -58,8 +51,7 @@ Config.prototype = {
     return -1;
   },
 
-  _load: function()
-  {
+  _load: function() {
     var domParser = Components.classes["@mozilla.org/xmlextras/domparser;1"]
                               .createInstance(Components.interfaces.nsIDOMParser);
 
@@ -90,7 +82,7 @@ Config.prototype = {
           scriptResource._name = childNode.getAttribute("name");
           scriptResource._filename = childNode.getAttribute("filename");
           scriptResource._mimetype = childNode.getAttribute("mimetype");
-          scriptResource._charset  = childNode.getAttribute("charset");
+          scriptResource._charset = childNode.getAttribute("charset");
           script._resources.push(scriptResource);
           break;
         }
@@ -107,8 +99,7 @@ Config.prototype = {
     }
   },
 
-  _save: function()
-  {
+  _save: function() {
     var doc = Components.classes["@mozilla.org/xmlextras/domparser;1"]
       .createInstance(Components.interfaces.nsIDOMParser)
       .parseFromString("<UserScriptConfig></UserScriptConfig>", "text/xml");
@@ -140,16 +131,15 @@ Config.prototype = {
         scriptNode.appendChild(resourceNode);
       }
 
-      for (var j = 0; j< scriptObj._resources.length; j++) {
+      for (var j = 0; j < scriptObj._resources.length; j++) {
         var imp = scriptObj._resources[j];
         var resourceNode = doc.createElement("Resource");
 
         resourceNode.setAttribute("name", imp._name);
         resourceNode.setAttribute("filename", imp._filename);
         resourceNode.setAttribute("mimetype", imp._mimetype);
-        if (imp._charset) {
+        if (imp._charset)
           resourceNode.setAttribute("charset", imp._charset);
-        }
 
         scriptNode.appendChild(doc.createTextNode("\n\t\t"));
         scriptNode.appendChild(resourceNode);
@@ -177,8 +167,7 @@ Config.prototype = {
     configStream.close();
   },
 
-  parse: function(source, uri)
-  {
+  parse: function(source, uri) {
     var ioservice = Components.classes["@mozilla.org/network/io-service;1"]
                               .getService(Components.interfaces.nsIIOService);
 
@@ -205,9 +194,8 @@ Config.prototype = {
       var previousResourceNames = {};
 
       while ((result = lines[lnIdx++])) {
-        if (result.indexOf("// ==/UserScript==") == 0) {
+        if (result.indexOf("// ==/UserScript==") == 0)
           break;
-        }
 
         var match = result.match(/\/\/ \@(\S+)\s+([^\n]+)/);
         if (match != null) {
@@ -259,26 +247,22 @@ Config.prototype = {
     }
 
     // if no meta info, default to reasonable values
-    if (script._name == null) {
+    if (script._name == null)
       script._name = parseScriptName(uri);
-    }
 
-    if (script._namespace == null) {
+    if (script._namespace == null)
       script._namespace = uri.host;
-    }
 
     if (!script._description)
       script._description = "";
 
-    if (script._includes.length == 0) {
+    if (script._includes.length == 0)
       script._includes.push("*");
-    }
 
     return script;
   },
 
-  install: function(script)
-  {
+  install: function(script) {
     GM_log("> Config.install");
 
     var existingIndex = this._find(script);
@@ -300,8 +284,7 @@ Config.prototype = {
     GM_log("< Config.install");
   },
 
-  uninstall: function(script, uninstallPrefs)
-  {
+  uninstall: function(script, uninstallPrefs) {
     var idx = this._find(script);
     this._scripts.splice(idx, 1);
     this._changed(script, "uninstall", null);
@@ -326,8 +309,7 @@ Config.prototype = {
    *                    moved or (b) another installet script to which position
    *                    the script will be moved.
    */
-  move: function(script, destination)
-  {
+  move: function(script, destination) {
     var from = this._scripts.indexOf(script);
     var to = -1;
 
@@ -351,8 +333,7 @@ Config.prototype = {
     this._changed(script, 'move', to);
   },
 
-  get _scriptDir()
-  {
+  get _scriptDir() {
     var newDir = this._newScriptDir;
     if (newDir.exists())
       return newDir;
@@ -374,8 +355,7 @@ Config.prototype = {
     return newDir;
   },
 
-  get _newScriptDir()
-  {
+  get _newScriptDir() {
     var file = Components.classes["@mozilla.org/file/directory_service;1"]
                          .getService(Components.interfaces.nsIProperties)
                          .get("ProfD", Components.interfaces.nsILocalFile);
@@ -383,20 +363,17 @@ Config.prototype = {
     return file;
   },
 
-  get _oldScriptDir()
-  {
+  get _oldScriptDir() {
     var file = getContentDir();
     file.append("scripts");
     return file;
   },
 
-  get scripts()
-  {
+  get scripts() {
     return this._scripts.concat();
   },
 
-  getScriptsForUrl: function(url, includeDisabled)
-  {
+  getScriptsForUrl: function(url, includeDisabled) {
     var scripts = [];
 
     scriptLoop:
@@ -424,8 +401,7 @@ Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
   .getService(Components.interfaces.mozIJSSubScriptLoader)
   .loadSubScript("chrome://greasemonkey/content/versioning.js");
 
-function Script(config)
-{
+function Script(config) {
   this._config = config;
   this._observers = [];
 
@@ -463,8 +439,7 @@ Script.prototype = {
   get requires() { return this._requires.concat(); },
   get resources() { return this._resources.concat(); },
 
-  get _file()
-  {
+  get _file() {
     var file = this._basedirFile;
     file.append(this._filename);
     return file;
@@ -472,8 +447,7 @@ Script.prototype = {
 
   get editFile() { return this._file; },
 
-  get _basedirFile()
-  {
+  get _basedirFile() {
     var file = this._config._scriptDir;
     file.append(this._basedir);
     return file;
@@ -482,8 +456,7 @@ Script.prototype = {
   get fileUrl() { return GM_getUriFromFile(this._file).spec; },
   get textContent() { return getContents(this._file); },
 
-  _initFileName: function(name, useExt)
-  {
+  _initFileName: function(name, useExt) {
     var ext = "";
     name = name.toLowerCase();
 
@@ -510,8 +483,7 @@ Script.prototype = {
     return name;
   },
 
-  _initFile: function(tempFile)
-  {
+  _initFile: function(tempFile) {
     var file = this._config._scriptDir;
     var name = this._initFileName(this._name, false);
 
@@ -533,8 +505,7 @@ Script.prototype = {
   setDownloadedFile: function(file) { this._tempFile = file; }
 };
 
-function ScriptRequire(script)
-{
+function ScriptRequire(script) {
   this._script = script;
 
   this._downloadUrl = null; // Only for scripts not installed
@@ -543,8 +514,7 @@ function ScriptRequire(script)
 };
 
 ScriptRequire.prototype = {
-  get _file()
-  {
+  get _file() {
     var file = this._script._basedirFile;
     file.append(this._filename);
     return file;
@@ -553,8 +523,7 @@ ScriptRequire.prototype = {
   get fileUrl() { return GM_getUriFromFile(this._file).spec; },
   get textContent() { return getContents(this._file); },
 
-  _initFile: function()
-  {
+  _initFile: function() {
     var name = this._downloadUrl.substr(this._downloadUrl.lastIndexOf("/") + 1);
     if(name.indexOf("?") > 0)
       name = name.substr(0, name.indexOf("?"));
@@ -576,8 +545,7 @@ ScriptRequire.prototype = {
   setDownloadedFile: function(file) { this._tempFile = file; }
 };
 
-function ScriptResource(script)
-{
+function ScriptResource(script) {
   this._script = script;
 
   this._downloadUrl = null; // Only for scripts not installed
@@ -592,8 +560,7 @@ function ScriptResource(script)
 ScriptResource.prototype = {
   get name() { return this._name; },
 
-  get _file()
-  {
+  get _file() {
     var file = this._script._basedirFile;
     file.append(this._filename);
     return file;
@@ -601,8 +568,7 @@ ScriptResource.prototype = {
 
   get textContent() { return getContents(this._file); },
 
-  get dataContent()
-  {
+  get dataContent() {
     var appSvc = Components.classes["@mozilla.org/appshell/appShellService;1"]
                            .getService(Components.interfaces.nsIAppShellService);
 
@@ -621,8 +587,7 @@ ScriptResource.prototype = {
   _initFile: ScriptRequire.prototype._initFile,
 
   get urlToDownload() { return this._downloadUrl; },
-  setDownloadedFile: function(tempFile, mimetype, charset)
-  {
+  setDownloadedFile: function(tempFile, mimetype, charset) {
     this._tempFile = tempFile;
     this._mimetype = mimetype;
     this._charset = charset;
