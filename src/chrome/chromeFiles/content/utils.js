@@ -76,8 +76,7 @@ function GM_log(message, force) {
   }
 };
 
-function GM_openUserScriptManager()
-{
+function GM_openUserScriptManager() {
   var win = Components.classes["@mozilla.org/appshell/window-mediator;1"]
                       .getService(Components.interfaces.nsIWindowMediator)
                       .getMostRecentWindow("Greasemonkey:Manage");
@@ -266,8 +265,7 @@ function getWriteStream(file) {
   return stream;
 };
 
-function GM_getUriFromFile(file)
-{
+function GM_getUriFromFile(file) {
   return Components.classes["@mozilla.org/network/io-service;1"]
                    .getService(Components.interfaces.nsIIOService)
                    .newFileURI(file);

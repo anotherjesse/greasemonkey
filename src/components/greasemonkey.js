@@ -44,8 +44,7 @@ function GM_apiLeakCheck(apiName) {
 
 var greasemonkeyService = {
   _config: null,
-  get config()
-  {
+  get config() {
     if (!this._config)
       this._config = new Config();
     return this._config;
