@@ -115,6 +115,7 @@ scriptmeta << "];"
 scriptmeta.flush
 scriptmeta.close
 
+FindReplace './build/content/browser.js', 'GM_BrowserUI', xpiname + '_GM_BrowserUI'
 FindReplace './build/content/browser.xul', 'XPINAME', xpiname
 FindReplace './build/content/utils.js', 'chrome://greasemonkey/', "chrome://#{xpiname}/"
 FindReplace './build/chrome.manifest', 'XPINAME', xpiname
