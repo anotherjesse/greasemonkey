@@ -70,9 +70,7 @@ end
 `cp ../chrome/chromeFiles/content/menucommander.js ./build/content/`
 `cp ../chrome/chromeFiles/content/miscapis.js ./build/content/`
 `cp ../chrome/chromeFiles/content/prefmanager.js ./build/content/`
-`cp ../chrome/chromeFiles/content/scriptdownloader.js ./build/content/`
 `cp ../chrome/chromeFiles/content/utils.js ./build/content/`
-`cp ../chrome/chromeFiles/content/versioning.js ./build/content/`
 `cp ../chrome/chromeFiles/content/xmlhttprequester.js ./build/content/`
 
 scriptmeta = File.open('./build/content/scriptmeta.js', "w")
