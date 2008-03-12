@@ -27,8 +27,9 @@ Config.prototype = {
 
   _notifyObservers: function(script, event, data) {
     var observers = this._observers.concat(script._observers);
-    for (var i = 0, observer; observer = observers[i]; i++)
+    for (var i = 0, observer; observer = observers[i]; i++) {
       observer.notifyEvent(script, event, data);
+    }
   },
 
   _changed: function(script, event, data) {
@@ -44,9 +45,13 @@ Config.prototype = {
     namespace = aScript._namespace.toLowerCase();
     name = aScript._name.toLowerCase();
 
-    for (var i = 0, script; script = this._scripts[i]; i++)
-      if (script._namespace.toLowerCase() == namespace && script._name.toLowerCase() == name)
+    for (var i = 0, script; script = this._scripts[i]; i++) {
+      if (script._namespace.toLowerCase() == namespace 
+        && script._name.toLowerCase() == name
+      ) {
         return i;
+      }
+    }
 
     return -1;
   },
@@ -138,8 +143,9 @@ Config.prototype = {
         resourceNode.setAttribute("name", imp._name);
         resourceNode.setAttribute("filename", imp._filename);
         resourceNode.setAttribute("mimetype", imp._mimetype);
-        if (imp._charset)
+        if (imp._charset) {
           resourceNode.setAttribute("charset", imp._charset);
+        }
 
         scriptNode.appendChild(doc.createTextNode("\n\t\t"));
         scriptNode.appendChild(resourceNode);
@@ -194,8 +200,9 @@ Config.prototype = {
       var previousResourceNames = {};
 
       while ((result = lines[lnIdx++])) {
-        if (result.indexOf("// ==/UserScript==") == 0)
+        if (result.indexOf("// ==/UserScript==") == 0) {
           break;
+        }
 
         var match = result.match(/\/\/ \@(\S+)\s+([^\n]+)/);
         if (match != null) {
@@ -247,17 +254,10 @@ Config.prototype = {
     }
 
     // if no meta info, default to reasonable values
-    if (script._name == null)
-      script._name = parseScriptName(uri);
-
-    if (script._namespace == null)
-      script._namespace = uri.host;
-
-    if (!script._description)
-      script._description = "";
-
-    if (script._includes.length == 0)
-      script._includes.push("*");
+    if (script._name == null) script._name = parseScriptName(uri);
+    if (script._namespace == null) script._namespace = uri.host;
+    if (!script._description) script._description = "";
+    if (script._includes.length == 0) script._includes.push("*");
 
     return script;
   },
@@ -266,17 +266,20 @@ Config.prototype = {
     GM_log("> Config.install");
 
     var existingIndex = this._find(script);
-    if (existingIndex > -1)
+    if (existingIndex > -1) {
       this.uninstall(this._scripts[existingIndex], false);
+    }
 
     script._initFile(script._tempFile);
     script._tempFile = null;
 
-    for (var i = 0; i < script._requires.length; i++)
+    for (var i = 0; i < script._requires.length; i++) {
       script._requires[i]._initFile();
+    }
 
-    for (var i = 0; i < script._resources.length; i++)
+    for (var i = 0; i < script._resources.length; i++) {
       script._resources[i]._initFile();
+    }
 
     this._scripts.push(script);
     this._changed(script, "install", null);
@@ -290,15 +293,18 @@ Config.prototype = {
     this._changed(script, "uninstall", null);
 
     // watch out for cases like basedir="." and basedir="../gm_scripts"
-    if (!script._basedirFile.equals(this._scriptDir))
+    if (!script._basedirFile.equals(this._scriptDir)) {
       // if script has its own dir, remove the dir + contents
       script._basedirFile.remove(true);
-    else
+    } else {
       // if script is in the root, just remove the file
       script._file.remove(false);
+    }
 
-    if (uninstallPrefs) // Remove saved preferences
-       GM_prefRoot.remove("scriptvals." + script._namespace + "/" + script._name + ".");
+    if (uninstallPrefs){
+      // Remove saved preferences
+      GM_prefRoot.remove("scriptvals." + script._namespace + "/" + script._name + ".");
+    }
   },
 
   /**
@@ -314,8 +320,7 @@ Config.prototype = {
     var to = -1;
 
     // Make sure the user script is installed
-    if (from == -1)
-      return;
+    if (from == -1) return;
 
     if (typeof destination == 'number') { // if destination is an offset
       to = from + destination;
@@ -325,8 +330,7 @@ Config.prototype = {
       to = this._scripts.indexOf(destination);
     }
 
-    if (to == -1)
-      return;
+    if (to == -1) return;
 
     var tmp = this._scripts.splice(from, 1)[0];
     this._scripts.splice(to, 0, tmp);
@@ -335,12 +339,10 @@ Config.prototype = {
 
   get _scriptDir() {
     var newDir = this._newScriptDir;
-    if (newDir.exists())
-      return newDir;
+    if (newDir.exists()) return newDir;
 
     var oldDir = this._oldScriptDir;
-    if (oldDir.exists())
-      return oldDir;
+    if (oldDir.exists()) return oldDir;
 
     // if we called this function, we want a script dir.
     // but, at this branch, neither the old nor new exists, so create one
@@ -470,15 +472,12 @@ Script.prototype = {
     ext = ext.replace(/[^A-Z0-9_]/gi, "");
 
     // If no Latin characters found - use default
-    if (!name)
-      name = "gm_script";
+    if (!name) name = "gm_script";
 
     // 24 is a totally arbitrary max length
-    if (name.length > 24)
-      name = name.substring(0, 24);
+    if (name.length > 24) name = name.substring(0, 24);
 
-    if (ext)
-      name += "." + ext;
+    if (ext) name += "." + ext;
   
     return name;
   },
@@ -525,8 +524,9 @@ ScriptRequire.prototype = {
 
   _initFile: function() {
     var name = this._downloadUrl.substr(this._downloadUrl.lastIndexOf("/") + 1);
-    if(name.indexOf("?") > 0)
+    if(name.indexOf("?") > 0) {
       name = name.substr(0, name.indexOf("?"));
+    }
     name = this._script._initFileName(name, true);
 
     var file = this._script._basedirFile;
