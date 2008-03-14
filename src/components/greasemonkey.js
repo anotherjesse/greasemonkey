@@ -231,7 +231,7 @@ var greasemonkeyService = {
 
   initScripts: function(url) {
     return GM_getConfig().getMatchingScripts(
-      function (script) script.enabled && script.matchesURL(url)
+      function (script) { return script.enabled && script.matchesURL(url); }
     );
   },
 

@@ -371,8 +371,8 @@ Config.prototype = {
     return file;
   },
 
-  get scripts() this._scripts.concat(),
-  getMatchingScripts: function(testFunc) this._scripts.filter(testFunc)
+  get scripts() { return this._scripts.concat(); },
+  getMatchingScripts: function(testFunc) { return this._scripts.filter(testFunc); }
 };
 
 Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
@@ -400,7 +400,7 @@ function Script(config) {
 
 Script.prototype = {
   matchesURL: function(url) {
-    function test(page) convert2RegExp(page).test(url);
+    function test(page) { return convert2RegExp(page).test(url); }
     return this._includes.some(test) && !this._excludes.some(test);
   },
 

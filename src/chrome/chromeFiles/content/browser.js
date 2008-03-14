@@ -439,10 +439,13 @@ function GM_showPopup(aEvent) {
     return list;
   }
 
-  function scriptsMatching(urls)
-    GM_getConfig().getMatchingScripts(
-      function(script) urls.some(function(url) script.matchesURL(url))
+  function scriptsMatching(urls) {
+    return GM_getConfig().getMatchingScripts(
+      function(script) {
+        return urls.some(function(url) { return script.matchesURL(url); });
+      }
     );
+  }
 
   function appendScriptToPopup(script) {
     var mi = document.createElement("menuitem");
