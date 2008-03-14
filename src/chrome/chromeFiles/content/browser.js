@@ -463,7 +463,6 @@ function GM_showPopup(aEvent) {
   }
 
   var popup = aEvent.target;
-  //***var url = getBrowser().contentWindow.document.location.href;
   var tail = document.getElementById("gm-status-no-scripts-sep");
 
   // set the enabled/disabled state

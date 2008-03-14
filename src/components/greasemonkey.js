@@ -230,9 +230,11 @@ var greasemonkeyService = {
   },
 
   initScripts: function(url) {
-    return GM_getConfig().getMatchingScripts(
-      function (script) { return script.enabled && script.matchesURL(url); }
-    );
+    function testMatch(script) {
+      return script.enabled && script.matchesURL(url);
+    }
+
+    return GM_getConfig().getMatchingScripts(testMatch);
   },
 
   injectScripts: function(scripts, url, unsafeContentWin, chromeWin) {
