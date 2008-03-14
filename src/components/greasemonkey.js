@@ -230,7 +230,15 @@ var greasemonkeyService = {
   },
 
   initScripts: function(url) {
-    var scripts = GM_getConfig().getScriptsForUrl(url, false);
+    var allScripts = GM_getConfig().scripts;
+    var scripts = [];
+
+    for (var i = 0, script; script = allScripts[i]; i++) {
+      if (script.enabled && script.matchUrl(url)) {
+        scripts.push(script);
+      }
+    }
+
     log("* number of matching scripts: " + scripts.length);
     return scripts;
   },

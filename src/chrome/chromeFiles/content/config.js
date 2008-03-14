@@ -373,29 +373,6 @@ Config.prototype = {
 
   get scripts() {
     return this._scripts.concat();
-  },
-
-  getScriptsForUrl: function(url, includeDisabled) {
-    var scripts = [];
-
-    scriptLoop:
-    for (var i = 0, script; script = this._scripts[i]; i++) {
-      if (script.enabled || includeDisabled) {
-        for (var j = 0, include; include = script._includes[j]; j++) {
-          if (convert2RegExp(include).test(url)) {
-            for (var k = 0, exclude; exclude = script._excludes[k]; k++) {
-              if (convert2RegExp(exclude).test(url)) {
-                continue scriptLoop;
-              }
-            }
-            scripts.push(script);
-            continue scriptLoop;
-          }
-        }
-      }
-    }
-
-    return scripts;
   }
 };
 
@@ -423,6 +400,23 @@ function Script(config) {
 };
 
 Script.prototype = {
+  matchUrl: function(url) {
+    var scripts = [];
+
+    for (var j = 0, include; include = this._includes[j]; j++) {
+      if (convert2RegExp(include).test(url)) {
+        for (var k = 0, exclude; exclude = this._excludes[k]; k++) {
+          if (convert2RegExp(exclude).test(url)) {
+            return false;
+          }
+        }
+        return true;
+      }
+    }
+
+    return false;
+  },
+
   _changed: function(event, data) { this._config._changed(this, event, data); },
 
   get name() { return this._name; },
