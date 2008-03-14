@@ -439,21 +439,10 @@ function GM_showPopup(aEvent) {
     return list;
   }
 
-  function scriptsMatching(urls) {
-    var allScripts = GM_getConfig().scripts;
-    var scripts = [];
-
-    for (var i = 0, script; script = allScripts[i]; i++) {
-      for (var j = 0; j < urls.length; j++) {
-        if (script.matchUrl(urls[j])) {
-          scripts.push(script);
-          break;
-        }
-      }
-    }
-
-    return scripts;
-  }
+  function scriptsMatching(urls)
+    GM_getConfig().getMatchingScripts(
+      function(script) urls.some(function(url) script.matchesURL(url))
+    );
 
   function appendScriptToPopup(script) {
     var mi = document.createElement("menuitem");

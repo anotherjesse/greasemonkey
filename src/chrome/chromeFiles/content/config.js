@@ -371,9 +371,8 @@ Config.prototype = {
     return file;
   },
 
-  get scripts() {
-    return this._scripts.concat();
-  }
+  get scripts() this._scripts.concat(),
+  getMatchingScripts: function(testFunc) this._scripts.filter(testFunc)
 };
 
 Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
@@ -400,21 +399,9 @@ function Script(config) {
 };
 
 Script.prototype = {
-  matchUrl: function(url) {
-    var scripts = [];
-
-    for (var j = 0, include; include = this._includes[j]; j++) {
-      if (convert2RegExp(include).test(url)) {
-        for (var k = 0, exclude; exclude = this._excludes[k]; k++) {
-          if (convert2RegExp(exclude).test(url)) {
-            return false;
-          }
-        }
-        return true;
-      }
-    }
-
-    return false;
+  matchesURL: function(url) {
+    function test(page) convert2RegExp(page).test(url);
+    return this._includes.some(test) && !this._excludes.some(test);
   },
 
   _changed: function(event, data) { this._config._changed(this, event, data); },
