@@ -440,11 +440,17 @@ function GM_showPopup(aEvent) {
   }
 
   function scriptsMatching(urls) {
-    return GM_getConfig().getMatchingScripts(
-      function(script) {
-        return urls.some(function(url) { return script.matchesURL(url); });
+
+    function testMatchURLs(script) {
+
+      function testMatchURL(url) {
+        return script.matchesURL(url);
       }
-    );
+
+      return urls.some(testMatchURL);
+    }
+
+    return GM_getConfig().getMatchingScripts(testMatchURLs);
   }
 
   function appendScriptToPopup(script) {
