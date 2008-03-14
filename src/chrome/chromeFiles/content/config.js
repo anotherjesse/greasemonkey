@@ -501,7 +501,13 @@ Script.prototype = {
   },
 
   get urlToDownload() { return this._downloadUrl; },
-  setDownloadedFile: function(file) { this._tempFile = file; }
+  setDownloadedFile: function(file) { this._tempFile = file; },
+  
+  get previewUrl() {
+    return Components.classes["@mozilla.org/network/io-service;1"]
+                     .getService(Components.interfaces.nsIIOService)
+                     .newFileURI(this._tempFile).spec;
+  }
 };
 
 function ScriptRequire(script) {
