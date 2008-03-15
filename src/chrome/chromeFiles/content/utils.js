@@ -242,7 +242,7 @@ function getContents(file, charset) {
     .createInstance(Components.interfaces.nsIScriptableUnicodeConverter);
   unicodeConverter.charset = charset;
 
-  var channel=ioService.newChannelFromURI(GM_getUriFromFile(file));
+  var channel = ioService.newChannelFromURI(GM_getUriFromFile(file));
   var input=channel.open();
   scriptableStream.init(input);
   var str=scriptableStream.read(input.available());
