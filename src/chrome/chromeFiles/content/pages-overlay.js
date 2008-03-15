@@ -2,8 +2,7 @@ function PagesControl(ctlPages) {
   var includesBox = new PagesBox(document.getElementById("grpIncluded"));
   var excludesBox = new PagesBox(document.getElementById("grpExcluded"));
 
-  this.notifyEvent = function(script, event, data)
-  {
+  this.notifyEvent = function(script, event, data) {
     switch (event) {
     case "edit-include-add": includesBox.pageAdded(data); break;
     case "edit-include-remove": includesBox.pageRemoved(data); break;
@@ -92,8 +91,7 @@ function PagesControl(ctlPages) {
       }
     };
 
-    this.pageAdded = function(val)
-    {
+    this.pageAdded = function(val) {
       addPage(val);
     };
 
@@ -109,8 +107,7 @@ function PagesControl(ctlPages) {
       }
     };
 
-    this.pageRemoved= function(index)
-    {
+    this.pageRemoved= function(index) {
       self.listbox.removeChild(self.listbox.childNodes[index]);
     };
 

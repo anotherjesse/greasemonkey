@@ -47,8 +47,7 @@ Config.prototype = {
 
     for (var i = 0, script; script = this._scripts[i]; i++) {
       if (script._namespace.toLowerCase() == namespace 
-        && script._name.toLowerCase() == name
-      ) {
+        && script._name.toLowerCase() == name) {
         return i;
       }
     }
@@ -178,7 +177,7 @@ Config.prototype = {
                               .getService(Components.interfaces.nsIIOService);
 
     var script = new Script(this);
-    script._downloadUrl = uri.spec;
+    script._downloadURL = uri.spec;
     script._enabled = true;
 
     // read one line at a time looking for start meta delimiter or EOF
@@ -221,7 +220,7 @@ Config.prototype = {
             case "require":
               var reqUri = ioservice.newURI(match[2], null, uri);
               var scriptRequire = new ScriptRequire(script);
-              scriptRequire._downloadUrl = reqUri.spec;
+              scriptRequire._downloadURL = reqUri.spec;
               script._requires.push(scriptRequire);
               break;
             case "resource":
@@ -245,7 +244,7 @@ Config.prototype = {
               var resUri = ioservice.newURI(res[2], null, uri);
               var scriptResource = new ScriptResource(script);
               scriptResource._name = resName;
-              scriptResource._downloadUrl = resUri.spec;
+              scriptResource._downloadURL = resUri.spec;
               script._resources.push(scriptResource);
               break;
           }
@@ -301,7 +300,7 @@ Config.prototype = {
       script._file.remove(false);
     }
 
-    if (uninstallPrefs){
+    if (uninstallPrefs) {
       // Remove saved preferences
       GM_prefRoot.remove("scriptvals." + script._namespace + "/" + script._name + ".");
     }
@@ -383,7 +382,7 @@ function Script(config) {
   this._config = config;
   this._observers = [];
 
-  this._downloadUrl = null; // Only for scripts not installed
+  this._downloadURL = null; // Only for scripts not installed
   this._tempFile = null; // Only for scripts not installed
   this._basedir = null;
   this._filename = null;
@@ -439,7 +438,7 @@ Script.prototype = {
     return file;
   },
 
-  get fileUrl() { return GM_getUriFromFile(this._file).spec; },
+  get fileURL() { return GM_getUriFromFile(this._file).spec; },
   get textContent() { return getContents(this._file); },
 
   _initFileName: function(name, useExt) {
@@ -484,10 +483,10 @@ Script.prototype = {
     tempFile.moveTo(file.parent, file.leafName);
   },
 
-  get urlToDownload() { return this._downloadUrl; },
+  get urlToDownload() { return this._downloadURL; },
   setDownloadedFile: function(file) { this._tempFile = file; },
   
-  get previewUrl() {
+  get previewURL() {
     return Components.classes["@mozilla.org/network/io-service;1"]
                      .getService(Components.interfaces.nsIIOService)
                      .newFileURI(this._tempFile).spec;
@@ -497,7 +496,7 @@ Script.prototype = {
 function ScriptRequire(script) {
   this._script = script;
 
-  this._downloadUrl = null; // Only for scripts not installed
+  this._downloadURL = null; // Only for scripts not installed
   this._tempFile = null; // Only for scripts not installed
   this._filename = null;
 };
@@ -509,11 +508,11 @@ ScriptRequire.prototype = {
     return file;
   },
 
-  get fileUrl() { return GM_getUriFromFile(this._file).spec; },
+  get fileURL() { return GM_getUriFromFile(this._file).spec; },
   get textContent() { return getContents(this._file); },
 
   _initFile: function() {
-    var name = this._downloadUrl.substr(this._downloadUrl.lastIndexOf("/") + 1);
+    var name = this._downloadURL.substr(this._downloadURL.lastIndexOf("/") + 1);
     if(name.indexOf("?") > 0) {
       name = name.substr(0, name.indexOf("?"));
     }
@@ -531,14 +530,14 @@ ScriptRequire.prototype = {
     this._tempFile = null;
   },
 
-  get urlToDownload() { return this._downloadUrl; },
+  get urlToDownload() { return this._downloadURL; },
   setDownloadedFile: function(file) { this._tempFile = file; }
 };
 
 function ScriptResource(script) {
   this._script = script;
 
-  this._downloadUrl = null; // Only for scripts not installed
+  this._downloadURL = null; // Only for scripts not installed
   this._tempFile = null; // Only for scripts not installed
   this._filename = null;
   this._mimetype = null;
@@ -566,7 +565,7 @@ ScriptResource.prototype = {
     var binaryContents = getBinaryContents(this._file);
 
     var mimetype = this._mimetype;
-    if(this._charset && this._charset.length > 0){
+    if (this._charset && this._charset.length > 0) {
       mimetype += ";charset=" + this._charset;
     }
 
@@ -576,7 +575,7 @@ ScriptResource.prototype = {
 
   _initFile: ScriptRequire.prototype._initFile,
 
-  get urlToDownload() { return this._downloadUrl; },
+  get urlToDownload() { return this._downloadURL; },
   setDownloadedFile: function(tempFile, mimetype, charset) {
     this._tempFile = tempFile;
     this._mimetype = mimetype;

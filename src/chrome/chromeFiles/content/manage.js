@@ -17,8 +17,7 @@ window.addEventListener("unload", function(ev) {
 }, false);
 
 var observer = {
-  notifyEvent: function(script, event, data)
-  {
+  notifyEvent: function(script, event, data) {
     var node = null;
     for (var i = 0; node = listbox.childNodes[i]; i++)
       if (node.script == script)
@@ -26,7 +25,7 @@ var observer = {
 
     switch (event) {
     case "edit-enabled":
-      node.style.color = data ? '' : 'gray';
+      node.style.color = data ? "" : "gray";
       if (script == selectedScript)
         chkEnabled.checked = data;
       break;
@@ -50,7 +49,7 @@ var observer = {
     }
 
     // fix the listbox indexes
-    for (var i=0, n=null; n=listbox.childNodes[i]; i++) n.index=i;
+    for (var i = 0, n = null; n = listbox.childNodes[i]; i++) n.index=i;
   }
 };
 
@@ -111,7 +110,7 @@ function handleEditButton() {
 };
 
 function handleUninstallButton() {
-  var uninstallPrefs = document.getElementById('chkUninstallPrefs').checked;
+  var uninstallPrefs = document.getElementById("chkUninstallPrefs").checked;
   config.uninstall(selectedScript, uninstallPrefs);
 };
 
@@ -130,7 +129,7 @@ function addListitem(script, i) {
   listitem.index = i;
 
   if (!script.enabled) {
-    listitem.style.color = 'gray';
+    listitem.style.color = "gray";
   }
 
   listbox.appendChild(listitem);

@@ -49,8 +49,7 @@ Config.prototype._pointEightBackup = function() {
 Config.prototype._pointFourMigrate = function() {
   log("> GM_pointFourMigrate");
 
-  // Create a scripts dir if it does not exist
-  this._scriptDir;
+  this._scriptDir; // Create a scripts dir if it does not exist
 
   log("< GM_pointFourMigrate");
 };

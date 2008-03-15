@@ -372,7 +372,7 @@ var greasemonkeyService = {
           GM_logError(
             e, // error obj
             0, // 0 = error (1 = warning)
-            script.fileUrl,
+            script.fileURL,
             0
           );
         }
@@ -388,7 +388,7 @@ var greasemonkeyService = {
       end = script.offsets[i];
       if (lineNumber < end) {
         return {
-          uri: script.requires[i].fileUrl,
+          uri: script.requires[i].fileURL,
           lineNumber: (lineNumber - start)
         };
       }
@@ -396,7 +396,7 @@ var greasemonkeyService = {
     }
 
     return {
-      uri: script.fileUrl,
+      uri: script.fileURL,
       lineNumber: (lineNumber - end)
     };
   },

@@ -211,7 +211,7 @@ function getTempFile() {
   return file;
 };
 
-function getBinaryContents(file){
+function getBinaryContents(file) {
     var ioService = Components.classes["@mozilla.org/network/io-service;1"]
                               .getService(Components.interfaces.nsIIOService);
 
@@ -227,7 +227,7 @@ function getBinaryContents(file){
     return bytes;
 };
 
-function getContents(file, charset){
+function getContents(file, charset) {
   if( !charset ) {
     charset = "UTF-8"
   }

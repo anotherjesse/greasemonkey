@@ -230,7 +230,7 @@ GM_BrowserUI.startInstallScript = function(uri, timer) {
 GM_BrowserUI.showScriptView = function(scriptDownloader) {
   this.scriptDownloader_ = scriptDownloader;
 
-  var tab = this.tabBrowser.addTab(scriptDownloader.script.previewUrl);
+  var tab = this.tabBrowser.addTab(scriptDownloader.script.previewURL);
   var browser = this.tabBrowser.getBrowserForTab(tab);
 
   this.tabBrowser.selectedTab = tab;
@@ -514,7 +514,7 @@ function GM_popupClicked(aEvent) {
     if (!script) return;
 
     if (aEvent.button == 0) // left-click: toggle enabled state
-      script.enabled=!script.enabled;
+      script.enabled =! script.enabled;
     else // right-click: open in editor
       openInEditor(script);
 
