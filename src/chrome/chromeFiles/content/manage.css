@@ -6,7 +6,7 @@ the original starting size of the elements before flexing.
 window {
   width: 600px;
   height: 500px;
-  margin: 10px;
+  padding: 10px;
 }
 #col_left {
   width: 200px
