@@ -451,8 +451,8 @@ Script.prototype = {
       name = name.substring(0, dotIndex);
     }
 
-    name = name.replace(/[^A-Z0-9_]/gi, "");
-    ext = ext.replace(/[^A-Z0-9_]/gi, "");
+    name = name.replace(/\s+/g, '_').replace(/[^-\S]+/g, ''); 
+    ext = ext.replace(/\s+/g, '_').replace(/[^-\S]+/g, ''); 
 
     // If no Latin characters found - use default
     if (!name) name = "gm_script";
