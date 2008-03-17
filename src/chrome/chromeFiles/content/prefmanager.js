@@ -30,6 +30,15 @@ function GM_PrefManager(startPoint) {
   };
 
   /**
+   * whether a preference branch exists
+   */
+  this.existsBranch = function(prefName) {
+    var out = {};
+    pref.getChildList(prefName, out);
+    return !!out.value;
+  };
+
+  /**
    * returns the named preference, or defaultValue if it does not exist
    */
   this.getValue = function(prefName, defaultValue) {
@@ -140,4 +149,4 @@ function GM_PrefManager(startPoint) {
         removeObserver(prefName, observers[watcher]);
     }
   };
-};
+}

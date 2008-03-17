@@ -1,8 +1,5 @@
 /////////////////////////////// global variables ///////////////////////////////
 
-var config = new Config();
-config.load();
-
 var bundle = null;
 window.addEventListener("load", function() {
   // init the global string bundle
@@ -13,9 +10,12 @@ window.addEventListener("load", function() {
       GM_prefRoot.getValue("newscript_namespace", "");
 
   // default the includes with the current page's url
-  document.getElementById("includes").value =
-      window.opener.document.getElementById("content").selectedBrowser
-      .contentWindow.location.href;
+  var win = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+                      .getService(Components.interfaces.nsIWindowMediator)
+                      .getMostRecentWindow("navigator:browser");
+  if (win) {
+    document.getElementById("includes").value = win.content.location.href;
+  }
 }, false);
 
 ////////////////////////////////// functions ///////////////////////////////////
@@ -30,22 +30,19 @@ function doInstall() {
   foStream.write(script, script.length);
   foStream.close();
 
+  var config = GM_getConfig();
+
   // create a script object with parsed metadata,
-  // via the script downloader object
-  var sd = new ScriptDownloader(null, tempFile, null);
-  sd.parseScript(script, tempFile);
-  script = sd.script;
+  script = config.parse(script, tempFile);
 
   // make sure entered details will not ruin an existing file
-  var existingIndex = config.find(script.namespace, script.name);
-  if (existingIndex > -1) {
+  if (config.installIsUpdate(script)) {
     var overwrite = confirm(bundle.getString("newscript.exists"));
     if (!overwrite) return false;
   }
 
   // finish making the script object ready to install
-  script.file = tempFile;
-  config.initFilename(script);
+  script.setDownloadedFile(tempFile);
 
   // install this script
   config.install(script);
@@ -57,7 +54,7 @@ function doInstall() {
   GM_prefRoot.setValue("newscript_namespace", script.namespace);
 
   return true;
-};
+}
 
 // assemble the XUL fields into a script template
 function createScriptSource() {
@@ -103,4 +100,4 @@ function createScriptSource() {
   script = script.join("\n");
 
   return script;
-};
+}

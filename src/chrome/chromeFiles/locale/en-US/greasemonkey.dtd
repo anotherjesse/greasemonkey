@@ -1,14 +1,56 @@
-<!ENTITY manage.title "Manage User Scripts">
-<!ENTITY manage.button.add "Add...">
-<!ENTITY manage.button.edit "Edit...">
-<!ENTITY manage.button.remove "Remove">
-<!ENTITY manage.label.grpIncluded "Included Pages">
-<!ENTITY manage.label.grpExcluded "Excluded Pages">
-<!ENTITY manage.label.btnEdit "Edit">
-<!ENTITY manage.label.chkEnabled "Enabled">
-<!ENTITY manage.label.btnUninstall "Uninstall">
-<!ENTITY manage.label.chkUninstall "Also uninstall associated preferences">
-<!ENTITY manage.reorderHelp "Drag-and-drop with the mouse or press Alt-Up/Alt-Down to reorder scripts in this list.">
+<!ENTITY manage.title "User Scripts">
+<!-- Default window size for the user script manager in pixels -->
+<!ENTITY manage.width "520">
+<!ENTITY manage.height "380">
+<!ENTITY manage.cmd.edit.label "Edit">
+<!ENTITY manage.cmd.edit.accesskey "t">
+<!ENTITY manage.cmd.edit.tooltip "Open the selected user script in a text editor to edit it's source">
+<!ENTITY manage.cmd.pages.label "Pages">
+<!ENTITY manage.cmd.pages.accesskey "P">
+<!ENTITY manage.cmd.pages.tooltip "Edit included and excluded pages for the selected user script">
+<!ENTITY manage.cmd.enable.label "Enable">
+<!ENTITY manage.cmd.enable.accesskey "E">
+<!ENTITY manage.cmd.enable.tooltip "Enable the selected user script">
+<!ENTITY manage.cmd.disable.label "Disable">
+<!ENTITY manage.cmd.disable.accesskey "D">
+<!ENTITY manage.cmd.disable.tooltip "Disable the selected user script">
+<!ENTITY manage.cmd.uninstall.label "Uninstall">
+<!ENTITY manage.cmd.uninstall.accesskey "U">
+<!ENTITY manage.cmd.uninstall.tooltip "Uninstall the selected user script">
+<!ENTITY manage.cmd.moveup.label "Move up">
+<!ENTITY manage.cmd.moveup.accesskey "p">
+<!ENTITY manage.cmd.movedown.label "Move down">
+<!ENTITY manage.cmd.movedown.accesskey "o">
+<!ENTITY manage.newscript.label "Create Your Own...">
+<!ENTITY manage.newscript.accesskey "Y">
+<!ENTITY manage.newscript.tooltip "Create a new empty user script and edit it">
+<!ENTITY manage.globalEnable.label "Enable Greasemonkey">
+<!ENTITY manage.globalEnable.accesskey "G">
+<!ENTITY manage.globalEnable.tooltip "Allow enabled user scripts to run">
+<!ENTITY manage.globalDisable.label "Disable Greasemonkey">
+<!ENTITY manage.globalDisable.accesskey "G">
+<!ENTITY manage.globalDisable.tooltip "Prevent all user scripts from running">
+<!ENTITY manage.getMore.label "Get User Scripts">
+
+<!ENTITY pages.title "Included and excluded pages">
+<!ENTITY pages.width "35em">
+<!ENTITY pages.close.key "w">
+<!ENTITY pages.description "You can specify on which web pages this user script will be used. Type the exact location of the web page you want to manage and then click Include or Exclude. You can use * as a wild card.">
+<!ENTITY pages.url.label "Location of page:">
+<!ENTITY pages.url.accesskey "L">
+<!ENTITY pages.url.defaulthost "www.example.com">
+<!ENTITY pages.include.label "Include">
+<!ENTITY pages.include.accesskey "I">
+<!ENTITY pages.exclude.label "Exclude">
+<!ENTITY pages.exclude.accesskey "E">
+<!ENTITY pages.treecol.url "Page">
+<!ENTITY pages.treecol.status "Status">
+<!ENTITY pages.status.include "Include">
+<!ENTITY pages.status.exclude "Exclude">
+<!ENTITY pages.remove.label "Remove Page">
+<!ENTITY pages.remove.accesskey "R">
+<!ENTITY pages.close.label "Close">
+<!ENTITY pages.close.accesskey "C">
 
 <!ENTITY menu.install "Install User Script...">
 <!ENTITY menu.install.accesskey "I">

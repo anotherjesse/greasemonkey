@@ -28,8 +28,6 @@ GM_BrowserUI.init = function() {
   this.menuCommanders = [];
   this.currentMenuCommander = null;
 
-  GM_updateVersion();
-
   GM_listen(window, "load", GM_hitch(this, "chromeLoad"));
   GM_listen(window, "unload", GM_hitch(this, "chromeUnload"));
 };
@@ -172,7 +170,7 @@ GM_BrowserUI.showInstallBanner = function(browser) {
       browser,
       "chrome://greasemonkey/content/icon_small.png",
       greeting,
-      this.bundle.getString('greeting.btn'),
+      this.bundle.getString("greeting.btn"),
       null /* default doc shell */,
       "install-userscript",
       null /* no popuup */,
@@ -198,7 +196,7 @@ GM_BrowserUI.showInstallBanner = function(browser) {
       "chrome://greasemonkey/content/icon_small.png",
       notificationBox.PRIORITY_WARNING_MEDIUM,
       [{
-        label: this.bundle.getString('greeting.btn'),
+        label: this.bundle.getString("greeting.btn"),
         accessKey: "I",
         popup: null,
         callback: GM_hitch(this, "installCurrentScript")
@@ -232,11 +230,7 @@ GM_BrowserUI.startInstallScript = function(uri, timer) {
 GM_BrowserUI.showScriptView = function(scriptDownloader) {
   this.scriptDownloader_ = scriptDownloader;
 
-  var ioSvc = Components.classes["@mozilla.org/network/io-service;1"]
-                        .getService(Components.interfaces.nsIIOService);
-  var uri = ioSvc.newFileURI(scriptDownloader.script.file);
-
-  var tab = this.tabBrowser.addTab(uri.spec);
+  var tab = this.tabBrowser.addTab(scriptDownloader.script.previewURL);
   var browser = this.tabBrowser.getBrowserForTab(tab);
 
   this.tabBrowser.selectedTab = tab;
@@ -264,9 +258,7 @@ GM_BrowserUI.installCurrentScript = function() {
 };
 
 GM_BrowserUI.installScript = function(script){
-  var config = new Config();
-  config.load();
-  config.install(script);
+  GM_getConfig().install(script);
   this.showHorrayMessage(script.name);
 };
 
@@ -425,7 +417,7 @@ GM_BrowserUI.isMyWindow = function(domWindow) {
 function GM_showGeneralPopup(aEvent) {
   // set the enabled/disabled state
   GM_BrowserUI.generalMenuEnabledItem.setAttribute("checked", GM_getEnabled());
-};
+}
 
 function GM_showPopup(aEvent) {
   function urlsOfAllFrames(contentWindow) {
@@ -448,29 +440,28 @@ function GM_showPopup(aEvent) {
   }
 
   function scriptsMatching(urls) {
-    var matching = [];
-    for (var i = 0, script = null; script = config.scripts[i]; i++) {
-      for (var j = 0; j < urls.length; j++) {
-        if (GM_scriptMatchesUrl(script, urls[j])) {
-          matching.push(script);
-          break;
-        }
+
+    function testMatchURLs(script) {
+
+      function testMatchURL(url) {
+        return script.matchesURL(url);
       }
+
+      return urls.some(testMatchURL);
     }
-    return matching;
+
+    return GM_getConfig().getMatchingScripts(testMatchURLs);
   }
 
   function appendScriptToPopup(script) {
     var mi = document.createElement("menuitem");
     mi.setAttribute("label", script.name);
-    mi.setAttribute("value", i);
+    mi.script = script;
     mi.setAttribute("type", "checkbox");
     mi.setAttribute("checked", script.enabled.toString());
     popup.insertBefore(mi, tail);
   }
 
-  var config = new Config();
-  config.load();
   var popup = aEvent.target;
   var tail = document.getElementById("gm-status-no-scripts-sep");
 
@@ -479,7 +470,7 @@ function GM_showPopup(aEvent) {
 
   // remove all the scripts from the list
   for (var i = popup.childNodes.length - 1; i >= 0; i--) {
-    if (popup.childNodes[i].hasAttribute("value")) {
+    if (popup.childNodes[i].script) {
       popup.removeChild(popup.childNodes[i]);
     }
   }
@@ -511,7 +502,7 @@ function GM_showPopup(aEvent) {
 
   var foundInjectedScript = !!(runsFramed.length + runsOnTop.length);
   document.getElementById("gm-status-no-scripts").collapsed = foundInjectedScript;
-};
+}
 
 /**
  * Handle clicking one of the items in the popup. Left-click toggles the enabled
@@ -519,23 +510,17 @@ function GM_showPopup(aEvent) {
  */
 function GM_popupClicked(aEvent) {
   if (aEvent.button == 0 || aEvent.button == 2) {
-    var config = new Config();
-    config.load();
-    var scriptNum=aEvent.target.value;
-    if (!config.scripts[scriptNum]) return;
+    var script = aEvent.target.script;
+    if (!script) return;
 
-    if (aEvent.button == 0) {
-      // left-click: toggle enabled state
-      config.scripts[scriptNum].enabled=!config.scripts[scriptNum].enabled;
-      config.save();
-    } else {
-      // right-click: open in editor
-      openInEditor(config.scripts[scriptNum]);
-    }
+    if (aEvent.button == 0) // left-click: toggle enabled state
+      script.enabled =! script.enabled;
+    else // right-click: open in editor
+      openInEditor(script);
 
     closeMenus(aEvent.target);
   }
-};
+}
 
 /**
  * Greasemonkey's enabled state has changed, either as a result of clicking
@@ -545,23 +530,17 @@ function GM_popupClicked(aEvent) {
 GM_BrowserUI.refreshStatus = function() {
   if (GM_getEnabled()) {
     this.statusImage.src = "chrome://greasemonkey/content/icon_small.png";
-    this.statusImage.tooltipText = this.bundle.getString('tooltip.enabled');
+    this.statusImage.tooltipText = this.bundle.getString("tooltip.enabled");
   } else {
     this.statusImage.src = "chrome://greasemonkey/content/icon_small_disabled.png";
-    this.statusImage.tooltipText = this.bundle.getString('tooltip.disabled');
+    this.statusImage.tooltipText = this.bundle.getString("tooltip.disabled");
   }
 
   this.statusImage.style.opacity = "1.0";
 };
 
 GM_BrowserUI.newUserScript = function() {
-  var windowWatcher = Components
-    .classes["@mozilla.org/embedcomp/window-watcher;1"]
-    .getService(Components.interfaces.nsIWindowWatcher);
-  windowWatcher.openWindow(
-    window, 'chrome://greasemonkey/content/newscript.xul', null,
-    'chrome,dependent,centerscreen,resizable,dialog', null
-  );
+  GM_openNewUserScriptDialog();
 };
 
 GM_BrowserUI.showStatus = function(message, autoHide) {
@@ -643,11 +622,11 @@ GM_BrowserUI.hideStatusAnimationEnd = function() {
 };
 
 // necessary for webProgressListener implementation
-GM_BrowserUI.onProgressChange = function(webProgress,b,c,d,e,f){}
-GM_BrowserUI.onStateChange = function(a,b,c,d){}
-GM_BrowserUI.onStatusChange = function(a,b,c,d){}
-GM_BrowserUI.onSecurityChange = function(a,b,c){}
-GM_BrowserUI.onLinkIconAvailable = function(a){}
+GM_BrowserUI.onProgressChange = function(webProgress,b,c,d,e,f){};
+GM_BrowserUI.onStateChange = function(a,b,c,d){};
+GM_BrowserUI.onStatusChange = function(a,b,c,d){};
+GM_BrowserUI.onSecurityChange = function(a,b,c){};
+GM_BrowserUI.onLinkIconAvailable = function(a){};
 
 GM_BrowserUI.showHorrayMessage = function(scriptName) {
   this.showStatus("'" + scriptName + "' " + this.bundle.getString("statusbar.installed"), true);
@@ -667,8 +646,7 @@ GM_BrowserUI.viewContextItemClicked = function() {
 };
 
 GM_BrowserUI.manageMenuItemClicked = function() {
-   window.openDialog("chrome://greasemonkey/content/manage.xul", "manager",
-    "resizable,centerscreen,modal");
+   GM_openUserScriptManager();
 };
 
 //loggify(GM_BrowserUI, "GM_BrowserUI");

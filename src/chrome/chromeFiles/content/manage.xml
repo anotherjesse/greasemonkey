@@ -1,0 +1,91 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE dialog SYSTEM "chrome://greasemonkey/locale/greasemonkey.dtd">
+
+<bindings id="scriptBindings"
+          xmlns="http://www.mozilla.org/xbl"
+          xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+          xmlns:xbl="http://www.mozilla.org/xbl">
+
+  <binding id="scripts" extends="chrome://global/content/bindings/richlistbox.xml#richlistbox">
+  </binding>
+
+  <binding id="script-base" extends="chrome://global/content/bindings/richlistbox.xml#richlistitem">
+    <implementation implements="nsIAccessibleProvider, nsIDOMXULSelectControlItemElement">
+      <property name="isDisabled" onget="return this.getAttribute('isDisabled') == 'true';"/>
+
+      <method name="fireEvent">
+        <parameter name="aEventType"/>
+        <body>
+          var e = document.createEvent("Events");
+          e.initEvent("script-" + aEventType, true, true);
+          this.dispatchEvent(e);
+        </body>
+      </method>
+
+      <property name="label" readonly="true">
+        <getter>
+          return this.getAttribute("name") + " " + this.getAttribute("description");
+        </getter>
+      </property>
+    </implementation>
+
+    <handlers>
+      <handler event="DOMMenuItemActive">
+        // only ensureElementIsVisible if it wasn't selected
+        if (this.parentNode.getAttribute("selected-script-id") != this.getAttribute("id"))
+          this.parentNode.ensureElementIsVisible(this);
+      </handler>
+    </handlers>
+  </binding>
+
+  <binding id="script" extends="chrome://greasemonkey/content/manage.xml#script-base">
+    <content>
+      <xul:vbox flex="1">
+        <xul:hbox>
+          <xul:label class="scriptName" crop="end" xbl:inherits="value=name"/>
+        </xul:hbox>
+        <xul:hbox>
+          <xul:label xbl:inherits="value=description" flex="1" crop="end"/>
+        </xul:hbox>
+      </xul:vbox>
+    </content>
+  </binding>
+
+  <binding id="script-selected" extends="chrome://greasemonkey/content/manage.xml#script-base">
+    <content>
+      <xul:hbox flex="1">
+        <xul:vbox flex="1">
+          <xul:hbox>
+            <xul:label class="scriptName" crop="end" xbl:inherits="value=name"/>
+          </xul:hbox>
+          <xul:label class="descriptionWrap" xbl:inherits="xbl:text=description"/>
+          <xul:hbox anonid="selectedButtons" flex="1" class="selectedButtons">
+            <xul:button class="pagesButton" label="&manage.cmd.pages.label;"
+                        accesskey="&manage.cmd.pages.accesskey;"
+                        tooltiptext="&manage.cmd.pages.tooltip;"
+                        command="cmd_pages"/>
+            <xul:button class="editButton" label="&manage.cmd.edit.label;"
+                        accesskey="&manage.cmd.edit.accesskey;"
+                        tooltiptext="&manage.cmd.edit.tooltip;"
+                        command="cmd_edit"/>
+            <xul:spacer flex="1"/>
+            <xul:button class="enableButton" label="&manage.cmd.enable.label;"
+                        accesskey="&manage.cmd.enable.accesskey;"
+                        tooltiptext="&manage.cmd.enable.tooltip;"
+                        command="cmd_enable"/>
+            <xul:button class="disableButton" label="&manage.cmd.disable.label;"
+                        accesskey="&manage.cmd.disable.accesskey;"
+                        tooltiptext="&manage.cmd.disable.tooltip;"
+                        command="cmd_disable"/>
+            <xul:button class="uninstallButton" label="&manage.cmd.uninstall.label;"
+                        accesskey="&manage.cmd.uninstall.accesskey;"
+                        tooltiptext="&manage.cmd.uninstall.tooltip;"
+                        command="cmd_uninstall"/>
+          </xul:hbox>
+        </xul:vbox>
+      </xul:hbox>
+    </content>
+  </binding>
+
+</bindings>

@@ -1,72 +1,91 @@
 <?xml version="1.0"?>
 <?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
 <?xml-stylesheet href="chrome://greasemonkey/content/manage.css" type="text/css"?>
-<?xul-overlay href="chrome://greasemonkey/content/pages-overlay.xul"?>
+<?xml-stylesheet href="chrome://greasemonkey/skin/manage.css" type="text/css"?>
 
 <!DOCTYPE dialog SYSTEM "chrome://greasemonkey/locale/greasemonkey.dtd">
 
-<dialog id="greasemonkey"
+<window id="greasemonkey"
+  windowtype="Greasemonkey:Manage"
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
-  buttons="accept,cancel"
-  ondialogaccept="return handleOkButton()"
   title="&manage.title;"
-  orient="vertical">
+  orient="vertical"
+  onload="Startup();"
+  onunload="Shutdown();"
+  width="&manage.width;" height="&manage.height;"
+  persist="width height screenX screenY sizemode">
 
+  <script type="application/javascript" src="chrome://global/content/globalOverlay.js"/>
   <script type="application/x-javascript" src="chrome://global/content/nsDragAndDrop.js" />
   <script type="application/x-javascript" src="chrome://global/content/nsTransferable.js" />
   <script type="application/x-javascript" src="chrome://greasemonkey/content/utils.js" />
   <script type="application/x-javascript" src="chrome://greasemonkey/content/prefmanager.js" />
-  <script type="application/x-javascript" src="chrome://greasemonkey/content/config.js" />
   <script type="application/x-javascript" src="chrome://greasemonkey/content/manage.js" />
+  <script type="application/javascript" src="chrome://global/content/contentAreaUtils.js"/>
 
-  <stringbundle id="gm-manage-bundle" src="chrome://greasemonkey/locale/gm-manage.properties" />
+  <commandset id="scriptsCommands"
+              events="richlistbox-select"
+              commandupdater="true"
+              oncommandupdate="gScriptsViewController.onCommandUpdate();"
+              oncommand="gScriptsViewController.doCommand(event.target.id);">
+    <command id="cmd_edit"/>
+    <command id="cmd_pages"/>
+    <command id="cmd_uninstall"/>
+    <command id="cmd_enable"/>
+    <command id="cmd_disable"/>
+    <command id="cmd_moveup"/>
+    <command id="cmd_movedown"/>
+  </commandset>
 
-  <grid flex="1" orient="vertical">
-    <columns>
-      <column id="col_left"
-        flex="1" />
-      <column id="col_right"
-        flex="3" />
-    </columns>
+  <keyset>
+    <key id="moveUpKey" keycode="VK_UP" modifiers="alt" oncommand="gScriptsViewController.doCommand('cmd_moveup');"/>
+    <key id="moveDownKey" keycode="VK_DOWN" modifiers="alt" oncommand="gScriptsViewController.doCommand('cmd_movedown');"/>
+  </keyset>
 
-    <rows>
-      <row flex="1" orient="horizontal">
-        <vbox flex="1">
-          <listbox id="lstScripts"
-            flex="10"
-            onkeypress="return listboxKeypress(event);"
-            ondraggesture="nsDragAndDrop.startDrag(event, dndObserver);"
-            ondragover="nsDragAndDrop.dragOver(event, dndObserver);"
-            ondragdrop="nsDragAndDrop.drop(event, dndObserver);" />
-          <description flex="1">&manage.reorderHelp;</description>
-        </vbox>
-        <vbox>
-          <description id="ctlHeader" />
-          <description id="ctlDescription" />
-          <vbox id="pages-control"
-            flex="1" />
-        </vbox>
-      </row>
-      <row>
-        <hbox>
-          <checkbox id="chkEnabled"
-            label="&manage.label.chkEnabled;"
-            checked="true" />
-          <button id="btnEdit"
-            label="&manage.label.btnEdit;" />
-        </hbox>
-        <vbox>
-          <hbox flex="1" />
-          <hbox>
-            <button id="btnUninstall"
-              label="&manage.label.btnUninstall;" />
-            <checkbox id="chkUninstallPrefs"
-              label="&manage.label.chkUninstall;"
-              checked="false" />
-          </hbox>
-        </vbox>
-      </row>
-    </rows>
-  </grid>
+  <menupopup id="scriptContextMenu" onpopupshowing="onScriptContextMenuShowing();">
+    <menuitem label="&manage.cmd.pages.label;" accesskey="&manage.cmd.pages.accesskey;" command="cmd_pages"/>
+    <menuitem label="&manage.cmd.edit.label;" accesskey="&manage.cmd.edit.accesskey;" command="cmd_edit"/>
+    <menuseparator/>
+    <menuitem id="contextEnable" label="&manage.cmd.enable.label;" accesskey="&manage.cmd.enable.accesskey;" command="cmd_enable"/>
+    <menuitem id="contextDisable" label="&manage.cmd.disable.label;" accesskey="&manage.cmd.disable.accesskey;" command="cmd_disable"/>
+    <menuitem label="&manage.cmd.uninstall.label;" accesskey="&manage.cmd.uninstall.accesskey;" command="cmd_uninstall"/>
+    <menuseparator/>
+    <menuitem label="&manage.cmd.moveup.label;" accesskey="&manage.cmd.moveup.accesskey;" command="cmd_moveup" key="moveUpKey"/>
+    <menuitem label="&manage.cmd.movedown.label;" accesskey="&manage.cmd.movedown.accesskey;" command="cmd_movedown" key="moveDownKey"/>
+  </menupopup>
 
-</dialog>
+  <hbox id="manage-content" flex="1">
+    <richlistbox id="scriptsView" flex="1" persist="selected-script-id"
+                 ondblclick="onViewDoubleClick(event);" context="scriptContextMenu"
+                 ondraggesture="nsDragAndDrop.startDrag(event, dndObserver);"
+                 ondragover="nsDragAndDrop.dragOver(event, dndObserver);"
+                 ondragexit="nsDragAndDrop.dragExit(event, dndObserver);"
+                 ondragdrop="nsDragAndDrop.drop(event, dndObserver);"
+                 onselect="registerSelection();"/>
+  </hbox>
+  <vbox>
+    <hbox id="commandBarBottom" align="center">
+      <button id="globalEnableButton" label="&manage.globalEnable.label;"
+              accesskey="&manage.globalEnable.accesskey;"
+              tooltiptext="&manage.globalEnable.tooltip;"
+              oncommand="GM_setEnabled(true);"/>
+      <button id="globalDisableButton" label="&manage.globalDisable.label;"
+              accesskey="&manage.globalDisable.accesskey;"
+              tooltiptext="&manage.globalDisable.tooltip;"
+              oncommand="GM_setEnabled(false);"/>
+      <spacer flex="1"/>
+      <label id="getMore" class="text-link"
+             onclick="openURL('http://userscripts.org');"
+             value="&manage.getMore.label;"/>
+      <spacer flex="1"/>
+      <button id="createButton" label="&manage.newscript.label;"
+              accesskey="&manage.newscript.accesskey;"
+              tooltiptext="&manage.newscript.tooltip;"
+              oncommand="GM_openNewUserScriptDialog();"/>
+    </hbox>
+    <hbox id="resizerBox" style="min-width:1px;">
+      <spacer flex="1"/>
+      <resizer dir="bottomright"/>
+    </hbox>
+  </vbox>
+</window>

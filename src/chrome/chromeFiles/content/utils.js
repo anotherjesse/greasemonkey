@@ -8,7 +8,14 @@ var GM_consoleService = Components.classes["@mozilla.org/consoleservice;1"]
 
 function GM_isDef(thing) {
   return typeof(thing) != "undefined";
-};
+}
+
+function GM_getConfig() {
+  return Components
+    .classes["@greasemonkey.mozdev.org/greasemonkey-service;1"]
+    .getService(Components.interfaces.gmIGreasemonkeyService)
+    .wrappedJSObject.config;
+}
 
 function GM_hitch(obj, meth) {
   if (!obj[meth]) {
@@ -31,26 +38,26 @@ function GM_hitch(obj, meth) {
     // list of static and dynamic arguments.
     return obj[meth].apply(obj, args);
   };
-};
+}
 
 function GM_listen(source, event, listener, opt_capture) {
   Components.lookupMethod(source, "addEventListener")(
     event, listener, opt_capture);
-};
+}
 
 function GM_unlisten(source, event, listener, opt_capture) {
   Components.lookupMethod(source, "removeEventListener")(
     event, listener, opt_capture);
-};
+}
 
 /**
  * Utility to create an error message in the log without throwing an error.
  */
 function GM_logError(e, opt_warn, fileName, lineNumber) {
-  var consoleService = Components.classes['@mozilla.org/consoleservice;1']
+  var consoleService = Components.classes["@mozilla.org/consoleservice;1"]
     .getService(Components.interfaces.nsIConsoleService);
 
-  var consoleError = Components.classes['@mozilla.org/scripterror;1']
+  var consoleError = Components.classes["@mozilla.org/scripterror;1"]
     .createInstance(Components.interfaces.nsIScriptError);
 
   var flags = opt_warn ? 1 : 0;
@@ -61,19 +68,43 @@ function GM_logError(e, opt_warn, fileName, lineNumber) {
                     e.columnNumber, flags, null);
 
   consoleService.logMessage(consoleError);
-};
+}
 
 function GM_log(message, force) {
   if (force || GM_prefRoot.getValue("logChrome", false)) {
     GM_consoleService.logStringMessage(message);
   }
-};
+}
+
+function GM_openUserScriptManager() {
+  var win = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+                      .getService(Components.interfaces.nsIWindowMediator)
+                      .getMostRecentWindow("Greasemonkey:Manage");
+  if (win) {
+    win.focus();
+  } else {
+    var parentWindow = (!window.opener || window.opener.closed) ?
+      window : window.opener;
+    parentWindow.openDialog("chrome://greasemonkey/content/manage.xul",
+      "_blank", "resizable,dialog=no,centerscreen");
+  }
+}
+
+function GM_openNewUserScriptDialog() {
+  var windowWatcher = Components
+    .classes["@mozilla.org/embedcomp/window-watcher;1"]
+    .getService(Components.interfaces.nsIWindowWatcher);
+  windowWatcher.openWindow(
+    null, 'chrome://greasemonkey/content/newscript.xul', null,
+    'chrome,dependent,centerscreen,resizable,dialog', null
+  );
+}
 
 // TODO: this stuff was copied wholesale and not refactored at all. Lots of
 // the UI and Config rely on it. Needs rethinking.
 
 function openInEditor(script) {
-  var file = getScriptFile(script);
+  var file = script.editFile;
   var stringBundle = Components
     .classes["@mozilla.org/intl/stringbundle;1"]
     .getService(Components.interfaces.nsIStringBundleService)
@@ -175,7 +206,7 @@ function parseScriptName(sourceUri) {
   name = name.substring(0, name.indexOf(".user.js"));
   name = name.substring(name.lastIndexOf("/") + 1);
   return name;
-};
+}
 
 function getTempFile() {
   var file = Components.classes["@mozilla.org/file/directory_service;1"]
@@ -188,13 +219,13 @@ function getTempFile() {
   }
 
   return file;
-};
+}
 
-function getBinaryContents(url){
+function getBinaryContents(file) {
     var ioService = Components.classes["@mozilla.org/network/io-service;1"]
                               .getService(Components.interfaces.nsIIOService);
 
-    var channel = ioService.newChannelFromURI(url);
+    var channel = ioService.newChannelFromURI(GM_getUriFromFile(file));
     var input = channel.open();
 
     var bstream = Components.classes["@mozilla.org/binaryinputstream;1"]
@@ -204,9 +235,9 @@ function getBinaryContents(url){
     var bytes = bstream.readBytes(bstream.available());
 
     return bytes;
-};
+}
 
-function getContents(aURL, charset){
+function getContents(file, charset) {
   if( !charset ) {
     charset = "UTF-8"
   }
@@ -221,7 +252,7 @@ function getContents(aURL, charset){
     .createInstance(Components.interfaces.nsIScriptableUnicodeConverter);
   unicodeConverter.charset = charset;
 
-  var channel=ioService.newChannelFromURI(aURL);
+  var channel = ioService.newChannelFromURI(GM_getUriFromFile(file));
   var input=channel.open();
   scriptableStream.init(input);
   var str=scriptableStream.read(input.available());
@@ -233,7 +264,7 @@ function getContents(aURL, charset){
   } catch( e ) {
     return str;
   }
-};
+}
 
 function getWriteStream(file) {
   var stream = Components.classes["@mozilla.org/network/file-output-stream;1"]
@@ -242,82 +273,13 @@ function getWriteStream(file) {
   stream.init(file, 0x02 | 0x08 | 0x20, 420, -1);
 
   return stream;
-};
+}
 
-function getConfigFile(){
-  var file = getScriptDir();
-  file.append("config.xml");
-  return file;
-};
-
-function getConfigFileURI(){
+function GM_getUriFromFile(file) {
   return Components.classes["@mozilla.org/network/io-service;1"]
                    .getService(Components.interfaces.nsIIOService)
-                   .newFileURI(getConfigFile());
-};
-
-function getDependencyFileURI(script, dep){
-  return Components.classes["@mozilla.org/network/io-service;1"]
-                   .getService(Components.interfaces.nsIIOService)
-                   .newFileURI(getDependencyFile(script, dep));
-};
-
-function getDependencyFile(script, dep){
-  var file = getScriptDir();
-  file.append(script.basedir);
-  file.append(dep.filename);
-  return file;
-};
-
-function getScriptFileURI(script) {
-  return Components.classes["@mozilla.org/network/io-service;1"]
-                   .getService(Components.interfaces.nsIIOService)
-                   .newFileURI(getScriptFile(script));
-};
-
-function getScriptBasedir(script) {
-  var file = getScriptDir();
-  file.append(script.basedir);
-  return file;
-};
-
-function getScriptFile(script) {
-  var file = getScriptDir();
-  file.append(script.basedir);
-  file.append(script.filename);
-  return file;
-};
-
-function getScriptDir() {
-  var dir = getNewScriptDir();
-
-  if (dir.exists()) {
-    return dir;
-  } else {
-    var oldDir = getOldScriptDir();
-    if (oldDir.exists()) {
-      return oldDir;
-    } else {
-      // if we called this function, we want a script dir.
-      // but, at this branch, neither the old nor new exists, so create one
-      return GM_createScriptsDir(dir);
-    }
-  }
-};
-
-function getNewScriptDir() {
-  var file = Components.classes["@mozilla.org/file/directory_service;1"]
-                       .getService(Components.interfaces.nsIProperties)
-                       .get("ProfD", Components.interfaces.nsILocalFile);
-  file.append("gm_scripts");
-  return file;
-};
-
-function getOldScriptDir() {
-  var file = getContentDir();
-  file.append("scripts");
-  return file;
-};
+                   .newFileURI(file);
+}
 
 function getContentDir() {
   var reg = Components.classes["@mozilla.org/chrome/chrome-registry;1"]
@@ -334,7 +296,7 @@ function getContentDir() {
   var file = proto.getFileFromURLSpec(fileURL.spec).parent;
 
   return file
-};
+}
 
 /**
  * Compares two version numbers
@@ -352,11 +314,11 @@ function GM_compareVersions(aV1, aV2) {
   var numSubversions = (v1.length > v2.length) ? v1.length : v2.length;
 
   for (var i = 0; i < numSubversions; i++) {
-    if (typeof v2[i] == 'undefined') {
+    if (typeof v2[i] == "undefined") {
       return 1;
     }
 
-    if (typeof v1[i] == 'undefined') {
+    if (typeof v1[i] == "undefined") {
       return -1;
     }
 
@@ -386,11 +348,11 @@ function gmPrompt(msg, defVal, title) {
   else {
     return null;
   }
-};
+}
 
 function ge(id) {
   return window.document.getElementById(id);
-};
+}
 
 
 function dbg(o) {
@@ -407,15 +369,15 @@ function dbg(o) {
   }
 
   alert(s);
-};
+}
 
 function delaydbg(o) {
   setTimeout(function() {dbg(o);}, 1000);
-};
+}
 
 function delayalert(s) {
   setTimeout(function() {alert(s);}, 1000);
-};
+}
 
 function GM_isGreasemonkeyable(url) {
   var scheme = Components.classes["@mozilla.org/network/io-service;1"]
@@ -425,7 +387,7 @@ function GM_isGreasemonkeyable(url) {
   return (scheme == "http" || scheme == "https" || scheme == "file" ||
           scheme == "ftp" || url.match(/^about:cache/)) &&
           !/hiddenWindow\.html$/.test(url);
-};
+}
 
 function GM_isFileScheme(url) {
   var scheme = Components.classes["@mozilla.org/network/io-service;1"]
@@ -433,15 +395,15 @@ function GM_isFileScheme(url) {
                .extractScheme(url);
 
   return scheme == "file";
-};
+}
 
 function GM_getEnabled() {
   return GM_prefRoot.getValue("enabled", true);
-};
+}
 
 function GM_setEnabled(enabled) {
   GM_prefRoot.setValue("enabled", enabled);
-};
+}
 
 
 /**
@@ -452,7 +414,7 @@ function log(message) {
   if (GM_prefRoot.getValue("logChrome", false)) {
     logf.apply(null, arguments);
   }
-};
+}
 
 function logf(message) {
   for (var i = 1; i < arguments.length; i++) {
@@ -460,7 +422,7 @@ function logf(message) {
   }
 
   dump(message + "\n");
-};
+}
 
 /**
  * Loggifies an object. Every method of the object will have it's entrance,
@@ -472,7 +434,7 @@ function loggify(obj, name) {
       obj[p] = gen_loggify_wrapper(obj[p], name, p);
     }
   }
-};
+}
 
 function gen_loggify_wrapper(meth, objName, methName) {
   return function() {
@@ -495,19 +457,4 @@ function gen_loggify_wrapper(meth, objName, methName) {
           (typeof retVal == "undefined" ? "void" : retVal));
     }
   }
-};
-
-function GM_scriptMatchesUrl(script, url) {
- for (var i = 0, glob; glob = script.includes[i]; i++) {
-   var re = convert2RegExp(glob);
-   if (re.test(url)) {
-     for (var j = 0; glob = script.excludes[j]; j++) {
-       re = convert2RegExp(glob);
-       if (re.test(url))
-         return false;
-     }
-     return true;
-   }
- }
- return false;
 }

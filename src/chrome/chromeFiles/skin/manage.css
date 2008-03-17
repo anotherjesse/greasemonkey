@@ -1,0 +1,52 @@
+.scriptName {
+  font-weight: bold;
+}
+
+richlistitem {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  -moz-padding-start: 7px;
+  -moz-padding-end: 7px;
+  min-height: 25px;
+  border-bottom: 1px dotted #C0C0C0;
+}
+
+.selectedButtons {
+  margin-top: 4px;
+  min-height: 2.1em;
+}
+
+richlistitem[isDisabled="true"] {
+  color: GrayText;
+}
+ 
+#scriptsView:focus > richlistitem[selected="true"], richlistitem[droptarget] {
+  background-image: url("chrome://mozapps/skin/extensions/itemEnabledFader.png");
+  background-color: Highlight;
+  color: HighlightText;
+}
+
+#scriptsView:focus > richlistitem[selected="true"][isDisabled="true"] {
+  background-image: url("chrome://mozapps/skin/extensions/itemDisabledFader.png");
+}
+
+#manage-content {
+  margin: 10px 10px 0 10px;
+}
+
+/* Command Bar */
+#commandBarBottom {
+  margin: 10px 10px 5px 10px;
+  min-width: 1px;
+}
+
+#resizerBox {
+  margin-top: -12px;
+  visibility: hidden;
+}
+
+#resizerBox > resizer {
+  height: 10px;
+  max-height: 10px;
+  visibility: visible;
+}

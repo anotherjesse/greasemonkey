@@ -1,4 +1,3 @@
-
 function GM_MenuCommander() {
   GM_log("> GM_MenuCommander")
 
@@ -15,7 +14,7 @@ function GM_MenuCommander() {
   this.menuItems2 = [];
 
   GM_log("< GM_MenuCommander")
-};
+}
 
 GM_MenuCommander.prototype.registerMenuCommand =
   function(commandName, commandFunc, accelKey, accelModifiers, accessKey) {
@@ -28,9 +27,9 @@ GM_MenuCommander.prototype.registerMenuCommand =
       }
     }
 
-    GM_log('accelKey: ' + accelKey);
-    GM_log('modifiers: ' + accelModifiers);
-    GM_log('accessKey: ' + accessKey);
+    GM_log("accelKey: " + accelKey);
+    GM_log("modifiers: " + accelModifiers);
+    GM_log("accessKey: " + accessKey);
 
     var menuItem = this.createMenuItem(commandName, commandFunc, accessKey);
     var menuItem2 = this.createMenuItem(commandName, commandFunc, accessKey);

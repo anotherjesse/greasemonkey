@@ -10,7 +10,7 @@ var GMInstall = {
 
     this.setupIncludes("includes", "includes-desc", this.script_.includes);
     this.setupIncludes("excludes", "excludes-desc", this.script_.excludes);
-    
+
     this.dialog_ = document.documentElement;
     this.extraButton_ = this.dialog_.getButton("extra1");
     this.extraButton_.setAttribute("type", "checkbox");
@@ -25,7 +25,7 @@ var GMInstall = {
     this.bundle = document.getElementById("gm-browser-bundle");
     this.greetz = new Array();
     for(var i = 0; i < 6; i++){
-      this.greetz.push(this.bundle.getString('greetz.' + i));
+      this.greetz.push(this.bundle.getString("greetz." + i));
     }
 
     var pick = Math.round(Math.random() * (this.greetz.length - 1));
@@ -99,7 +99,7 @@ var GMInstall = {
       desc.removeChild(desc.lastChild);
     }
   },
-    
+
   onOK: function() {
     this.scriptDownloader_.installScript();
     window.setTimeout("window.close()", 0);

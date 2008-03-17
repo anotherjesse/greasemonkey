@@ -1,4 +1,5 @@
 content    greasemonkey    chrome/chromeFiles/content/
+skin       greasemonkey    classic/1.0  chrome/chromeFiles/skin/
 overlay	   chrome://browser/content/browser.xul    chrome://greasemonkey/content/browser.xul
 overlay	   chrome://songbird/content/xul/mainScriptsOverlay.xul    chrome://greasemonkey/content/browser.xul
 locale  greasemonkey  en-US  chrome/chromeFiles/locale/en-US/

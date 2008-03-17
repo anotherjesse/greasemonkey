@@ -1,61 +1,70 @@
 <?xml version="1.0"?>
 
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?> 
+<?xml-stylesheet href="chrome://greasemonkey/skin/pages.css" type="text/css"?> 
+
 <!DOCTYPE dialog SYSTEM "chrome://greasemonkey/locale/greasemonkey.dtd">
 
-<overlay id="pages-overlay"
-  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
-
-  <stringbundle id="gm-manage-bundle" src="chrome://greasemonkey/locale/gm-manage.properties" />
+<window id="greasemonkey"
+        windowtype="Greasemonkey:Pages"
+        title="&pages.title;"
+        xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        style="width: &pages.width;;"
+        onload="onLoad();"
+        onunload="onUnload();"
+        persist="screenX screenY width height">
 
   <script type="application/x-javascript" src="chrome://greasemonkey/content/pages-overlay.js" />
+  <script type="application/x-javascript" src="chrome://greasemonkey/content/utils.js" />
 
-  <vbox id="pages-control">
-    <groupbox id="grpIncluded"
-      orient="vertical"
-      flex="1"
-    >
-      <caption label="&manage.label.grpIncluded;" />
-      <hbox
-        style="margin-bottom:.5em"
-        flex="1"
-      >
-        <listbox flex="1" />
-        <vbox>
-          <button
-            label="&manage.button.add;" />
-          <button
-            label="&manage.button.edit;"
-            disabled="true" />
-          <button
-            label="&manage.button.remove;"
-            disabled="true" />
-          <spacer flex="1" />
-        </vbox>
-      </hbox>
-    </groupbox>
+  <keyset>
+    <key key="&pages.close.key;" modifiers="accel" oncommand="window.close();"/>
+  </keyset>
 
-    <groupbox id="grpExcluded"
-      orient="vertical"
-      flex="1"
-    >
-      <caption label="&manage.label.grpExcluded;" />
-      <hbox
-        style="margin-bottom:.5em"
-        flex="1"
-      >
-        <listbox flex="1" />
-        <vbox>
-          <button
-            label="&manage.button.add;" />
-          <button
-            label="&manage.button.edit;"
-            disabled="true" />
-          <button label="&manage.button.remove;"
-            disabled="true" />
-          <spacer flex="1" />
-        </vbox>
-      </hbox>
-    </groupbox>
+  <vbox class="contentPane" flex="1">
+    <description control="url">&pages.description;</description>
+    <separator class="thin"/>
+    <label control="url" value="&pages.url.label;" accesskey="&pages.url.accesskey;"/>
+    <hbox align="start">
+      <textbox id="url" flex="1" defaultHost="&pages.url.defaulthost;"
+               oninput="gPagesControl.onUrlInput();"
+               onkeypress="return gPagesControl.onUrlKeypress(event);"/>
+    </hbox>
+    <hbox pack="end">
+      <button id="btnExclude" disabled="true" label="&pages.exclude.label;"
+              accesskey="&pages.exclude.accesskey;"
+              oncommand="gPagesControl.addPage('exclude');"/>
+      <button id="btnInclude" disabled="true" label="&pages.include.label;"
+              default="true" accesskey="&pages.include.accesskey;"
+              oncommand="gPagesControl.addPage('include');"/>
+    </hbox>
+    <separator class="thin"/>
+    <tree id="pagesTree" flex="1" style="height: 18em;"
+          hidecolumnpicker="true"
+          onkeypress="gPagesControl.onPageKeyPress(event)"
+          onselect="gPagesControl.onPageSelect();">
+      <treecols>
+        <treecol id="pageCol" flex="3" persist="width"
+                 label="&pages.treecol.url;"/>
+        <splitter class="tree-splitter"/>
+        <treecol id="statusCol" flex="1" persist="width"
+                 label="&pages.treecol.status;"
+                 status-exclude="&pages.status.exclude;"
+                 status-include="&pages.status.include;"/>
+      </treecols>
+      <treechildren/>
+    </tree>
   </vbox>
-
-</overlay>
+  <hbox align="end">
+    <hbox class="actionButtons" flex="1">
+      <button id="removePage" disabled="true"
+              accesskey="&pages.remove.accesskey;"
+              icon="remove" label="&pages.remove.label;"
+              oncommand="gPagesControl.removeSelectedPages();"/>
+      <spacer flex="1"/>
+      <button oncommand="close();" icon="close"
+              label="&pages.close.label;" accesskey="&pages.close.accesskey;"/>
+    </hbox>
+    <resizer dir="bottomright"/>
+  </hbox>
+</window>

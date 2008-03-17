@@ -1,319 +1,277 @@
-var config = new Config();
-var uninstallList = [];
+var config = GM_getConfig();
+var gScriptsView = null;
 
-window.addEventListener("load", function(ev) {
-  config.load();
-  loadControls();
+function Startup() {
+  gScriptsView = document.getElementById("scriptsView");
 
-  if (!config.scripts.length == 0) {
-    populateChooser();
-    chooseScript(0);
-  }
-}, false);
+  updateGlobalEnabledButton();
+  GM_prefRoot.watch("enabled", updateGlobalEnabledButton);
 
-function handleOkButton() {
-  for (var i = 0, script = null; (script = uninstallList[i]); i++) {
-    var idx = config.find(script.namespace, script.name);
-    config.scripts.splice(idx, 1);
-  }
-  config.save();
+  populateChooser();
+  config.addObserver(observer);
 
-  var chkUninstallPrefs = document.getElementById('chkUninstallPrefs');
-  for (var i = 0, script = null; (script = uninstallList[i]); i++) {
-    file = getScriptBasedir(script);
-    file.normalize();
-    if (!file.equals(getScriptDir())) {
-      if (file.exists()) {
-        file.remove(true); // file==base directory recursive delete
-      }
-    } else {
-      file = getScriptFile(script);
-      if (file.exists()) {
-        file.remove(false);
-      }
-    }
-    if (chkUninstallPrefs.checked) {
-       // Remove saved preferences
-       var scriptPrefRoot = ["scriptvals.",
-                  script.namespace,
-                  "/",
-                  script.name,
-                  "."].join("");
-       GM_prefRoot.remove(scriptPrefRoot);
-    }
-  }
-  return true;
-};
+  restoreSelection();
 
-var listbox, header, description, chkEnabled, btnEdit, btnUninstall;
-var selectedScript;
-var pagesControl;
+  gScriptsView.controllers.appendController(gScriptsViewController);
+  gScriptsViewController.onCommandUpdate();
 
-function loadControls() {
-  listbox = document.getElementById("lstScripts");
-  header = document.getElementById("ctlHeader");
-  description = document.getElementById("ctlDescription");
-  btnEdit = document.getElementById("btnEdit");
-  btnUninstall = document.getElementById("btnUninstall");
-  pagesControl = new PagesControl(document.getElementById("pages-control"));
-  chkEnabled = document.getElementById("chkEnabled");
+  gScriptsView.focus();
+}
 
-  listbox.addEventListener("select", function() { updateDetails(); }, false);
-  btnEdit.addEventListener("command", function() { handleEditButton(); }, false);
-  btnUninstall.addEventListener("command", function() { handleUninstallButton(); }, false);
-  chkEnabled.addEventListener("command", function() {
-     if (selectedScript) {
-       selectedScript.enabled = chkEnabled.checked;
-       if (selectedScript.enabled) {
-         listbox.selectedItem.style.color = '';
-       } else {
-         listbox.selectedItem.style.color = 'gray';
-       }
-     }
-  }, false);
-};
+function Shutdown() {
+  config.removeObserver(observer);
 
-function updateDetails() {
-  if (listbox.selectedCount == 0) {
-    selectedScript = null;
-    header.textContent = " ";
-    description.textContent = " ";
-    chkEnabled.checked = true;
-    pagesControl.clear();
-    document.documentElement.getButton("accept").disabled = false;
-  } else {
-    selectedScript = listbox.getSelectedItem(0).script;
+  GM_prefRoot.unwatch("enabled", updateGlobalEnabledButton);
+}
 
-    // make sure one word isn't too long to fit ... a too-long word
-    // will bump the interface out wider than the window
-    var wordLen = 50;
-    var desc = selectedScript.description.split(/\s+/);
-    for (var i = 0; i < desc.length; i++) {
-      if (desc[i].length > wordLen) {
-        for (var j = desc[i].length; j > 0; j -= wordLen) {
-          desc[i] = desc[i].substr(0,j) + '\u200B' + desc[i].substr(j);
-        }
+function restoreSelection() {
+  var selected = null;
+  var id = gScriptsView.getAttribute("selected-script-id");
+  var nodes = gScriptsView.children;
+  if (id) {
+    for (var i = 0, node; node = nodes[i]; i++) {
+      if (node.script.id == id) {
+        selected = node;
+        break;
       }
     }
-    desc = desc.join(' ');
-
-    header.textContent = selectedScript.name;
-    description.textContent = desc;
-    chkEnabled.checked = selectedScript.enabled;
-    pagesControl.populate(selectedScript);
   }
-};
+  gScriptsView.selectedItem = selected || nodes[0];
+  registerSelection();
+}
 
-function handleEditButton() {
-  openInEditor(selectedScript);
-};
+function registerSelection() {
+  if (gScriptsView.selectedItem)
+    gScriptsView.setAttribute("selected-script-id", gScriptsView.selectedItem.script.id);
+}
 
-function handleUninstallButton() {
-  var index=listbox.selectedIndex;
+function updateGlobalEnabledButton() {
+  document.getElementById("commandBarBottom")
+    .setAttribute("gm-enabled", GM_prefRoot.getValue("enabled", true));
+}
 
-  // mark script to be uninstalled on "OK"
-  uninstallList.push(selectedScript);
+function onViewDoubleClick(aEvent) {
+  if (aEvent.button == 0 && gScriptsView.selectedItem)
+    gScriptsViewController.doCommand("cmd_pages");
+}
 
-  // remove it from the display
-  listbox.removeChild(listbox.childNodes[index]);
+var gScriptsViewController = {
+  supportsCommand: function (aCommand) {
+    var commandNode = document.getElementById(aCommand);
+    return commandNode && (commandNode.parentNode == document.getElementById("scriptsCommands"));
+  },
 
-  if (listbox.childNodes.length > 0) {
-    chooseScript(Math.max(Math.min(listbox.selectedIndex, listbox.childNodes.length - 1), 0));
+  isCommandEnabled: function (aCommand) {
+    var selectedItem = gScriptsView.selectedItem;
+
+    if (!selectedItem) return false;
+
+    switch (aCommand) {
+    case "cmd_edit":
+    case "cmd_pages":
+    case "cmd_uninstall":
+      return true;
+    case "cmd_disable":
+      return selectedItem.script.enabled;
+    case "cmd_enable":
+      return !selectedItem.script.enabled;
+    case "cmd_moveup":
+      return selectedItem != gScriptsView.children[0];
+    case "cmd_movedown":
+      return selectedItem != gScriptsView.children[gScriptsView.children.length-1];
+    default:
+      return false;
+    }
+  },
+
+  doCommand: function (aCommand) {
+    if (this.isCommandEnabled(aCommand))
+      this.commands[aCommand](gScriptsView.selectedItem);
+  },
+
+  onCommandUpdate: function () {
+    var scriptsCommands = document.getElementById("scriptsCommands");
+    for (var i = 0; i < scriptsCommands.childNodes.length; ++i)
+      this.updateCommand(scriptsCommands.childNodes[i]);
+  },
+
+  updateCommand: function (command) {
+    if (this.isCommandEnabled(command.id))
+      command.removeAttribute("disabled");
+    else
+      command.setAttribute("disabled", "true");
+  },
+
+  commands: {
+    cmd_edit: function (aSelectedItem) {
+      openInEditor(aSelectedItem.script);
+      gScriptsView.focus();
+    },
+
+    cmd_pages: function (aSelectedItem) {
+      var win = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+                          .getService(Components.interfaces.nsIWindowMediator)
+                          .getMostRecentWindow("Greasemonkey:Pages");
+      if (win) {
+        win.initWithScript(aSelectedItem.script);
+        win.focus();
+      } else {
+        var parentWindow = (!window.opener || window.opener.closed) ?
+          window : window.opener;
+        parentWindow.openDialog("chrome://greasemonkey/content/pages-overlay.xul",
+          "_blank", "resizable,dialog=no,centerscreen", aSelectedItem.script);
+      }
+      gScriptsView.focus();
+    },
+
+    cmd_uninstall: function (aSelectedItem) {
+      var bundle = Components
+        .classes["@mozilla.org/intl/stringbundle;1"]
+        .getService(Components.interfaces.nsIStringBundleService)
+        .createBundle("chrome://greasemonkey/locale/uninstall.properties");
+
+      var promptService = Components
+        .classes["@mozilla.org/embedcomp/prompt-service;1"]
+        .getService(Components.interfaces.nsIPromptService);
+
+      var hasPrefs = GM_prefRoot.existsBranch(aSelectedItem.script.prefBranch);
+      var buttonChoice = promptService.confirmEx(
+        window,
+        bundle.GetStringFromName("dialogTitle"),
+        bundle.formatStringFromName(hasPrefs ? "textWithPrefs" :
+          "textWithoutPrefs", [aSelectedItem.script.name], 1),
+        promptService.BUTTON_POS_0_DEFAULT +
+        promptService.BUTTON_TITLE_IS_STRING * (
+          promptService.BUTTON_POS_0 + promptService.BUTTON_POS_1 +
+          (hasPrefs ? promptService.BUTTON_POS_2 : 0)
+        ),
+        bundle.GetStringFromName("removeScript"),
+        bundle.GetStringFromName("cancel"),
+        bundle.GetStringFromName("removeScriptAndPrefs"),
+        null, {}
+      );
+
+      if (buttonChoice == 2)
+        GM_prefRoot.remove(aSelectedItem.script.prefBranch);
+
+      if (buttonChoice != 1)
+        config.uninstall(aSelectedItem.script);
+
+      gScriptsView.focus();
+    },
+
+    cmd_disable: function (aSelectedItem) {
+      aSelectedItem.script.enabled = false;
+      gScriptsView.focus();
+    },
+
+    cmd_enable: function (aSelectedItem) {
+      aSelectedItem.script.enabled = true;
+      gScriptsView.focus();
+    },
+
+    cmd_moveup: function (aSelectedItem) {
+      config.move(aSelectedItem.script, -1);
+      gScriptsView.focus();
+    },
+
+    cmd_movedown: function (aSelectedItem) {
+      config.move(aSelectedItem.script, 1);
+      gScriptsView.focus();
+    }
   }
 };
 
 function populateChooser() {
-  for (var i = 0, script = null; (script = config.scripts[i]); i++) {
-    var listitem = document.createElement("listitem");
+  config.scripts.forEach(createScriptNode);
+}
 
-    listitem.setAttribute("label", script.name);
-    listitem.setAttribute("crop", "end");
-    listitem.script = script;
-    listitem.index = i;
+function createScriptNode(script) {
+    var node = document.createElement("richlistitem");
+    node.setAttribute("name", script.name);
+    node.setAttribute("description", script.description);
+    node.setAttribute("isDisabled", !script.enabled);
+    node.script = script;
+    gScriptsView.appendChild(node);
+}
 
-    if (!script.enabled) {
-      listitem.style.color = 'gray';
+function getNodeForScript(script) {
+  for (var i = 0, nodes = gScriptsView.children, node; node = nodes[i]; i++)
+    if (node.script == script)
+      return node;
+
+  throw new Error("Node not found");
+}
+
+var observer = {
+  notifyEvent: function(script, event, data) {
+    var node = getNodeForScript(script);
+    switch (event) {
+    case "edit-enabled":
+      node.setAttribute("isDisabled", !script.enabled);
+      gScriptsViewController.onCommandUpdate();
+      break;
+    case "install":
+      createScriptNode(script);
+      break;
+    case "uninstall":
+      gScriptsView.removeChild(node);
+      break;
+    case "move":
+      gScriptsView.removeChild(node);
+      if (data == gScriptsView.children.length)
+        gScriptsView.appendChild(node);
+      else
+        gScriptsView.insertBefore(node, gScriptsView.children[data]);
+      gScriptsViewController.onCommandUpdate();
+      break;
     }
-
-  listbox.appendChild(listitem);
   }
-};
+}
 
-function chooseScript(index) {
-  listbox.selectedIndex = index;
-  listbox.focus();
-};
-
-function toggleScript(index, enableFlag) {
-  var listitem = listbox.childNodes[index];
-  if (enableFlag) {
-    listitem.script.enabled = true;
-    listitem.style.color = '';
-  } else {
-    listitem.script.enabled = false;
-    listitem.style.color = 'gray';
-  }
-};
-
-function reorderScript(from, to) {
-  // make sure to and from are in range
-  if (from < 0 || to < 0 ||
-    from > config.scripts.length || to > config.scripts.length
-  ) {
-    return false;
-  }
-
-  // REORDER CONFIG:
-  // save item-to-move
-  var tmp = config.scripts[from];
-  // remove it
-  config.scripts.splice(from, 1);
-  // put it back in the new spot
-  config.scripts.splice(to, 0, tmp);
-
-  // REORDER DISPLAY:
-  var tmp = listbox.childNodes[from];
-  listbox.removeChild(tmp);
-  listbox.insertBefore(tmp, listbox.childNodes[to]);
-  // fix the listbox indexes
-  for (var i=0, node=null; node=listbox.childNodes[i]; i++) {
-    node.index=i;
-  }
-
-  // then re-select the dropped script
-  listbox.selectedIndex = to;
-
-  return true;
-};
-
-// allow reordering scripts with keyboard (alt- up and down)
-function listboxKeypress(event) {
-  if (0 == listbox.selectedCount) return;
-  if (!event.altKey) return;
-
-  var index = listbox.selectedIndex;
-
-  if (KeyEvent.DOM_VK_UP == event.keyCode) {
-    if (0 == index) return;
-
-    !reorderScript(index, index - 1);
-    listbox.selectedIndex = index - 1;
-  } else if (KeyEvent.DOM_VK_DOWN == event.keyCode) {
-    if (index == config.scripts.length - 1) return;
-
-    !reorderScript(index, index + 1);
-    listbox.selectedIndex = index + 1;
-  }
-};
+function onScriptContextMenuShowing() {
+  if (!gScriptsView.selectedItem) return false;
+  var enabled = gScriptsView.selectedItem.script.enabled;
+  document.getElementById("contextEnable").hidden = enabled;
+  document.getElementById("contextDisable").hidden = !enabled;
+}
 
 // allow reordering scripts with drag-and-drop
 var dndObserver = {
-  lastFeedbackIndex: null,
+  draggedScript: null,
 
   getSupportedFlavours: function () {
     var flavours = new FlavourSet();
-    flavours.appendFlavour("text/unicode");
+    flavours.appendFlavour("gm-user-script");
     return flavours;
   },
 
   onDragStart: function (event, transferData, action) {
-    if ('listitem' != event.target.tagName ) return false;
+    if ("richlistitem" != event.target.tagName) return false;
 
+    this.draggedScript = event.target.script;
     transferData.data = new TransferData();
-    transferData.data.addDataForFlavour("text/unicode", event.target.index);
+    transferData.data.addDataForFlavour("gm-user-script", "gm-reorder-script");
 
     return true;
   },
 
   onDragOver: function (event, flavour, session) {
-    if (listbox.selectedIndex == event.target.index) {
-      this.clearFeedback();
-      return false;
-    }
+    if (gScriptsView == event.target.parentNode)
+      event.target.setAttribute("droptarget", true);
+  },
 
-    return this.setFeedback(event);
+  onDragExit: function(event, session) {
+    if (gScriptsView == event.target.parentNode)
+      event.target.removeAttribute("droptarget");
   },
 
   onDrop: function (event, dropdata, session) {
-    // clean up the feedback
-    this.lastFeedbackIndex = null;
-    this.clearFeedback();
-
-    // figure out how to move
-    var newIndex = this.findNewIndex(event);
-    if (null === newIndex) return;
-    var index = parseInt(dropdata.data);
-    if (newIndex > index) newIndex--;
-
-    // do the move
-    reorderScript(index, newIndex);
-  },
-
-  //////////////////////////////////////////////////////////////////////////////
-
-  setFeedback: function(event) {
-    var newIndex = this.findNewIndex(event);
-
-    // don't do anything if we haven't changed
-    if (newIndex === this.lastFeedbackIndex) return false; // NOTE: possible incongruent logic
-    this.lastFeedbackIndex = newIndex;
-
-    // clear any previous feedback
-    this.clearFeedback();
-
-    // and set the current feedback
-    if (null === newIndex) {
-      return false;
-    } else if (listbox.selectedIndex == newIndex) {
-      return false;
-    } else {
-      if (0 == newIndex) {
-        listbox.firstChild.setAttribute('dragover', 'top');
-      } else if (newIndex >= listbox.childNodes.length) {
-        listbox.lastChild.setAttribute('dragover', 'bottom');
-      } else {
-        listbox.childNodes[newIndex - 1].setAttribute('dragover', 'bottom');
-      }
+    if (gScriptsView == event.target.parentNode &&
+      dropdata.data == "gm-reorder-script") {
+      var source = this.draggedScript;
+      var target = event.target.script;
+      if (source && target) config.move(source, target);
     }
-
-    return true;
-  },
-
-  clearFeedback: function() {
-    var box = document.getElementById('lstScripts');
-    for (var i = 0, el; el = box.childNodes[i]; i++) {
-      el.removeAttribute('dragover');
-    }
-  },
-
-  findNewIndex: function(event) {
-    var target = event.target;
-
-    // not in the list box? forget it!
-    if (listbox != target && listbox != target.parentNode) return null;
-
-    var targetBox = target.boxObject
-      .QueryInterface(Components.interfaces.nsIBoxObject);
-
-    if (listbox == target) {
-      // here, we are hovering over the listbox, not a particular listitem
-      // check if we are very near the top (y + 4), return zero, else return end
-      if (event.clientY < targetBox.y + 4) {
-        return 0;
-      } else {
-        return listbox.childNodes.length;
-      }
-    } else {
-      var targetMid = targetBox.y + (targetBox.height / 2);
-
-      if (event.clientY >= targetMid) {
-        return target.index + 1;
-      } else {
-        return target.index;
-      }
-    }
-
-    // should never get here, but in case
-    return null;
   }
 };
