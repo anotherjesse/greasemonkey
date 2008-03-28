@@ -14,7 +14,10 @@ window.addEventListener("load", function() {
                       .getService(Components.interfaces.nsIWindowMediator)
                       .getMostRecentWindow("navigator:browser");
   if (win) {
-    document.getElementById("includes").value = win.content.location.href;
+    var url = win.content.location.href;
+    if (GM_isGreasemonkeyable(url)) {
+      document.getElementById("includes").value = url;
+    }
   }
 }, false);
 
