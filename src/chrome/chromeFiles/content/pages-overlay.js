@@ -17,12 +17,12 @@ function PagesControl(ctlPages) {
     includesBox.populate(script, "includes", script.includes);
     excludesBox.populate(script, "excludes", script.excludes);
     this.script = script;
-    GM_getConfig().addObserver(this, this.script);
+    this.script.addObserver(this);
   };
 
   this.clear = function() {
     if (this.script == null) return;
-    GM_getConfig().removeObserver(this, this.script);
+    this.script.removeObserver(this);
     includesBox.clear();
     excludesBox.clear();
     this.script = null;

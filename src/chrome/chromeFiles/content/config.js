@@ -13,16 +13,14 @@ function Config() {
 }
 
 Config.prototype = {
-  addObserver: function(observer, script) {
-    var observers = script ? script._observers : this._observers;
-    observers.push(observer);
+  addObserver: function(observer) {
+    this._observers.push(observer);
   },
 
-  removeObserver: function(observer, script) {
-    var observers = script ? script._observers : this._observers;
-    var index = observers.indexOf(observer);
+  removeObserver: function(observer) {
+    var index = this._observers.indexOf(observer);
     if (index == -1) throw new Error("Observer not found");
-    observers.splice(index, 1);
+    this._observers.splice(index, 1);
   },
 
   _notifyObservers: function(script, event, data) {
@@ -398,6 +396,9 @@ function Script(config) {
 }
 
 Script.prototype = {
+  addObserver: Config.prototype.addObserver,
+  removeObserver: Config.prototype.removeObserver,
+
   matchesURL: function(url) {
     function test(page) {
       return convert2RegExp(page).test(url);
