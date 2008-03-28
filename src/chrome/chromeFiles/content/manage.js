@@ -110,8 +110,12 @@ function handleEditButton() {
 }
 
 function handleUninstallButton() {
-  var uninstallPrefs = document.getElementById("chkUninstallPrefs").checked;
-  config.uninstall(selectedScript, uninstallPrefs);
+  if (document.getElementById("chkUninstallPrefs").checked) {
+    // Remove saved preferences
+    GM_prefRoot.remove(selectedScript.prefBranch);
+  }
+
+  config.uninstall(selectedScript);
 }
 
 function populateChooser() {

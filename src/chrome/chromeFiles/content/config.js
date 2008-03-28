@@ -264,7 +264,7 @@ Config.prototype = {
 
     var existingIndex = this._find(script);
     if (existingIndex > -1) {
-      this.uninstall(this._scripts[existingIndex], false);
+      this.uninstall(this._scripts[existingIndex]);
     }
 
     script._initFile(script._tempFile);
@@ -284,7 +284,7 @@ Config.prototype = {
     GM_log("< Config.install");
   },
 
-  uninstall: function(script, uninstallPrefs) {
+  uninstall: function(script) {
     var idx = this._find(script);
     this._scripts.splice(idx, 1);
     this._changed(script, "uninstall", null);
@@ -296,11 +296,6 @@ Config.prototype = {
     } else {
       // if script is in the root, just remove the file
       script._file.remove(false);
-    }
-
-    if (uninstallPrefs) {
-      // Remove saved preferences
-      GM_prefRoot.remove("scriptvals." + script._namespace + "/" + script._name + ".");
     }
   },
 
@@ -414,6 +409,7 @@ Script.prototype = {
   get description() { return this._description; },
   get enabled() { return this._enabled; },
   set enabled(enabled) { this._enabled = enabled; this._changed("edit-enabled", enabled); },
+  get prefBranch() { return "scriptvals." + this._namespace + "/" + this._name + "."; },
 
   get includes() { return this._includes.concat(); },
   get excludes() { return this._excludes.concat(); },
