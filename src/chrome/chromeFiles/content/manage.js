@@ -110,12 +110,33 @@ function handleEditButton() {
 }
 
 function handleUninstallButton() {
-  if (document.getElementById("chkUninstallPrefs").checked) {
-    // Remove saved preferences
-    GM_prefRoot.remove(selectedScript.prefBranch);
-  }
+  var gmManageBundle = document.getElementById("gm-manage-bundle");
 
-  config.uninstall(selectedScript);
+  var hasPrefs = GM_prefRoot.existsBranch(selectedScript.prefBranch);
+
+  var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
+                                .getService(Components.interfaces.nsIPromptService);
+
+  var choice = promptService.confirmEx(
+    window,
+    gmManageBundle.getString("uninstallDialogTitle"),
+    gmManageBundle.getFormattedString(hasPrefs ? "uninstallTextWithPrefs" :
+      "uninstallTextWithoutPrefs", [selectedScript.name]),
+    promptService.BUTTON_POS_0_DEFAULT +
+    promptService.BUTTON_TITLE_IS_STRING * (
+      promptService.BUTTON_POS_0 +
+      promptService.BUTTON_POS_1 +
+      (hasPrefs ? promptService.BUTTON_POS_2 : 0)
+    ),
+    gmManageBundle.getString("uninstallButtonRemoveScript"), // 0
+    gmManageBundle.getString("uninstallButtonCancel"), // 1
+    gmManageBundle.getString("uninstallButtonRemoveScriptAndPrefs"), // 2
+    null, {}
+  );
+
+  if (choice == 2) GM_prefRoot.remove(selectedScript.prefBranch);
+
+  if (choice != 1) config.uninstall(selectedScript);
 }
 
 function populateChooser() {

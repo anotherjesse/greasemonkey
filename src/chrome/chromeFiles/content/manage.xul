@@ -58,9 +58,6 @@
           <hbox>
             <button id="btnUninstall"
               label="&manage.label.btnUninstall;" />
-            <checkbox id="chkUninstallPrefs"
-              label="&manage.label.chkUninstall;"
-              checked="false" />
           </hbox>
         </vbox>
       </row>
