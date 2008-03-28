@@ -76,18 +76,21 @@ function GM_log(message, force) {
   }
 }
 
-function GM_openUserScriptManager() {
+function GM_openUserScriptManager(parentWindow) {
   var win = Components.classes["@mozilla.org/appshell/window-mediator;1"]
                       .getService(Components.interfaces.nsIWindowMediator)
                       .getMostRecentWindow("Greasemonkey:Manage");
   if (win) {
     win.focus();
   } else {
-    var parentWindow = (!window.opener || window.opener.closed) ?
-      window : window.opener;
-    parentWindow.openDialog("chrome://greasemonkey/content/manage.xul",
-      "_blank", "resizable,dialog=no,centerscreen");
+    parentWindow.openDialog("chrome://greasemonkey/content/manage.xul", "",
+      "chrome,resizable,dialog=no,centerscreen");
   }
+}
+
+function GM_openNewUserScriptDialog(parentWindow) {
+  parentWindow.openDialog("chrome://greasemonkey/content/newscript.xul", "",
+    "chrome,dependent,centerscreen,resizable,dialog");
 }
 
 // TODO: this stuff was copied wholesale and not refactored at all. Lots of

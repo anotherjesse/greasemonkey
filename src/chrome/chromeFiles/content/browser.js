@@ -540,13 +540,7 @@ GM_BrowserUI.refreshStatus = function() {
 };
 
 GM_BrowserUI.newUserScript = function() {
-  var windowWatcher = Components
-    .classes["@mozilla.org/embedcomp/window-watcher;1"]
-    .getService(Components.interfaces.nsIWindowWatcher);
-  windowWatcher.openWindow(
-    window, "chrome://greasemonkey/content/newscript.xul", null,
-    "chrome,dependent,centerscreen,resizable,dialog", null
-  );
+  GM_openNewUserScriptDialog(window);
 };
 
 GM_BrowserUI.showStatus = function(message, autoHide) {
@@ -652,7 +646,7 @@ GM_BrowserUI.viewContextItemClicked = function() {
 };
 
 GM_BrowserUI.manageMenuItemClicked = function() {
-   GM_openUserScriptManager();
+   GM_openUserScriptManager(window);
 };
 
 //loggify(GM_BrowserUI, "GM_BrowserUI");

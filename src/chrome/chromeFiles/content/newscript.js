@@ -10,9 +10,12 @@ window.addEventListener("load", function() {
       GM_prefRoot.getValue("newscript_namespace", "");
 
   // default the includes with the current page's url
-  document.getElementById("includes").value =
-      window.opener.document.getElementById("content").selectedBrowser
-      .contentWindow.location.href;
+  var win = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+                      .getService(Components.interfaces.nsIWindowMediator)
+                      .getMostRecentWindow("navigator:browser");
+  if (win) {
+    document.getElementById("includes").value = win.content.location.href;
+  }
 }, false);
 
 ////////////////////////////////// functions ///////////////////////////////////
