@@ -64,7 +64,7 @@ end
 `cp browser.xul ./build/content/`
 `cp ../license.txt ./build/`
 `cp ../chrome/chromeFiles/content/accelimation.js ./build/content/`
-`cp ../chrome/chromeFiles/content/config.js ./build/content/`
+#`cp ../chrome/chromeFiles/content/config.js ./build/content/`
 `cp ../chrome/chromeFiles/content/convert2RegExp.js ./build/content/`
 `cp ../chrome/chromeFiles/content/default-config.xml ./build/content/`
 `cp ../chrome/chromeFiles/content/menucommander.js ./build/content/`
@@ -73,7 +73,7 @@ end
 `cp ../chrome/chromeFiles/content/utils.js ./build/content/`
 `cp ../chrome/chromeFiles/content/xmlhttprequester.js ./build/content/`
 `cp ../chrome/chromeFiles/content/scriptdownloader.js ./build/content/`
-`cp ../chrome/chromeFiles/content/versioning.js ./build/content/`
+#`cp ../chrome/chromeFiles/content/versioning.js ./build/content/`
 
 scriptmeta = File.open('./build/content/scriptmeta.js', "w")
 scriptmeta << "var XPI_SCRIPTS = [\n"

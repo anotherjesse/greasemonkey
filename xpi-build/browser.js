@@ -307,7 +307,7 @@ GM_BrowserUI.QueryInterface = function(aIID) {
 GM_BrowserUI.init = function() {
   this.menuCommanders = [];
   this.currentMenuCommander = null;
-  GM_updateVersion();
+//  GM_updateVersion();
   GM_listen(window, "load", GM_hitch(this, "chromeLoad"));
   GM_listen(window, "unload", GM_hitch(this, "chromeUnload"));
 };
@@ -320,15 +320,15 @@ GM_BrowserUI.chromeLoad = function(e) {
   // get all required DOM elements
   this.tabBrowser = document.getElementById("content");
   this.appContent = document.getElementById("appcontent");
-  this.contextMenu = document.getElementById("contentAreaContextMenu");
-  this.generalMenuEnabledItem = document.getElementById("gm-general-menu-enabled-item");
-  this.toolsMenu = document.getElementById("menu_ToolsPopup");
-  this.bundle = document.getElementById("gm-browser-bundle");
+  this.contextMenu = {};//document.getElementById("contentAreaContextMenu");
+  this.generalMenuEnabledItem = {};//document.getElementById("gm-general-menu-enabled-item");
+  this.toolsMenu = {};//document.getElementById("menu_ToolsPopup");
+  this.bundle = {};//document.getElementById("gm-browser-bundle");
 
   // seamonkey compat
-  if (!this.toolsMenu) {
+/*  if (!this.toolsMenu) {
     this.toolsMenu = document.getElementById("taskPopup");
-  }
+  }*/
 
   // songbird compat
   if (!this.appContent && this.tabBrowser) {
@@ -418,7 +418,7 @@ GM_BrowserUI.contentLoad = function(e) {
  * User Script Commands submenu.
  */
 GM_BrowserUI.onLocationChange = function(a,b,c) {
-  if (this.currentMenuCommander != null) {
+/*  if (this.currentMenuCommander != null) {
     this.currentMenuCommander.detach();
     this.currentMenuCommander = null;
   }
@@ -429,7 +429,7 @@ GM_BrowserUI.onLocationChange = function(a,b,c) {
   if (menuCommander) {
     this.currentMenuCommander = menuCommander;
     //this.currentMenuCommander.attach();
-  }
+  }*/
 };
 
 /**
@@ -532,11 +532,11 @@ GM_BrowserUI.isMyWindow = function(domWindow) {
 
 function GM_showGeneralPopup(aEvent) {
   // set the enabled/disabled state
-  GM_BrowserUI.generalMenuEnabledItem.setAttribute("checked", GM_getEnabled());
+//  GM_BrowserUI.generalMenuEnabledItem.setAttribute("checked", GM_getEnabled());
 };
 
 function GM_showPopup(aEvent) {
-  var config = new Config();
+/*  var config = new Config();
   config.load();
   var popup = aEvent.target;
   var url = getBrowser().contentWindow.document.location.href;
@@ -580,7 +580,7 @@ function GM_showPopup(aEvent) {
     }
   }
 
-  document.getElementById("gm-status-no-scripts").collapsed = foundInjectedScript;
+  document.getElementById("gm-status-no-scripts").collapsed = foundInjectedScript;*/
 };
 
 /**
