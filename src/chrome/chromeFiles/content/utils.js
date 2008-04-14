@@ -171,27 +171,24 @@ function getEditor(stringBundle) {
 }
 
 function launchApplicationWithDoc(appFile, docFile) {
+  var args=[docFile.path];
+
+  // For the mac, wrap with a call to "open".
   var xulRuntime = Components.classes["@mozilla.org/xre/app-info;1"]
                              .getService(Components.interfaces.nsIXULRuntime);
-  // See Mozilla bug: https://bugzilla.mozilla.org/show_bug.cgi?id=411819
-  // TODO: remove this when nsIMIMEInfo works on windows again.
-  if (xulRuntime.OS.toLowerCase().substring(0, 3) == "win") {
-    var process = Components.classes["@mozilla.org/process/util;1"]
-                            .createInstance(Components.interfaces.nsIProcess);
-    process.init(appFile);
-    process.run(false, // blocking
-                [docFile.path], // args
-                1); // number of args
-  } else {
-    var mimeInfoService =
-        Components.classes["@mozilla.org/uriloader/external-helper-app-service;1"]
-                  .getService(Components.interfaces.nsIMIMEService);
-    var mimeInfo = mimeInfoService.getFromTypeAndExtension(
-        "application/x-userscript+javascript", "user.js" );
-    mimeInfo.preferredAction = mimeInfo.useHelperApp;
-    mimeInfo.preferredApplicationHandler = appFile;
-    mimeInfo.launchWithFile(docFile);
+  if ("Darwin"==xulRuntime.OS) {
+    args=["-a", appFile.path, docFile.path]
+
+    appFile = Components.classes["@mozilla.org/file/local;1"]
+                        .createInstance(Components.interfaces.nsILocalFile);
+    appFile.followLinks = true;
+    appFile.initWithPath("/usr/bin/open");
   }
+
+  var process = Components.classes["@mozilla.org/process/util;1"]
+                          .createInstance(Components.interfaces.nsIProcess);
+  process.init(appFile);
+  process.run(false, args, args.length);
 }
 
 function parseScriptName(sourceUri) {
@@ -272,23 +269,6 @@ function GM_getUriFromFile(file) {
   return Components.classes["@mozilla.org/network/io-service;1"]
                    .getService(Components.interfaces.nsIIOService)
                    .newFileURI(file);
-}
-
-function getContentDir() {
-  var reg = Components.classes["@mozilla.org/chrome/chrome-registry;1"]
-                      .getService(Components.interfaces.nsIChromeRegistry);
-
-  var ioSvc = Components.classes["@mozilla.org/network/io-service;1"]
-                        .getService(Components.interfaces.nsIIOService);
-
-  var proto = Components.classes["@mozilla.org/network/protocol;1?name=file"]
-                        .getService(Components.interfaces.nsIFileProtocolHandler);
-
-  var chromeURL = ioSvc.newURI("chrome://greasemonkey/content", null, null);
-  var fileURL = reg.convertChromeURL(chromeURL);
-  var file = proto.getFileFromURLSpec(fileURL.spec).parent;
-
-  return file
 }
 
 /**
