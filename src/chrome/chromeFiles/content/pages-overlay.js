@@ -1,142 +1,123 @@
-function PagesControl(ctlPages) {
-  var includesBox = new PagesBox(document.getElementById("grpIncluded"));
-  var excludesBox = new PagesBox(document.getElementById("grpExcluded"));
-
-  this.notifyEvent = function(script, event, data) {
+var gPagesControl = {
+  notifyEvent: function(script, event, data) {
     switch (event) {
-    case "edit-include-add": includesBox.pageAdded(data); break;
-    case "edit-include-remove": includesBox.pageRemoved(data); break;
-    case "edit-exclude-add": excludesBox.pageAdded(data); break;
-    case "edit-exclude-remove": excludesBox.pageRemoved(data); break;
+    case "edit-include-add":
+      this.includes.push(data);
+      this.treeView.treebox.rowCountChanged(this.excludes.length + this.includes.length - 1, 1);
+      break;
+    case "edit-include-remove":
+      this.includes.splice(data, 1);
+      this.treeView.treebox.rowCountChanged(this.excludes.length + data, -1);
+      break;
+    case "edit-exclude-add":
+      this.excludes.push(data);
+      this.treeView.treebox.rowCountChanged(this.excludes.length - 1, 1);
+      break;
+    case "edit-exclude-remove":
+      this.excludes.splice(data, 1);
+      this.treeView.treebox.rowCountChanged(data, -1);
+      break;
     }
-  };
+  },
 
-  this.script = null;
-  this.populate = function(script) {
+  script: null,
+
+  populate: function(script) {
     this.clear();
-    includesBox.populate(script, "includes", script.includes);
-    excludesBox.populate(script, "excludes", script.excludes);
+    this.includes = script.includes;
+    this.excludes = script.excludes;
     this.script = script;
     this.script.addObserver(this);
-  };
+    document.getElementById("pagesTree").view = this.treeView;
 
-  this.clear = function() {
+    var gmManageBundle = document.getElementById("gm-manage-bundle");
+    var wmi = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+                        .getService(Components.interfaces.nsIWindowMediator);
+    var win = wmi.getMostRecentWindow("navigator:browser");
+    var currentSite = GM_isGreasemonkeyable(win.content.location.href)
+                      ? win.content.location.protocol + "//" +
+                        win.content.location.hostname + "/*"
+                      : gmManageBundle.getString("promptForNewPage.defVal");
+    document.getElementById("locationBox").value = currentSite;
+
+    this.onLocationInput();
+    this.onTreeSelect();
+  },
+
+  clear: function() {
     if (this.script == null) return;
     this.script.removeObserver(this);
-    includesBox.clear();
-    excludesBox.clear();
     this.script = null;
-  };
+  },
 
-  function PagesBox(grpBox) {
-    var buttons = grpBox.getElementsByTagName("button");
-    var self = this;
-    var selectedPage = null;
+  onLocationInput: function() {
+    document.getElementById("btnExclude").disabled =
+    document.getElementById("btnInclude").disabled =
+    !GM_isGreasemonkeyable(document.getElementById("locationBox").value);
+  },
 
-    this.script = null;
-    this.type = null;
-    this.groupbox = grpBox;
-    this.listbox = grpBox.getElementsByTagName("listbox")[0];
-    this.btnAdd = buttons[0];
-    this.btnEdit = buttons[1]; 
-    this.btnRemove = buttons[2];
+  onTreeSelect: function() {
+    document.getElementById("btnRemove").disabled =
+    !this.treeView.selection.getRangeCount();
+  },
 
-    this.listbox.addEventListener("select", updatePagesBox, true);
-    this.btnAdd.addEventListener("command", promptForNewPage, true);
-    this.btnEdit.addEventListener("command", promptForEdit, true);
-    this.btnRemove.addEventListener("command", remove, true);
+  addPage: function(type) {
+    var val = document.getElementById("locationBox").value;
+    if(type == "include")
+      this.script.addInclude(val);
+    else
+      this.script.addExclude(val);
+  },
 
-    this.populate = function(script, type, pages) {
-      this.clear();
-      this.script = script;
-      this.type = type;
+  removeSelectedPages: function() {
+    var start = {};
+    var end = {};
+    var numRanges = this.treeView.selection.getRangeCount();
 
-      for (var i = 0, page = null; (page = pages[i]); i++) {
-        addPage(page);
-      }
-    };
-
-    this.clear = function() {
-      this.script = null;
-      this.type = null;
-
-      while (this.listbox.hasChildNodes()) {
-        this.listbox.removeChild(this.listbox.childNodes[0]);
-      }
-    };
-
-    function updatePagesBox(ev) {
-      selectedPage = self.listbox.getSelectedItem(0);
-      self.btnEdit.disabled = selectedPage == null;
-      self.btnRemove.disabled = selectedPage == null;
-    }
-
-    function promptForNewPage(ev) {
-      var gmManageBundle = document.getElementById("gm-manage-bundle");
-      var wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-                  .getService();
-      var wmi = wm.QueryInterface(Components.interfaces.nsIWindowMediator);
-      var win = wmi.getMostRecentWindow("navigator:browser");
-      var currentSite = GM_isGreasemonkeyable(win.content.location.href)
-                        ? win.content.location.protocol + "//" +
-                          win.content.location.hostname + "/*"
-                        : gmManageBundle.getString("promptForNewPage.defVal");
-      var val = gmPrompt(
-        gmManageBundle.getString("promptForNewPage.msg"),
-        currentSite,
-        gmManageBundle.getString("promptForNewPage.title"));
-
-      if (val && val != "") {
-        self.type == "includes" ?
-          self.script.addInclude(val):
-          self.script.addExclude(val);
-        dirty = true;
+    // Loop backwards to not mess up indexes while removing
+    for (var t = numRanges - 1; t >= 0; t--) {
+      this.treeView.selection.getRangeAt(t, start, end);
+      for (var v = end.value; v >= start.value; v--) {
+        // remove the page
+        var page = this.getPageFromRow(v);
+        switch (page.type) {
+        case "include": this.script.removeIncludeAt(page.index); break;
+        case "exclude": this.script.removeExcludeAt(page.index); break;
+        }
+        // allow user to edit the page and then re-add
+        document.getElementById("locationBox").value = page.value;
       }
     }
+  },
 
-    function promptForEdit(ev) { 
-      var gmManageBundle = document.getElementById("gm-manage-bundle"); 
-      var val = gmPrompt(
-        gmManageBundle.getString("promptForEdit.msg"),
-        self.listbox.selectedItem.label,
-        gmManageBundle.getString("promptForEdit.title"));
- 
-      if (val && val != "") {
-        self.type == "includes" ?
-          self.script.removeIncludeAt(self.listbox.selectedIndex):
-          self.script.removeExcludeAt(self.listbox.selectedIndex);
-        self.type == "includes" ?
-          self.script.addInclude(val):
-          self.script.addExclude(val);
- 
-        dirty = true; 
-      }
-    };
+  getPageFromRow: function(row) {
+    if (row < this.excludes.length)
+      return {type: "exclude", index: row, value: this.excludes[row]};
+    else
+      return {type: "include", index: row - this.excludes.length,
+              value: this.includes[row - this.excludes.length]};
+  },
 
-    this.pageAdded = function(val) {
-      addPage(val);
-    };
+  treeView: {
+    get rowCount() {
+      return gPagesControl.includes.length + gPagesControl.excludes.length;
+    },
 
-    function remove(ev) {
-      self.type == "includes" ?
-        self.script.removeIncludeAt(self.listbox.selectedIndex):
-        self.script.removeExcludeAt(self.listbox.selectedIndex);
+    getCellText: function(row, column) {
+      if (column.id == "colStatus")
+        return gPagesControl.getPageFromRow(row).type;
+      else
+        return gPagesControl.getPageFromRow(row).value;
+    },
 
-      // it's sorta wierd that the button stays focused when it is disabled because nothing is selected
-      if (self.listbox.length == 0) {
-        self.listbox.focus();
-        dirty = true;
-      }
-    }
-
-    this.pageRemoved= function(index) {
-      self.listbox.removeChild(self.listbox.childNodes[index]);
-    };
-
-    function addPage(pageSpec) {
-      var listitem = document.createElement("listitem");
-      listitem.setAttribute("label", pageSpec);
-      self.listbox.appendChild(listitem);
-    }
+    setTree: function(treebox){ this.treebox = treebox; },
+    isContainer: function(row){ return false; },
+    isSeparator: function(row){ return false; },
+    isSorted: function(){ return false; },
+    getLevel: function(row){ return 0; },
+    getImageSrc: function(row,col){ return null; },
+    getRowProperties: function(row,props){},
+    getCellProperties: function(row,col,props){},
+    getColumnProperties: function(colid,col,props){}
   }
 }

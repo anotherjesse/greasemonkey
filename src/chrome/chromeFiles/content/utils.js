@@ -353,9 +353,13 @@ function delayalert(s) {
 }
 
 function GM_isGreasemonkeyable(url) {
-  var scheme = Components.classes["@mozilla.org/network/io-service;1"]
-               .getService(Components.interfaces.nsIIOService)
-               .extractScheme(url);
+  try {
+    var scheme = Components.classes["@mozilla.org/network/io-service;1"]
+                 .getService(Components.interfaces.nsIIOService)
+                 .extractScheme(url);
+  } catch (e) {
+    return false;
+  }
 
   return (scheme == "http" || scheme == "https" || scheme == "file" ||
           scheme == "ftp" || url.match(/^about:cache/)) &&

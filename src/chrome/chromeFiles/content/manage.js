@@ -63,7 +63,7 @@ function loadControls() {
   description = document.getElementById("ctlDescription");
   btnEdit = document.getElementById("btnEdit");
   btnUninstall = document.getElementById("btnUninstall");
-  pagesControl = new PagesControl(document.getElementById("pages-control"));
+  pagesControl = gPagesControl;
   chkEnabled = document.getElementById("chkEnabled");
 
   listbox.addEventListener("select", function() { updateDetails(); }, false);

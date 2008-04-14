@@ -10,50 +10,32 @@
   <script type="application/x-javascript" src="chrome://greasemonkey/content/pages-overlay.js" />
 
   <vbox id="pages-control">
-    <groupbox id="grpIncluded"
-      orient="vertical"
-      flex="1"
-    >
-      <caption label="&manage.label.grpIncluded;" />
-      <hbox
-        style="margin-bottom:.5em"
-        flex="1"
-      >
-        <listbox flex="1" />
-        <vbox>
-          <button
-            label="&manage.button.add;" />
-          <button
-            label="&manage.button.edit;" 
-            disabled="true" /> 
-          <button 
-            label="&manage.button.remove;"
-            disabled="true" />
-          <spacer flex="1" />
-        </vbox>
+    <groupbox orient="vertical" flex="1">
+      <caption label="&manage.label.grpPages;"/>
+      <description>&pages.description;</description>
+      <label value="&pages.location.label;" accesskey="&pages.location.accesskey;"
+             control="locationBox"/>
+      <textbox id="locationBox" oninput="gPagesControl.onLocationInput();"/>
+      <hbox>
+        <spacer flex="1"/>
+        <button id="btnExclude" label="&pages.button.exclude.label;"
+                accesskey="&pages.button.exclude.accesskey;"
+                oncommand="gPagesControl.addPage('exclude');"/>
+        <button id="btnInclude" label="&pages.button.include.label;"
+                accesskey="&pages.button.include.accesskey;"
+                oncommand="gPagesControl.addPage('include');" default="true"/>
       </hbox>
-    </groupbox>
-
-    <groupbox id="grpExcluded"
-      orient="vertical"
-      flex="1"
-    >
-      <caption label="&manage.label.grpExcluded;" />
-      <hbox
-        style="margin-bottom:.5em"
-        flex="1"
-      >
-        <listbox flex="1" />
-        <vbox>
-          <button
-            label="&manage.button.add;" />
-          <button 
-            label="&manage.button.edit;" 
-            disabled="true" /> 
-          <button label="&manage.button.remove;"
-            disabled="true" />
-          <spacer flex="1" />
-        </vbox>
+      <tree id="pagesTree" flex="1" style="min-height: 5em" onselect="gPagesControl.onTreeSelect();">
+        <treecols>
+          <treecol id="colStatus" label="&pages.column.status.label;"/>
+          <treecol id="colPage" label="&pages.column.page.label;" flex="1"/>
+        </treecols>
+        <treechildren/>
+      </tree>
+      <hbox>
+        <button id="btnRemove" label="&pages.button.remove.label;"
+                accesskey="&pages.button.remove.accesskey;" oncommand="gPagesControl.removeSelectedPages();"/>
+        <spacer flex="1"/>
       </hbox>
     </groupbox>
   </vbox>

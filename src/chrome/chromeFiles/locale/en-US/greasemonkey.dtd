@@ -1,14 +1,21 @@
 <!ENTITY manage.title "Manage User Scripts">
 <!ENTITY manage.button.close "Close">
-<!ENTITY manage.button.add "Add...">
-<!ENTITY manage.button.edit "Edit...">
-<!ENTITY manage.button.remove "Remove">
-<!ENTITY manage.label.grpIncluded "Included Pages">
-<!ENTITY manage.label.grpExcluded "Excluded Pages">
+<!ENTITY manage.label.grpPages "Included and Excluded Pages">
 <!ENTITY manage.label.btnEdit "Edit">
 <!ENTITY manage.label.chkEnabled "Enabled">
 <!ENTITY manage.label.btnUninstall "Uninstall">
 <!ENTITY manage.reorderHelp "Drag-and-drop with the mouse or press Alt-Up/Alt-Down to reorder scripts in this list.">
+<!ENTITY pages.description "You can specify on which web pages this user script will be used. Type the exact location of the web page you want to manage and then click Include or Exclude. You can use * as a wild card.">
+<!ENTITY pages.location.label "Location of page:">
+<!ENTITY pages.location.accesskey "L">
+<!ENTITY pages.button.include.label "Include">
+<!ENTITY pages.button.include.accesskey "I">
+<!ENTITY pages.button.exclude.label "Exclude">
+<!ENTITY pages.button.exclude.accesskey "E">
+<!ENTITY pages.button.remove.label "Remove Page">
+<!ENTITY pages.button.remove.accesskey "R">
+<!ENTITY pages.column.status.label "Status">
+<!ENTITY pages.column.page.label "Page">
 <!ENTITY menu.install "Install User Script...">
 <!ENTITY menu.install.accesskey "I">
 <!ENTITY menu.show "View User Script Source">
