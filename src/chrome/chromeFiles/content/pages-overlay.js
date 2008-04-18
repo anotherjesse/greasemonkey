@@ -1,21 +1,32 @@
+window.addEventListener("load", function(ev) {
+  var gmManageBundle = document.getElementById("gm-manage-bundle");
+  var defaultSite = gmManageBundle.getString("promptForNewPage.defVal");
+  document.getElementById("locationBox").value = GM_getCurrentSite() || defaultSite;
+  gPagesControl.onLocationInput();
+}, false);
+
+window.addEventListener("unload", function(ev) {
+  gPagesControl.clear(); // Don't leak observers
+}, false);
+
 var gPagesControl = {
   notifyEvent: function(script, event, data) {
     switch (event) {
     case "edit-include-add":
       this.includes.push(data);
-      this.treeView.treebox.rowCountChanged(this.excludes.length + this.includes.length - 1, 1);
+      this.treeView.treebox.rowCountChanged(this.getRowFromPage('include', this.includes.length - 1), 1);
       break;
     case "edit-include-remove":
       this.includes.splice(data, 1);
-      this.treeView.treebox.rowCountChanged(this.excludes.length + data, -1);
+      this.treeView.treebox.rowCountChanged(this.getRowFromPage('include', data), -1);
       break;
     case "edit-exclude-add":
       this.excludes.push(data);
-      this.treeView.treebox.rowCountChanged(this.excludes.length - 1, 1);
+      this.treeView.treebox.rowCountChanged(this.getRowFromPage('exclude', this.excludes.length - 1), 1);
       break;
     case "edit-exclude-remove":
       this.excludes.splice(data, 1);
-      this.treeView.treebox.rowCountChanged(data, -1);
+      this.treeView.treebox.rowCountChanged(this.getRowFromPage('exclude', data), -1);
       break;
     }
   },
@@ -28,19 +39,8 @@ var gPagesControl = {
     this.excludes = script.excludes;
     this.script = script;
     this.script.addObserver(this);
+
     document.getElementById("pagesTree").view = this.treeView;
-
-    var gmManageBundle = document.getElementById("gm-manage-bundle");
-    var wmi = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-                        .getService(Components.interfaces.nsIWindowMediator);
-    var win = wmi.getMostRecentWindow("navigator:browser");
-    var currentSite = GM_isGreasemonkeyable(win.content.location.href)
-                      ? win.content.location.protocol + "//" +
-                        win.content.location.hostname + "/*"
-                      : gmManageBundle.getString("promptForNewPage.defVal");
-    document.getElementById("locationBox").value = currentSite;
-
-    this.onLocationInput();
     this.onTreeSelect();
   },
 
@@ -96,6 +96,14 @@ var gPagesControl = {
     else
       return {type: "include", index: row - this.excludes.length,
               value: this.includes[row - this.excludes.length]};
+  },
+
+  getRowFromPage: function(type, index) {
+    switch (type) {
+    case 'include': return this.excludes.length + index;
+    case 'exclude': return index;
+    default: throw new Error('Unknown page type');
+    }
   },
 
   treeView: {

@@ -93,6 +93,20 @@ function GM_openNewUserScriptDialog(parentWindow) {
     "chrome,dependent,centerscreen,resizable,dialog");
 }
 
+function GM_getCurrentSite() {
+  var win = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+                      .getService(Components.interfaces.nsIWindowMediator)
+                      .getMostRecentWindow("navigator:browser");
+
+  if (win) {
+    var location = win.content.location;
+    if (GM_isGreasemonkeyable(location.href)) {
+      return location.protocol + "//" + location.hostname + "/*";
+    }
+  }
+  return null;
+}
+
 // TODO: this stuff was copied wholesale and not refactored at all. Lots of
 // the UI and Config rely on it. Needs rethinking.
 

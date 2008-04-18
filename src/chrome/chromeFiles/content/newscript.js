@@ -10,15 +10,7 @@ window.addEventListener("load", function() {
       GM_prefRoot.getValue("newscript_namespace", "");
 
   // default the includes with the current page's url
-  var win = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-                      .getService(Components.interfaces.nsIWindowMediator)
-                      .getMostRecentWindow("navigator:browser");
-  if (win) {
-    var url = win.content.location.href;
-    if (GM_isGreasemonkeyable(url)) {
-      document.getElementById("includes").value = url;
-    }
-  }
+  document.getElementById("includes").value = GM_getCurrentSite() || "*";
 }, false);
 
 ////////////////////////////////// functions ///////////////////////////////////

@@ -12,7 +12,6 @@ window.addEventListener("load", function(ev) {
 }, false);
 
 window.addEventListener("unload", function(ev) {
-  pagesControl.clear();
   config.removeObserver(observer);
 }, false);
 
@@ -55,7 +54,6 @@ var observer = {
 
 var listbox, header, description, chkEnabled, btnEdit, btnUninstall;
 var selectedScript;
-var pagesControl;
 
 function loadControls() {
   listbox = document.getElementById("lstScripts");
@@ -63,7 +61,6 @@ function loadControls() {
   description = document.getElementById("ctlDescription");
   btnEdit = document.getElementById("btnEdit");
   btnUninstall = document.getElementById("btnUninstall");
-  pagesControl = gPagesControl;
   chkEnabled = document.getElementById("chkEnabled");
 
   listbox.addEventListener("select", function() { updateDetails(); }, false);
@@ -81,7 +78,7 @@ function updateDetails() {
     header.textContent = " ";
     description.textContent = " ";
     chkEnabled.checked = true;
-    pagesControl.clear();
+    gPagesControl.clear();
   } else {
     selectedScript = listbox.getSelectedItem(0).script;
 
@@ -101,7 +98,7 @@ function updateDetails() {
     header.textContent = selectedScript.name;
     description.textContent = desc;
     chkEnabled.checked = selectedScript.enabled;
-    pagesControl.populate(selectedScript);
+    gPagesControl.populate(selectedScript);
   }
 }
 
