@@ -1,8 +1,5 @@
 /////////////////////////////// global variables ///////////////////////////////
 
-var config = new Config();
-config.load();
-
 var bundle = null;
 window.addEventListener("load", function() {
   // init the global string bundle
@@ -30,37 +27,31 @@ function doInstall() {
   foStream.write(script, script.length);
   foStream.close();
 
+  var config = GM_getConfig();
+
   // create a script object with parsed metadata,
-  // via the script downloader object
-  var sd = new ScriptDownloader(null, tempFile, null);
-  sd.parseScript(script, tempFile);
-  script = sd.script;
+  script = config.parse(script, tempFile);
 
   // make sure entered details will not ruin an existing file
-  var existingIndex = config.find(script.namespace, script.name);
-  if (existingIndex > -1) {
+  if (config.installIsUpdate(script)) {
     var overwrite = confirm(bundle.getString("newscript.exists"));
     if (!overwrite) return false;
   }
 
   // finish making the script object ready to install
-  script.file = tempFile;
-  config.initFilename(script);
+  script.setDownloadedFile(tempFile);
 
   // install this script
   config.install(script);
 
   // and fire up the editor!
-  openInEditor(
-    getScriptFile(script),
-    document.getElementById("gm-browser-bundle").getString("editor.prompt")
-  );
+  openInEditor(script);
 
   // persist namespace value
   GM_prefRoot.setValue("newscript_namespace", script.namespace);
 
   return true;
-};
+}
 
 // assemble the XUL fields into a script template
 function createScriptSource() {
@@ -106,4 +97,4 @@ function createScriptSource() {
   script = script.join("\n");
 
   return script;
-};
+}

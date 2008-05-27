@@ -14,7 +14,7 @@ function alert(msg) {
   Cc["@mozilla.org/embedcomp/prompt-service;1"]
     .getService(Ci.nsIPromptService)
     .alert(null, "Greasemonkey alert", msg);
-};
+}
 
 // Examines the stack to determine if an API should be callable.
 function GM_apiLeakCheck(apiName) {
@@ -24,8 +24,12 @@ function GM_apiLeakCheck(apiName) {
     // Valid stack frames for GM api calls are: native and js when coming from
     // chrome:// URLs and the greasemonkey.js component's file:// URL.
     if (2 == stack.language) {
-      if ('chrome' != stack.filename.substr(0, 6) &&
-          gmSvcFilename != stack.filename) {
+      // NOTE: In FF 2.0.0.0, I saw that stack.filename can be null for JS/XPCOM
+      // services. This didn't happen in FF 2.0.0.11; I'm not sure when it
+      // changed.
+      if (stack.filename != null &&
+          stack.filename != gmSvcFilename &&
+          stack.filename.substr(0, 6) != "chrome") {
         GM_logError(new Error("Greasemonkey access violation: unsafeWindow " +
                     "cannot call " + apiName + "."));
         return false;
@@ -36,10 +40,15 @@ function GM_apiLeakCheck(apiName) {
   } while (stack);
 
   return true;
-};
+}
 
 var greasemonkeyService = {
-
+  _config: null,
+  get config() {
+    if (!this._config)
+      this._config = new Config();
+    return this._config;
+  },
   browserWindows: [],
   updater: null,
 
@@ -130,10 +139,6 @@ var greasemonkeyService = {
 
     Cc["@mozilla.org/moz/jssubscript-loader;1"]
       .getService(Ci.mozIJSSubScriptLoader)
-      .loadSubScript("chrome://greasemonkey/content/versioning.js");
-
-    Cc["@mozilla.org/moz/jssubscript-loader;1"]
-      .getService(Ci.mozIJSSubScriptLoader)
       .loadSubScript("chrome://greasemonkey/content/config.js");
 
     Cc["@mozilla.org/moz/jssubscript-loader;1"]
@@ -158,16 +163,16 @@ var greasemonkeyService = {
   shouldLoad: function(ct, cl, org, ctx, mt, ext) {
     var ret = Ci.nsIContentPolicy.ACCEPT;
 
-    // don't intercept anything when GM is not enabled
-    if (!GM_getEnabled()) {
-      return ret;
-    }
-
     // block content detection of greasemonkey by denying GM
     // chrome content, unless loaded from chrome
     if (org && org.scheme != "chrome" && cl.scheme == "chrome" &&
-        decodeURI(cl.host) == "greasemonkey") {
+        cl.host == "greasemonkey") {
       return Ci.nsIContentPolicy.REJECT_SERVER;
+    }
+
+    // don't intercept anything when GM is not enabled
+    if (!GM_getEnabled()) {
+      return ret;
     }
 
     // don't interrupt the view-source: scheme
@@ -225,36 +230,11 @@ var greasemonkeyService = {
   },
 
   initScripts: function(url) {
-    var config = new Config();
-    var scripts = [];
-    config.load();
-
-    outer:
-    for (var i = 0; i < config.scripts.length; i++) {
-      var script = config.scripts[i];
-      if (script.enabled) {
-        for (var j = 0; j < script.includes.length; j++) {
-          var pattern = convert2RegExp(script.includes[j]);
-
-          if (pattern.test(url)) {
-            for (var k = 0; k < script.excludes.length; k++) {
-              pattern = convert2RegExp(script.excludes[k]);
-
-              if (pattern.test(url)) {
-                continue outer;
-              }
-            }
-
-            scripts.push(script);
-
-            continue outer;
-          }
-        }
-      }
+    function testMatch(script) {
+      return script.enabled && script.matchesURL(url);
     }
 
-    log("* number of matching scripts: " + scripts.length);
-    return scripts;
+    return GM_getConfig().getMatchingScripts(testMatch);
   },
 
   injectScripts: function(scripts, url, unsafeContentWin, chromeWin) {
@@ -307,40 +287,34 @@ var greasemonkeyService = {
 
       sandbox.__proto__ = safeWin;
 
-      var contents = getContents(getScriptFileURI(script))
+      var contents = script.textContent;
 
       var requires = [];
       var offsets = [];
       var offset = 0;
 
       script.requires.forEach(function(req){
-        var uri = getDependencyFileURI(script, req);
-        var contents = getContents(uri);
+        var contents = req.textContent;
         var lineCount = contents.split("\n").length;
-        requires.push(getContents(uri));
+        requires.push(contents);
         offset += lineCount;
         offsets.push(offset);
       })
       script.offsets = offsets;
 
-      var scriptSrc = "(function(){\n" +
+      var scriptSrc = "\n" + // error line-number calculations depend on these
                          requires.join("\n") +
                          "\n" +
                          contents +
-                         "\n})()";
-      this.evalInSandbox(scriptSrc,
-                         url,
-                         sandbox,
-                         script);
+                         "\n";
+      if (!this.evalInSandbox(scriptSrc, url, sandbox, script))
+        this.evalInSandbox("(function(){"+ scriptSrc +"})()",
+                           url, sandbox, script);
     }
   },
 
   registerMenuCommand: function(unsafeContentWin, commandName, commandFunc,
                                 accelKey, accelModifiers, accessKey) {
-    if (!GM_apiLeakCheck("GM_registerMenuCommand")) {
-      return;
-    }
-
     var command = {name: commandName,
                    accelKey: accelKey,
                    accelModifiers: accelModifiers,
@@ -354,10 +328,6 @@ var greasemonkeyService = {
   },
 
   openInTab: function(unsafeContentWin, url) {
-    if (!GM_apiLeakCheck("GM_openInTab")) {
-      return;
-    }
-
     var unsafeTop = new XPCNativeWrapper(unsafeContentWin, "top").top;
 
     for (var i = 0; i < this.browserWindows.length; i++) {
@@ -375,6 +345,9 @@ var greasemonkeyService = {
         var lineFinder = new Error();
         Components.utils.evalInSandbox(code, sandbox);
       } catch (e) {
+        if ("return not in function" == e.message) // pre-0.8 GM compat:
+          return false; // this script depends on the function enclosure
+
         // try to find the line of the actual error line
         var line = e.lineNumber;
         if (4294967295 == line) {
@@ -401,12 +374,13 @@ var greasemonkeyService = {
           GM_logError(
             e, // error obj
             0, // 0 = error (1 = warning)
-            getScriptFileURI(script).spec,
+            script.fileURL,
             0
           );
         }
       }
     }
+    return true; // did not need a (function() {...})() enclosure.
   },
 
   findError: function(script, lineNumber){
@@ -417,7 +391,7 @@ var greasemonkeyService = {
       end = script.offsets[i];
       if (lineNumber < end) {
         return {
-          uri: getDependencyFileURI(script, script.requires[i]).spec,
+          uri: script.requires[i].fileURL,
           lineNumber: (lineNumber - start)
         };
       }
@@ -425,7 +399,7 @@ var greasemonkeyService = {
     }
 
     return {
-      uri: getScriptFileURI(script).spec,
+      uri: script.fileURL,
       lineNumber: (lineNumber - end)
     };
   },
@@ -517,7 +491,7 @@ Factory.createInstance = function(outer, iid) {
 
 function NSGetModule(compMgr, fileSpec) {
   return Module;
-};
+}
 
 //loggify(Module, "greasemonkeyService:Module");
 //loggify(Factory, "greasemonkeyService:Factory");
