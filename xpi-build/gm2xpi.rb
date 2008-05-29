@@ -48,7 +48,7 @@ def FindReplace(path,find,replace)
 		result << line
 	end
 	file.close
-	result.gsub! /#{find}/, replace
+	result.gsub! /#{Regexp.escape(find)}/, replace
 	file = File.open(path, "w")
 	file << result
 	file.flush
@@ -66,7 +66,7 @@ end
 `cp ../chrome/chromeFiles/content/accelimation.js ./build/content/`
 #`cp ../chrome/chromeFiles/content/config.js ./build/content/`
 `cp ../chrome/chromeFiles/content/convert2RegExp.js ./build/content/`
-`cp ../chrome/chromeFiles/content/default-config.xml ./build/content/`
+#`cp ../chrome/chromeFiles/content/default-config.xml ./build/content/`
 `cp ../chrome/chromeFiles/content/menucommander.js ./build/content/`
 `cp ../chrome/chromeFiles/content/miscapis.js ./build/content/`
 `cp ../chrome/chromeFiles/content/prefmanager.js ./build/content/`
@@ -127,6 +127,18 @@ FindReplace './build/install.rdf', 'HOMEPAGE', ARGV[1]
 FindReplace './build/install.rdf', 'VERSION', ARGV[2]
 FindReplace './build/install.rdf', 'GUID', ARGV[3] 
 FindReplace './build/install.rdf', 'DESCRIPTION', description
+FindReplace './build/content/utils.js', 'function GM_getUriFromFile(file) {
+  return Components.classes["@mozilla.org/network/io-service;1"]
+                   .getService(Components.interfaces.nsIIOService)
+                   .newFileURI(file);
+}', 'function GM_getUriFromFile(file) {
+  try {
+     var a = Components.classes["@mozilla.org/network/io-service;1"]
+                   .getService(Components.interfaces.nsIIOService)
+                   .newFileURI(file);
+  } catch (e) {return file;}
+  return a;
+}'
 
 `cd ./build/ && zip -r ../#{xpiname}.xpi * && cd ..`
-`rm -rf ./build/`
+#`rm -rf ./build/`

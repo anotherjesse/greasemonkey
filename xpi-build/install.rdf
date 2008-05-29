@@ -50,6 +50,12 @@
       </Description>
     </em:targetApplication>
 
+    <em:file>
+      <Description about="urn:mozilla:extension:file:greasemonkey">
+        <em:package>content/</em:package>
+      </Description>
+    </em:file>
+
   </Description>
 
 </RDF>
