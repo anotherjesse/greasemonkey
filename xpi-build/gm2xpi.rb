@@ -141,4 +141,4 @@ FindReplace './build/content/utils.js', 'function GM_getUriFromFile(file) {
 }'
 
 `cd ./build/ && zip -r ../#{xpiname}.xpi * && cd ..`
-#`rm -rf ./build/`
+`rm -rf ./build/`
