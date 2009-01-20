@@ -40,14 +40,29 @@ Config.prototype = {
     return this._find(script);
   },
 
+  /**
+   * Find an installed script, by (namespace;name) or downloadURL
+   */
   _find: function(aScript) {
     var namespace = aScript._namespace ?
                     aScript._namespace.toLowerCase() : null;
     var name = aScript._name ? aScript._name.toLowerCase() : null;
     // Search in the scripts index
-    if (namespace && name && this._scriptsIdx[namespace]
-        && this._scriptsIdx[namespace][name])
-      return this._scriptsIdx[namespace][name];
+    if (namespace && name)
+      if (this._scriptsIdx[namespace] && this._scriptsIdx[namespace][name])
+        return this._scriptsIdx[namespace][name];
+    // Search by downloadURL (only useful for dependencies)
+    var downloadURL = aScript._downloadURL;
+    if (!downloadURL)
+      return null;
+    for (var i in this._scripts) {
+      var script = this._scripts[i];
+      if (script._downloadURL!=downloadURL)
+        continue;
+//      if (namespace && name)
+//        throw new Error("Different (namespace;name), same downloadURL");
+      return script;
+    }
     return null;
   },
 
@@ -113,6 +128,10 @@ Config.prototype = {
         nameIdx = this._scriptsIdx[namespace] = {};
       nameIdx[name] = script;
     }
+
+    // Init modules
+    for (var i in this._scripts)
+      this._scripts[i]._module.init(this);
   },
 
   _save: function() {
@@ -304,6 +323,8 @@ Config.prototype = {
     if (existing)
       this.uninstall(existing, false);
 
+    script._module.init(this);
+
     script._initFile(script._tempFile);
     script._tempFile = null;
 
@@ -332,6 +353,7 @@ Config.prototype = {
   uninstall: function(script, uninstallPrefs) {
     var idx = this._scripts.indexOf(script);
     this._scripts.splice(idx, 1);
+
     // Remove script from index
     var namespace = script._namespace.toLowerCase();
     var name = script._name.toLowerCase();
@@ -673,6 +695,16 @@ function ScriptModule(script) {
 }
 
 ScriptModule.prototype = {
+  init: function(config) {
+    for (var i in this.dependencies) {
+      var dep = this.dependencies[i];
+      var module = dep.init(config);
+      if (!module) {
+        // missing dependency
+      }
+    }
+  },
+
   addDependency: function(dep) {
     // assert resourceName is unique
     var name = dep.resourceName;
@@ -700,13 +732,33 @@ ScriptModule.prototype = {
  * Script dependency
  */
 function ScriptDependency() {
+  this.dependency = null;
   this.resourceName = null;
+  this._name = null;
+  this._namespace = null;
   this._downloadURL = null;
 }
 
 ScriptDependency.prototype = {
+  init: function(config) {
+    var script = config._find(this);
+    if (!script)
+      return null;
+    // Link with dependency
+    var module = script._module;
+    this.dependency = module;
+    // Complete missing info
+    if (this._name && this._namespace)
+      return module;
+    this._name = script._name;
+    this._namespace = script._namespace;
+    return module;
+  },
+
   load: function(node) {
     this.resourceName = node.getAttribute("resourceName");
+    this._name = node.getAttribute("name");
+    this._namespace = node.getAttribute("namespace");
     this._downloadURL = node.getAttribute("downloadURL");
   },
 
@@ -714,6 +766,11 @@ ScriptDependency.prototype = {
     var node = doc.createElement("Depend");
     if (this.resourceName)
       node.setAttribute("resourceName", this.resourceName);
+    if (this._name && this._namespace) {
+      node.setAttribute("name", this._name);
+      node.setAttribute("namespace", this._namespace);
+      return node;
+    }
     node.setAttribute("downloadURL", this._downloadURL);
     return node;
   },
