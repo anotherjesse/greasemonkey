@@ -1,5 +1,6 @@
 function Config() {
   this._scripts = null;
+  this._scriptsIdx = {};
   this._configFile = this._scriptDir;
   this._configFile.append("config.xml");
   this._initScriptDir();
@@ -40,16 +41,13 @@ Config.prototype = {
   },
 
   _find: function(aScript) {
-    namespace = aScript._namespace.toLowerCase();
-    name = aScript._name.toLowerCase();
-
-    for (var i = 0, script; script = this._scripts[i]; i++) {
-      if (script._namespace.toLowerCase() == namespace
-        && script._name.toLowerCase() == name) {
-        return script;
-      }
-    }
-
+    var namespace = aScript._namespace ?
+                    aScript._namespace.toLowerCase() : null;
+    var name = aScript._name ? aScript._name.toLowerCase() : null;
+    // Search in the scripts index
+    if (namespace && name && this._scriptsIdx[namespace]
+        && this._scriptsIdx[namespace][name])
+      return this._scriptsIdx[namespace][name];
     return null;
   },
 
@@ -102,6 +100,13 @@ Config.prototype = {
       script._downloadURL = node.getAttribute("downloadURL");
 
       this._scripts.push(script);
+      // Populate scripts index
+      var namespace = script._namespace.toLowerCase();
+      var name = script._name.toLowerCase();
+      var nameIdx = this._scriptsIdx[namespace];
+      if (!nameIdx)
+        nameIdx = this._scriptsIdx[namespace] = {};
+      nameIdx[name] = script;
     }
   },
 
@@ -299,6 +304,14 @@ Config.prototype = {
     }
 
     this._scripts.push(script);
+    // Add script to index
+    var namespace = script._namespace.toLowerCase();
+    var name = script._name.toLowerCase();
+    var nameIdx = this._scriptsIdx[namespace];
+    if (!nameIdx)
+      nameIdx = this._scriptsIdx[namespace] = {};
+    nameIdx[name] = script;
+
     this._changed(script, "install", null);
 
     GM_log("< Config.install");
@@ -307,6 +320,17 @@ Config.prototype = {
   uninstall: function(script, uninstallPrefs) {
     var idx = this._scripts.indexOf(script);
     this._scripts.splice(idx, 1);
+    // Remove script from index
+    var namespace = script._namespace.toLowerCase();
+    var name = script._name.toLowerCase();
+    var nameIdx = this._scriptsIdx[namespace];
+    nameIdx[name] = null;
+    var empty = true;
+    for (var s in nameIdx)
+      if (nameIdx[s]) {
+        empty = false;
+        break;
+      }
     this._changed(script, "uninstall", null);
 
     // watch out for cases like basedir="." and basedir="../gm_scripts"
