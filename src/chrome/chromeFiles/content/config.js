@@ -1,5 +1,6 @@
 function Config() {
   this._scripts = null;
+  this._runnable = null;
   this._scriptsIdx = {};
   this._configFile = this._scriptDir;
   this._configFile.append("config.xml");
@@ -439,14 +440,26 @@ Config.prototype = {
   },
 
   _resolveDep: function() {
+    // init modules
     var scripts = this.scripts;
     for (var i in scripts)
       scripts[i]._module.init(this);
+    // resolve dependency order
     for (var i in scripts)
       scripts[i]._module.resolveDep();
+    // build runnable scripts array
+    var runnable = this.scripts;
+    for (var i=0; i<runnable.length;) {
+      if (runnable[i].enabled)
+        i++;
+      else
+        runnable.splice(i, 1);
+    }
+    this._runnable = runnable;
   },
 
   get scripts() { return this._scripts.concat(); },
+  get runnable() { return this._runnable.concat(); },
   getMatchingScripts: function(testFunc) { return this._scripts.filter(testFunc); },
 
   /**
@@ -747,8 +760,10 @@ ScriptModule.prototype = {
       this.resourceNames[name] = true;
     }
     // assert it's not there already
-    if (this.dependencies.indexOf(dep)<0)
+    if (this.dependencies.indexOf(dep)<0) {
       this.dependencies.push(dep);
+      dep.module = this;
+    }
   },
 
   addDependent: function(dep) {
@@ -760,6 +775,11 @@ ScriptModule.prototype = {
     var idx = this.dependents.indexOf(dep);
     if (idx>=0)
       this.dependents.splice(idx, 1);
+  },
+
+  removeBrokenDeps: function(runnable) {
+    for (var i in this.dependents)
+      this.dependents[i].removeBrokenDep(runnable);
   },
 
   resolveDep: function(parents, top) {
@@ -813,6 +833,7 @@ ScriptModule.prototype = {
  * Script dependency
  */
 function ScriptDependency() {
+  this.module = null;
   this.dependency = null;
   this.resourceName = null;
   this._name = null;
@@ -840,6 +861,14 @@ ScriptDependency.prototype = {
 
   clear: function() {
     this.dependency = null;
+  },
+
+  removeBrokenDep: function(runnable) {
+    var idx = runnable.indexOf(this.module.script);
+    if (idx<0)
+      return;
+    runnable.splice(idx, 1);
+    this.module.removeBrokenDeps(runnable);
   },
 
   load: function(node) {

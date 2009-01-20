@@ -208,11 +208,17 @@ var greasemonkeyService = {
   },
 
   initScripts: function(url) {
-    function testMatch(script) {
-      return script._module.enabled && script.matchesURL(url);
+    var runnable = GM_getConfig().runnable;
+    for (var i=0; i<runnable.length;) {
+      var script = runnable[i];
+      if (script.matchesURL(url)) {
+        i++;
+        continue;
+      }
+      runnable.splice(i, 1);
+      script._module.removeBrokenDeps(runnable);
     }
-
-    return GM_getConfig().getMatchingScripts(testMatch);
+    return runnable;
   },
 
   injectScripts: function(scripts, url, unsafeContentWin, chromeWin) {
