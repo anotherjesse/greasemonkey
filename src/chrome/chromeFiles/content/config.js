@@ -129,9 +129,7 @@ Config.prototype = {
       nameIdx[name] = script;
     }
 
-    // Init modules
-    for (var i in this._scripts)
-      this._scripts[i]._module.init(this);
+    this._resolveDep();
   },
 
   _save: function() {
@@ -345,6 +343,7 @@ Config.prototype = {
       nameIdx = this._scriptsIdx[namespace] = {};
     nameIdx[name] = script;
 
+    this._resolveDep();
     this._changed(script, "install", null);
 
     GM_log("< Config.install");
@@ -366,6 +365,8 @@ Config.prototype = {
         empty = false;
         break;
       }
+
+    this._resolveDep();
     this._changed(script, "uninstall", null);
 
     // watch out for cases like basedir="." and basedir="../gm_scripts"
@@ -435,6 +436,14 @@ Config.prototype = {
       configStream.write(xml, xml.length);
       configStream.close();
     }
+  },
+
+  _resolveDep: function() {
+    var scripts = this.scripts;
+    for (var i in scripts)
+      scripts[i]._module.init(this);
+    for (var i in scripts)
+      scripts[i]._module.resolveDep();
   },
 
   get scripts() { return this._scripts.concat(); },
@@ -694,16 +703,21 @@ function ScriptModule(script) {
   this.dependencies = [];
   this.dependents = [];
   this.resourceNames = {};
+  this.enabled = true;
 }
 
 ScriptModule.prototype = {
   init: function(config) {
+    this.enabled = this.script._enabled;
+    if (!this.enabled)
+      return;
     for (var i in this.dependencies) {
       var dep = this.dependencies[i];
       var module = dep.init(config);
       if (!module) {
         // missing dependency
-        continue;
+        this.enabled = false;
+        return;
       }
       module.addDependent(dep);
     }
@@ -748,6 +762,45 @@ ScriptModule.prototype = {
       this.dependents.splice(idx, 1);
   },
 
+  resolveDep: function(parents, top) {
+    if (!this.enabled)
+      return false;
+    // assert we're not our own parent (dodge infinite loops)
+    if (parents) {
+      if (parents.indexOf(this)>-1) {
+        this.enabled = false;
+        return false;
+      }
+    } else
+      parents = [];
+    // Move in front of the top node
+    if (top) {
+      var scripts = this.script._config._scripts;
+      var tidx = scripts.indexOf(top.script);
+      var idx = scripts.indexOf(this.script);
+      if (tidx<idx) {
+        scripts.splice(idx, 1);
+        scripts.splice(tidx, 0, this.script);
+        top = this;
+      }
+    } else
+      top = this;
+    // Move dependencies above us
+    if (this.dependencies.length==0)
+      return true;
+    parents.push(this);
+    var idx = parents.length;
+    for (var i in this.dependencies) {
+      var module = this.dependencies[i].dependency;
+      if (module && module.resolveDep(parents, top))
+        continue;
+      this.enabled = false;
+      break;
+    }
+    parents.splice(idx, 1);
+    return this.enabled;
+  },
+
   save: function(scriptNode, doc) {
     for (var d in this.dependencies) {
       scriptNode.appendChild(doc.createTextNode("\n\t\t"));
@@ -769,6 +822,8 @@ function ScriptDependency() {
 
 ScriptDependency.prototype = {
   init: function(config) {
+    if (this.dependency)
+      return this.dependency;
     var script = config._find(this);
     if (!script)
       return null;

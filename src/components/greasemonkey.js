@@ -209,7 +209,7 @@ var greasemonkeyService = {
 
   initScripts: function(url) {
     function testMatch(script) {
-      return script.enabled && script.matchesURL(url);
+      return script._module.enabled && script.matchesURL(url);
     }
 
     return GM_getConfig().getMatchingScripts(testMatch);
