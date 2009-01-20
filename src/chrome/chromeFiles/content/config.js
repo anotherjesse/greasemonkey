@@ -36,7 +36,7 @@ Config.prototype = {
   },
 
   installIsUpdate: function(script) {
-    return this._find(script) > -1;
+    return this._find(script);
   },
 
   _find: function(aScript) {
@@ -46,11 +46,11 @@ Config.prototype = {
     for (var i = 0, script; script = this._scripts[i]; i++) {
       if (script._namespace.toLowerCase() == namespace
         && script._name.toLowerCase() == name) {
-        return i;
+        return script;
       }
     }
 
-    return -1;
+    return null;
   },
 
   _load: function() {
@@ -283,10 +283,9 @@ Config.prototype = {
   install: function(script) {
     GM_log("> Config.install");
 
-    var existingIndex = this._find(script);
-    if (existingIndex > -1) {
-      this.uninstall(this._scripts[existingIndex], false);
-    }
+    var existing = this._find(script);
+    if (existing)
+      this.uninstall(existing, false);
 
     script._initFile(script._tempFile);
     script._tempFile = null;
@@ -306,7 +305,7 @@ Config.prototype = {
   },
 
   uninstall: function(script, uninstallPrefs) {
-    var idx = this._find(script);
+    var idx = this._scripts.indexOf(script);
     this._scripts.splice(idx, 1);
     this._changed(script, "uninstall", null);
 
