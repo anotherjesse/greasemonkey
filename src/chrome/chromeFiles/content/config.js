@@ -351,6 +351,7 @@ Config.prototype = {
   },
 
   uninstall: function(script, uninstallPrefs) {
+    script._module.destroy();
     var idx = this._scripts.indexOf(script);
     this._scripts.splice(idx, 1);
 
@@ -691,6 +692,7 @@ ScriptResource.prototype = {
 function ScriptModule(script) {
   this.script = script;
   this.dependencies = [];
+  this.dependents = [];
   this.resourceNames = {};
 }
 
@@ -701,8 +703,23 @@ ScriptModule.prototype = {
       var module = dep.init(config);
       if (!module) {
         // missing dependency
+        continue;
       }
+      module.addDependent(dep);
     }
+  },
+
+  destroy: function() {
+    // clean dependencies
+    for (var i in this.dependencies) {
+      var dep = this.dependencies[i];
+      var module = dep.dependency;
+      if (module)
+        module.removeDependent(dep);
+    }
+    // update dependents
+    for (var i in this.dependents)
+      this.dependents[i].clear();
   },
 
   addDependency: function(dep) {
@@ -718,6 +735,17 @@ ScriptModule.prototype = {
     // assert it's not there already
     if (this.dependencies.indexOf(dep)<0)
       this.dependencies.push(dep);
+  },
+
+  addDependent: function(dep) {
+    if (this.dependents.indexOf(dep)<0)
+      this.dependents.push(dep);
+  },
+
+  removeDependent: function(dep) {
+    var idx = this.dependents.indexOf(dep);
+    if (idx>=0)
+      this.dependents.splice(idx, 1);
   },
 
   save: function(scriptNode, doc) {
@@ -753,6 +781,10 @@ ScriptDependency.prototype = {
     this._name = script._name;
     this._namespace = script._namespace;
     return module;
+  },
+
+  clear: function() {
+    this.dependency = null;
   },
 
   load: function(node) {
