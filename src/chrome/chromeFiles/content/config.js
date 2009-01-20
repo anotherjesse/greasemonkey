@@ -99,6 +99,7 @@ Config.prototype = {
       script._description = node.getAttribute("description");
       script._enabled = node.getAttribute("enabled") == true.toString();
       script._basedir = node.getAttribute("basedir") || ".";
+      script._downloadURL = node.getAttribute("downloadURL");
 
       this._scripts.push(script);
     }
@@ -164,6 +165,8 @@ Config.prototype = {
       scriptNode.setAttribute("description", scriptObj._description);
       scriptNode.setAttribute("enabled", scriptObj._enabled);
       scriptNode.setAttribute("basedir", scriptObj._basedir);
+      if (scriptObj._downloadURL)
+        scriptNode.setAttribute("downloadURL", scriptObj._downloadURL);
 
       doc.firstChild.appendChild(doc.createTextNode("\n\t"));
       doc.firstChild.appendChild(scriptNode);
@@ -420,7 +423,7 @@ function Script(config) {
   this._config = config;
   this._observers = [];
 
-  this._downloadURL = null; // Only for scripts not installed
+  this._downloadURL = null;
   this._tempFile = null; // Only for scripts not installed
   this._basedir = null;
   this._filename = null;
