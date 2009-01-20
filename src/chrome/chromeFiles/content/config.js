@@ -72,6 +72,11 @@ Config.prototype = {
         case "Exclude":
           script._excludes.push(childNode.firstChild.nodeValue);
           break;
+        case "Depend":
+          var scriptDepend = new ScriptDependency();
+          scriptDepend.load(childNode);
+          script._module.addDependency(scriptDepend);
+          break;
         case "Require":
           var scriptRequire = new ScriptRequire(script);
           scriptRequire._filename = childNode.getAttribute("filename");
@@ -131,6 +136,8 @@ Config.prototype = {
         scriptNode.appendChild(doc.createTextNode("\n\t\t"));
         scriptNode.appendChild(excludeNode);
       }
+
+      scriptObj._module.save(scriptNode, doc);
 
       for (var j = 0; j < scriptObj._requires.length; j++) {
         var req = scriptObj._requires[j];
@@ -234,6 +241,11 @@ Config.prototype = {
               break;
             case "exclude":
               script._excludes.push(value);
+              break;
+            case "depend":
+              var scriptDepend = new ScriptDependency();
+              scriptDepend.parse(match[2], ioservice, uri);
+              script._module.addDependency(scriptDepend);
               break;
             case "require":
               var reqUri = ioservice.newURI(value, null, uri);
@@ -457,6 +469,7 @@ function Script(config) {
   this._enabled = true;
   this._includes = [];
   this._excludes = [];
+  this._module = new ScriptModule(this);
   this._requires = [];
   this._resources = [];
   this._unwrap = false;
@@ -649,3 +662,71 @@ ScriptResource.prototype = {
     this._charset = charset;
   }
 };
+
+/*
+ * Encapsulates module related features
+ */
+function ScriptModule(script) {
+  this.script = script;
+  this.dependencies = [];
+  this.resourceNames = {};
+}
+
+ScriptModule.prototype = {
+  addDependency: function(dep) {
+    // assert resourceName is unique
+    var name = dep.resourceName;
+    if (name) {
+      if (this.resourceNames[name]==true)
+        throw new Error("Duplicate resource name '"+ name +"' detected in "+
+          "script '"+ this.script._name +"' ("+ this.script._namespace +"). "+
+          "Dependency resource names must be unique within a script.");
+      this.resourceNames[name] = true;
+    }
+    // assert it's not there already
+    if (this.dependencies.indexOf(dep)<0)
+      this.dependencies.push(dep);
+  },
+
+  save: function(scriptNode, doc) {
+    for (var d in this.dependencies) {
+      scriptNode.appendChild(doc.createTextNode("\n\t\t"));
+      scriptNode.appendChild(this.dependencies[d].save(doc));
+    }
+  }
+}
+
+/*
+ * Script dependency
+ */
+function ScriptDependency() {
+  this.resourceName = null;
+  this._downloadURL = null;
+}
+
+ScriptDependency.prototype = {
+  load: function(node) {
+    this.resourceName = node.getAttribute("resourceName");
+    this._downloadURL = node.getAttribute("downloadURL");
+  },
+
+  save: function(doc) {
+    var node = doc.createElement("Depend");
+    if (this.resourceName)
+      node.setAttribute("resourceName", this.resourceName);
+    node.setAttribute("downloadURL", this._downloadURL);
+    return node;
+  },
+
+  parse: function(str, io, uri) {
+    var res = str.match(/(\S+)(\s+(\S+))?/);
+    // resourceName is optional
+    if (res.length==4) {
+      this.resourceName = res[1];
+      this._downloadURL = io.newURI(res[3], null, uri).spec;
+      return;
+    }
+    this._downloadURL = io.newURI(res[1], null, uri).spec;
+  }
+};
+
