@@ -273,6 +273,22 @@ var greasemonkeyService = {
 
       sandbox.__proto__ = safeWin;
 
+      // include modules API
+      var module = script._module;
+      sandbox.GM_api = module.api;
+      for (var r in module.resourceNames) {
+        if (sandbox[r]!=null)
+          continue;
+        var dep = module.resourceNames[r];
+        if (!dep.dependency)
+          continue;
+        var api = dep.dependency.api;
+        var tmp = {};
+        for (var e in api)
+          tmp[e] = api[e];
+        sandbox[r] = tmp;
+      }
+
       var contents = script.textContent;
 
       var requires = [];

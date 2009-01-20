@@ -716,6 +716,7 @@ function ScriptModule(script) {
   this.dependencies = [];
   this.dependents = [];
   this.resourceNames = {};
+  this.api = {};
   this.enabled = true;
 }
 
@@ -753,11 +754,11 @@ ScriptModule.prototype = {
     // assert resourceName is unique
     var name = dep.resourceName;
     if (name) {
-      if (this.resourceNames[name]==true)
+      if (this.resourceNames[name])
         throw new Error("Duplicate resource name '"+ name +"' detected in "+
           "script '"+ this.script._name +"' ("+ this.script._namespace +"). "+
           "Dependency resource names must be unique within a script.");
-      this.resourceNames[name] = true;
+      this.resourceNames[name] = dep;
     }
     // assert it's not there already
     if (this.dependencies.indexOf(dep)<0) {
