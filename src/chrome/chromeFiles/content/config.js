@@ -137,6 +137,7 @@ Config.prototype = {
     var doc = Components.classes["@mozilla.org/xmlextras/domparser;1"]
       .createInstance(Components.interfaces.nsIDOMParser)
       .parseFromString("<UserScriptConfig></UserScriptConfig>", "text/xml");
+    this._resolveDep();
 
     for (var i = 0, scriptObj; scriptObj = this._scripts[i]; i++) {
       var scriptNode = doc.createElement("Script");
@@ -450,7 +451,7 @@ Config.prototype = {
     // build runnable scripts array
     var runnable = this.scripts;
     for (var i=0; i<runnable.length;) {
-      if (runnable[i].enabled)
+      if (runnable[i]._module.enabled)
         i++;
       else
         runnable.splice(i, 1);
