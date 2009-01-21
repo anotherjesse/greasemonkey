@@ -81,24 +81,26 @@ Config.prototype = {
       var script = new Script(this);
 
       for (var i = 0, childNode; childNode = node.childNodes[i]; i++) {
-        switch (childNode.nodeName) {
-        case "Include":
+        switch (childNode.nodeName.toLowerCase()) {
+        case "include":
           script._includes.push(childNode.firstChild.nodeValue);
           break;
-        case "Exclude":
+        case "exclude":
           script._excludes.push(childNode.firstChild.nodeValue);
           break;
-        case "Depend":
-          var scriptDepend = new ScriptDependency();
+        case DEP_LABELS[0]:
+        case DEP_LABELS[1]:
+        case DEP_LABELS[2]:
+          var scriptDepend = new ScriptDependency(childNode.nodeName);
           scriptDepend.load(childNode);
           script._module.addDependency(scriptDepend);
           break;
-        case "Require":
+        case "require":
           var scriptRequire = new ScriptRequire(script);
           scriptRequire._filename = childNode.getAttribute("filename");
           script._requires.push(scriptRequire);
           break;
-        case "Resource":
+        case "resource":
           var scriptResource = new ScriptResource(script);
           scriptResource._name = childNode.getAttribute("name");
           scriptResource._filename = childNode.getAttribute("filename");
@@ -106,7 +108,7 @@ Config.prototype = {
           scriptResource._charset = childNode.getAttribute("charset");
           script._resources.push(scriptResource);
           break;
-        case "Unwrap":
+        case "unwrap":
           script._unwrap = true;
           break;
         }
@@ -261,8 +263,10 @@ Config.prototype = {
             case "exclude":
               script._excludes.push(value);
               break;
-            case "depend":
-              var scriptDepend = new ScriptDependency();
+            case DEP_LABELS[0]:
+            case DEP_LABELS[1]:
+            case DEP_LABELS[2]:
+              var scriptDepend = new ScriptDependency(header);
               scriptDepend.parse(match[2], ioservice, uri);
               script._module.addDependency(scriptDepend);
               break;
@@ -812,13 +816,11 @@ ScriptModule.prototype = {
       return true;
     parents.push(this);
     var idx = parents.length;
-    for (var i in this.dependencies) {
-      var module = this.dependencies[i].dependency;
-      if (module && module.resolveDep(parents, top))
-        continue;
-      this.enabled = false;
-      break;
-    }
+    for (var i in this.dependencies)
+      if (!this.dependencies[i].resolveDep(parents, top)) {
+        this.enabled = false;
+        break;
+      }
     parents.splice(idx, 1);
     return this.enabled;
   },
@@ -834,7 +836,13 @@ ScriptModule.prototype = {
 /*
  * Script dependency
  */
-function ScriptDependency() {
+const EXT_DEPEND  = 0;
+const EXT_USE     = 1;
+const EXT_SUGGEST = 2;
+const DEP_LABELS  = ["depend", "use", "suggest"];
+
+function ScriptDependency(type) {
+  this.type = DEP_LABELS.indexOf(type.toLowerCase());
   this.module = null;
   this.dependency = null;
   this.resourceName = null;
@@ -866,11 +874,22 @@ ScriptDependency.prototype = {
   },
 
   removeBrokenDep: function(runnable) {
+    if (this.type>EXT_DEPEND)
+      return;
     var idx = runnable.indexOf(this.module.script);
     if (idx<0)
       return;
     runnable.splice(idx, 1);
     this.module.removeBrokenDeps(runnable);
+  },
+
+  resolveDep: function(parents, top) {
+    if (!this.dependency)
+      return this.type==EXT_SUGGEST;
+    var ok = this.dependency.resolveDep(parents, top);
+    if (this.type==EXT_SUGGEST)
+      return true;
+    return ok;
   },
 
   load: function(node) {
@@ -881,7 +900,7 @@ ScriptDependency.prototype = {
   },
 
   save: function(doc) {
-    var node = doc.createElement("Depend");
+    var node = doc.createElement(DEP_LABELS[this.type]);
     if (this.resourceName)
       node.setAttribute("resourceName", this.resourceName);
     if (this._name && this._namespace) {
