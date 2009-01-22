@@ -276,17 +276,25 @@ var greasemonkeyService = {
       // include modules API
       var module = script._module;
       sandbox.GM_api = module.api;
-      for (var r in module.resourceNames) {
-        if (sandbox[r]!=null)
-          continue;
-        var dep = module.resourceNames[r];
-        if (!dep.dependency)
+      for (var d in module.dependencies) {
+        var dep = module.dependencies[d];
+        var name = dep.resourceName;
+        if (!name || !dep.dependency
+            || scripts.indexOf(dep.dependency.script)<0)
           continue;
         var api = dep.dependency.api;
-        var tmp = {};
-        for (var e in api)
-          tmp[e] = api[e];
-        sandbox[r] = tmp;
+        try {
+          var wrapper = sandbox[name];
+          if (!wrapper)
+            wrapper = {};
+          for (var e in api)
+            wrapper[e] = api[e];
+          sandbox[name] = wrapper;
+        } catch (err) {
+          GM_logError(
+            new Error("'"+name+"' is not a valid @"+dep.label+" resource name"),
+            0, script.fileURL, 0);
+        }
       }
 
       var contents = script.textContent;

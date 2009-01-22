@@ -720,7 +720,6 @@ function ScriptModule(script) {
   this.script = script;
   this.dependencies = [];
   this.dependents = [];
-  this.resourceNames = {};
   this.api = {};
   this.enabled = true;
 }
@@ -756,16 +755,6 @@ ScriptModule.prototype = {
   },
 
   addDependency: function(dep) {
-    // assert resourceName is unique
-    var name = dep.resourceName;
-    if (name) {
-      if (this.resourceNames[name])
-        throw new Error("Duplicate resource name '"+ name +"' detected in "+
-          "script '"+ this.script._name +"' ("+ this.script._namespace +"). "+
-          "Dependency resource names must be unique within a script.");
-      this.resourceNames[name] = dep;
-    }
-    // assert it's not there already
     if (this.dependencies.indexOf(dep)<0) {
       this.dependencies.push(dep);
       dep.module = this;
@@ -869,6 +858,8 @@ ScriptDependency.prototype = {
     return module;
   },
 
+  get label() { return DEP_LABELS[this.type]; },
+
   clear: function() {
     this.dependency = null;
   },
@@ -900,7 +891,7 @@ ScriptDependency.prototype = {
   },
 
   save: function(doc) {
-    var node = doc.createElement(DEP_LABELS[this.type]);
+    var node = doc.createElement(this.label);
     if (this.resourceName)
       node.setAttribute("resourceName", this.resourceName);
     if (this._name && this._namespace) {
