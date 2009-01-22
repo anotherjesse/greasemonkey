@@ -283,18 +283,17 @@ var greasemonkeyService = {
             || scripts.indexOf(dep.dependency.script)<0)
           continue;
         var api = dep.dependency.api;
+        var wrapper;
         try {
-          var wrapper = sandbox[name];
+          wrapper = sandbox[name];
           if (!wrapper)
             wrapper = {};
-          for (var e in api)
-            wrapper[e] = api[e];
-          sandbox[name] = wrapper;
         } catch (err) {
-          GM_logError(
-            new Error("'"+name+"' is not a valid @"+dep.label+" resource name"),
-            0, script.fileURL, 0);
+          wrapper = {};
         }
+        for (var e in api)
+          wrapper[e] = api[e];
+        sandbox[name] = wrapper;
       }
 
       var contents = script.textContent;
