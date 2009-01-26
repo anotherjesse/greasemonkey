@@ -118,6 +118,8 @@ Config.prototype = {
       script._name = node.getAttribute("name");
       script._namespace = node.getAttribute("namespace");
       script._description = node.getAttribute("description");
+      script._module.library =
+                      node.getAttribute("library") == true.toString();
       script._enabled = node.getAttribute("enabled") == true.toString();
       script._basedir = node.getAttribute("basedir") || ".";
       script._downloadURL = node.getAttribute("downloadURL");
@@ -196,6 +198,7 @@ Config.prototype = {
       scriptNode.setAttribute("name", scriptObj._name);
       scriptNode.setAttribute("namespace", scriptObj._namespace);
       scriptNode.setAttribute("description", scriptObj._description);
+      scriptNode.setAttribute("library", scriptObj._module.library);
       scriptNode.setAttribute("enabled", scriptObj._enabled);
       scriptNode.setAttribute("basedir", scriptObj._basedir);
       if (scriptObj._downloadURL)
@@ -303,6 +306,9 @@ Config.prototype = {
           }
         } else { // plain @header
           switch (header) {
+            case "library":
+              script._module.library = true;
+              break;
             case "unwrap":
               script._unwrap = true;
               break;
@@ -454,10 +460,9 @@ Config.prototype = {
       scripts[i]._module.resolveDep();
     // build runnable scripts array
     var runnable = this.scripts;
-    for (var i=0; i<runnable.length;) {
-      if (runnable[i]._module.enabled)
-        i++;
-      else
+    for (var i=runnable.length-1; i>=0; i--) {
+      var module = runnable[i]._module;
+      if (!module.enabled || !module.isNeeded(runnable))
         runnable.splice(i, 1);
     }
     this._runnable = runnable;
@@ -718,6 +723,7 @@ ScriptResource.prototype = {
  */
 function ScriptModule(script) {
   this.script = script;
+  this.library = false;
   this.dependencies = [];
   this.dependents = [];
   this.api = {};
@@ -775,6 +781,18 @@ ScriptModule.prototype = {
   removeBrokenDeps: function(runnable) {
     for (var i in this.dependents)
       this.dependents[i].removeBrokenDep(runnable);
+  },
+
+  isNeeded: function(scripts) {
+    if (!this.library)
+      return true;
+    for (var i in this.dependents) {
+      var module = this.dependents[i].module;
+      if (module.enabled && scripts.indexOf(module.script)>-1 &&
+          module.isNeeded(scripts))
+        return true;
+    }
+    return false;
   },
 
   resolveDep: function(parents, top) {
@@ -865,7 +883,7 @@ ScriptDependency.prototype = {
   },
 
   removeBrokenDep: function(runnable) {
-    if (this.type>EXT_DEPEND)
+    if (!this.module.enabled || this.type>EXT_DEPEND)
       return;
     var idx = runnable.indexOf(this.module.script);
     if (idx<0)

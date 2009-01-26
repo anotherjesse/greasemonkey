@@ -209,14 +209,15 @@ var greasemonkeyService = {
 
   initScripts: function(url) {
     var runnable = GM_getConfig().runnable;
-    for (var i=0; i<runnable.length;) {
+    for (var i=runnable.length-1; i>=0; i--) {
       var script = runnable[i];
-      if (script.matchesURL(url)) {
-        i++;
+      if (!script.matchesURL(url)) {
+        runnable.splice(i, 1);
+        script._module.removeBrokenDeps(runnable);
         continue;
       }
-      runnable.splice(i, 1);
-      script._module.removeBrokenDeps(runnable);
+      if(!script._module.isNeeded(runnable))
+        runnable.splice(i, 1);
     }
     return runnable;
   },
