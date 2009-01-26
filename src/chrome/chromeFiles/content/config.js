@@ -462,7 +462,7 @@ Config.prototype = {
     var runnable = this.scripts;
     for (var i=runnable.length-1; i>=0; i--) {
       var module = runnable[i]._module;
-      if (!module.enabled || !module.isNeeded(runnable))
+      if (!module.injectable || !module.isNeeded(runnable))
         runnable.splice(i, 1);
     }
     this._runnable = runnable;
@@ -732,9 +732,7 @@ function ScriptModule(script) {
 
 ScriptModule.prototype = {
   init: function(config) {
-    this.enabled = this.script._enabled;
-    if (!this.enabled)
-      return;
+    this.enabled = true;
     for (var i in this.dependencies) {
       var dep = this.dependencies[i];
       var module = dep.init(config);
@@ -783,12 +781,16 @@ ScriptModule.prototype = {
       this.dependents[i].removeBrokenDep(runnable);
   },
 
+  get injectable() {
+    return this.script.enabled && this.enabled;
+  },
+
   isNeeded: function(scripts) {
     if (!this.library)
       return true;
     for (var i in this.dependents) {
       var module = this.dependents[i].module;
-      if (module.enabled && scripts.indexOf(module.script)>-1 &&
+      if (module.injectable && scripts.indexOf(module.script)>-1 &&
           module.isNeeded(scripts))
         return true;
     }
@@ -820,7 +822,7 @@ ScriptModule.prototype = {
       top = this;
     // Move dependencies above us
     if (this.dependencies.length==0)
-      return true;
+      return this.script.enabled;
     parents.push(this);
     var idx = parents.length;
     for (var i in this.dependencies)
@@ -829,7 +831,7 @@ ScriptModule.prototype = {
         break;
       }
     parents.splice(idx, 1);
-    return this.enabled;
+    return this.injectable;
   },
 
   save: function(scriptNode, doc) {
