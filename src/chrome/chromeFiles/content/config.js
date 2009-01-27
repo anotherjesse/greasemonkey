@@ -797,6 +797,16 @@ ScriptModule.prototype = {
     return false;
   },
 
+  before: function(idx) {
+    var scripts = this.script._config._scripts;
+    var from = scripts.indexOf(this.script);
+    if (!idx || idx>from)
+      return from;
+    scripts.splice(from, 1);
+    scripts.splice(idx, 0, this.script);
+    return idx;
+  },
+
   resolveDep: function(parents, top) {
     if (!this.enabled)
       return false;
@@ -808,19 +818,8 @@ ScriptModule.prototype = {
       }
     } else
       parents = [];
-    // Move in front of the top node
-    if (top) {
-      var scripts = this.script._config._scripts;
-      var tidx = scripts.indexOf(top.script);
-      var idx = scripts.indexOf(this.script);
-      if (tidx<idx) {
-        scripts.splice(idx, 1);
-        scripts.splice(tidx, 0, this.script);
-        top = this;
-      }
-    } else
-      top = this;
-    // Move dependencies above us
+    // Move in front of the top node and dependencies above us
+    top = this.before(top);
     if (this.dependencies.length==0)
       return this.script.enabled;
     parents.push(this);
