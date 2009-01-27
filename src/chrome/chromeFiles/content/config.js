@@ -803,7 +803,7 @@ ScriptModule.prototype = {
   before: function(idx) {
     var scripts = this.script._config._scripts;
     var from = scripts.indexOf(this.script);
-    if (!idx || idx>from)
+    if (idx==null || idx>from)
       return from;
     scripts.splice(from, 1);
     scripts.splice(idx, 0, this.script);
