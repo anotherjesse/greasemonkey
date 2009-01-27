@@ -18,39 +18,26 @@ window.addEventListener("unload", function(ev) {
 
 var observer = {
   notifyEvent: function(script, event, data) {
-    var node = null;
-    for (var i = 0, n; n = listbox.childNodes[i]; i++) {
-      n.style.color = n.script._module.injectable ? "" : "gray";
-      if (n.script == script)
-        node = n;
-    }
+    var selected = selectedScript;
+    var index = listbox.selectedIndex;
+    while (listbox.removeItemAt(0));
+    populateChooser();
 
     switch (event) {
     case "edit-enabled":
       if (script == selectedScript)
         chkEnabled.checked = data;
       break;
-    case "install":
-      addListitem(script, -1);
-      break;
     case "uninstall":
-      var selected = listbox.selectedItem == node;
-      listbox.removeChild(node);
-
-      if (selected && listbox.childNodes.length > 0) {
-        chooseScript(Math.max(Math.min(listbox.selectedIndex, listbox.childNodes.length - 1), 0));
-      }
-      break;
-    case "move":
-      listbox.removeChild(node);
-      listbox.insertBefore(node, listbox.childNodes[data]);
-      // then re-select the dropped script
-      listbox.selectedIndex = data;
-      break;
+      if (selected==script && listbox.childNodes.length)
+        chooseScript(Math.max(
+                       Math.min(index, listbox.childNodes.length - 1), 0));
+      return;
     }
 
-    // fix the listbox indexes
-    for (var i = 0, n = null; n = listbox.childNodes[i]; i++) n.index=i;
+    if (!selected)
+      return;
+    chooseScript(listbox.getIndexOfItem(selected.node));
   }
 };
 
@@ -128,6 +115,7 @@ function addListitem(script, i) {
   listitem.setAttribute("label", script.name);
   listitem.setAttribute("crop", "end");
   listitem.script = script;
+  script.node = listitem;
   listitem.index = i;
 
   if (!script._module.injectable) {

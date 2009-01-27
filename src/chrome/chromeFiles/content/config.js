@@ -510,6 +510,7 @@ Config.prototype = {
 function Script(config) {
   this._config = config;
   this._observers = [];
+  this.node = null;
 
   this._downloadURL = null;
   this._tempFile = null; // Only for scripts not installed
