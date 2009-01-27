@@ -19,13 +19,14 @@ window.addEventListener("unload", function(ev) {
 var observer = {
   notifyEvent: function(script, event, data) {
     var node = null;
-    for (var i = 0; node = listbox.childNodes[i]; i++)
-      if (node.script == script)
-        break;
+    for (var i = 0, n; n = listbox.childNodes[i]; i++) {
+      n.style.color = n.script._module.injectable ? "" : "gray";
+      if (n.script == script)
+        node = n;
+    }
 
     switch (event) {
     case "edit-enabled":
-      node.style.color = data ? "" : "gray";
       if (script == selectedScript)
         chkEnabled.checked = data;
       break;
@@ -101,6 +102,7 @@ function updateDetails() {
     header.textContent = selectedScript.name;
     description.textContent = desc;
     chkEnabled.checked = selectedScript.enabled;
+    chkEnabled.setAttribute("disabled", selectedScript._module.disabled);
     pagesControl.populate(selectedScript);
   }
 }
@@ -128,7 +130,7 @@ function addListitem(script, i) {
   listitem.script = script;
   listitem.index = i;
 
-  if (!script.enabled) {
+  if (!script._module.injectable) {
     listitem.style.color = "gray";
   }
 
