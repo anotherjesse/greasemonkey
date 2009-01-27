@@ -33,6 +33,7 @@ Config.prototype = {
   },
 
   _changed: function(script, event, data) {
+    this._resolveDep();
     this._save();
     this._notifyObservers(script, event, data);
   },
@@ -141,7 +142,6 @@ Config.prototype = {
     var doc = Components.classes["@mozilla.org/xmlextras/domparser;1"]
       .createInstance(Components.interfaces.nsIDOMParser)
       .parseFromString("<UserScriptConfig></UserScriptConfig>", "text/xml");
-    this._resolveDep();
 
     for (var i = 0, scriptObj; scriptObj = this._scripts[i]; i++) {
       var scriptNode = doc.createElement("Script");
@@ -355,7 +355,6 @@ Config.prototype = {
       nameIdx = this._scriptsIdx[namespace] = {};
     nameIdx[name] = script;
 
-    this._resolveDep();
     this._changed(script, "install", null);
 
     GM_log("< Config.install");
@@ -378,7 +377,6 @@ Config.prototype = {
         break;
       }
 
-    this._resolveDep();
     this._changed(script, "uninstall", null);
 
     // watch out for cases like basedir="." and basedir="../gm_scripts"
