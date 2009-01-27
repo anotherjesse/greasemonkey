@@ -779,6 +779,10 @@ ScriptModule.prototype = {
       this.dependents[i].removeBrokenDep(runnable);
   },
 
+  get disabled() {
+    return (!this.enabled).toString();
+  },
+
   get injectable() {
     return this.script.enabled && this.enabled;
   },

@@ -459,6 +459,7 @@ function GM_showPopup(aEvent) {
     mi.script = script;
     mi.setAttribute("type", "checkbox");
     mi.setAttribute("checked", script.enabled.toString());
+    mi.setAttribute("disabled", script._module.disabled);
     popup.insertBefore(mi, tail);
   }
 
