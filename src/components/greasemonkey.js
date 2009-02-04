@@ -276,25 +276,14 @@ var greasemonkeyService = {
 
       // include modules API
       var module = script._module;
-      sandbox.GM_api = module.api;
+      sandbox.self = module.self;
       for (var d in module.dependencies) {
         var dep = module.dependencies[d];
         var name = dep.resourceName;
         if (!name || !dep.dependency
             || scripts.indexOf(dep.dependency.script)<0)
           continue;
-        var api = dep.dependency.api;
-        var wrapper;
-        try {
-          wrapper = sandbox[name];
-          if (!wrapper)
-            wrapper = {};
-        } catch (err) {
-          wrapper = {};
-        }
-        for (var e in api)
-          wrapper[e] = api[e];
-        sandbox[name] = wrapper;
+        sandbox[name] = new dep.dependency.self();
       }
 
       var contents = script.textContent;
