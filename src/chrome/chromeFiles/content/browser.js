@@ -493,6 +493,21 @@ function GM_showPopup(aEvent) {
     }
   }
 
+  // drop unusable libraries
+  var all = runsOnTop.concat(runsFramed);
+  for (var i in all) {
+    var script = all[i];
+    if (script._module.isShown(all))
+      continue;
+    var idx = runsOnTop.indexOf(script);
+    if (idx>-1) {
+      runsOnTop.splice(idx, 1);
+      continue;
+    }
+    idx = runsFramed.indexOf(script);
+    runsFramed.splice(idx, 1);
+  }
+
   // build the new list of scripts
   if (runsFramed.length) {
     runsFramed.forEach(appendScriptToPopup);

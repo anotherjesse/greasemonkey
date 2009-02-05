@@ -800,6 +800,17 @@ ScriptModule.prototype = {
     return false;
   },
 
+  isShown: function(scripts) {
+    if (!this.library)
+      return true;
+    for (var i in this.dependents) {
+      var module = this.dependents[i].module;
+      if (scripts.indexOf(module.script)>-1 && module.isShown(scripts))
+        return true;
+    }
+    return false;
+  },
+
   before: function(idx) {
     var scripts = this.script._config._scripts;
     var from = scripts.indexOf(this.script);
