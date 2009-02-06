@@ -858,10 +858,10 @@ ScriptModule.prototype = {
 /*
  * Script dependency
  */
-const EXT_DEPEND  = 0;
-const EXT_USE     = 1;
-const EXT_SUGGEST = 2;
-const DEP_LABELS  = ["depend", "use", "suggest"];
+const DEP_SOFT   = 0;
+const DEP_MEDIUM = 1;
+const DEP_HARD   = 2;
+const DEP_LABELS = ["suggest", "use", "depend"];
 
 function ScriptDependency(type) {
   this.type = DEP_LABELS.indexOf(type.toLowerCase());
@@ -898,7 +898,7 @@ ScriptDependency.prototype = {
   },
 
   removeBrokenDep: function(runnable) {
-    if (!this.module.enabled || this.type>EXT_DEPEND)
+    if (!this.module.enabled || this.type<DEP_HARD)
       return;
     var idx = runnable.indexOf(this.module.script);
     if (idx<0)
@@ -909,9 +909,9 @@ ScriptDependency.prototype = {
 
   resolveDep: function(parents, top) {
     if (!this.dependency)
-      return this.type==EXT_SUGGEST;
+      return this.type==DEP_SOFT;
     var ok = this.dependency.resolveDep(parents, top);
-    if (this.type==EXT_SUGGEST)
+    if (this.type==DEP_SOFT)
       return true;
     return ok;
   },
