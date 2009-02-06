@@ -725,7 +725,6 @@ function ScriptModule(script) {
   this.library = false;
   this.dependencies = [];
   this.dependents = [];
-  this.self = function() {};
   this.enabled = true;
 }
 

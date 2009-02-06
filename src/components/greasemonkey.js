@@ -232,6 +232,7 @@ var greasemonkeyService = {
     var resources;
     var safeWin = new XPCNativeWrapper(unsafeContentWin);
     var safeDoc = safeWin.document;
+    var selves = [];
 
     // detect and grab reference to firebug console and context, if it exists
     var firebugConsole = this.getFirebugConsole(unsafeContentWin, chromeWin);
@@ -276,14 +277,16 @@ var greasemonkeyService = {
 
       // include modules API
       var module = script._module;
-      sandbox.self = module.self;
+      sandbox.self = selves[i] = function() {};
       for (var d in module.dependencies) {
         var dep = module.dependencies[d];
         var name = dep.resourceName;
-        if (!name || !dep.dependency
-            || scripts.indexOf(dep.dependency.script)<0)
+        if (!name || !dep.dependency)
           continue;
-        sandbox[name] = new dep.dependency.self();
+        var idx = scripts.indexOf(dep.dependency.script);
+        if (idx<0 || !selves[idx])
+          continue;
+        sandbox[name] = new selves[idx]();
       }
 
       var contents = script.textContent;
