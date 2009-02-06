@@ -277,7 +277,7 @@ var greasemonkeyService = {
 
       // include modules API
       var module = script._module;
-      sandbox.self = selves[i] = function() {};
+      sandbox.self = {};
       for (var d in module.dependencies) {
         var dep = module.dependencies[d];
         var name = dep.resourceName;
@@ -312,8 +312,12 @@ var greasemonkeyService = {
       if (!script.unwrap)
         scriptSrc = "(function(){"+ scriptSrc +"})()";
       if (!this.evalInSandbox(scriptSrc, url, sandbox, script) && script.unwrap)
-        this.evalInSandbox("(function(){"+ scriptSrc +"})()",
-                           url, sandbox, script); // wrap anyway on early return
+        if (!this.evalInSandbox("(function(){"+ scriptSrc +"})()",
+                           url, sandbox, script)) // wrap anyway on early return
+          continue;
+      var self = function() {};
+      self.prototype = sandbox.self;
+      selves[i] = self;
     }
   },
 
