@@ -277,7 +277,7 @@ var greasemonkeyService = {
 
       // include modules API
       var module = script._module;
-      sandbox.self = {};
+      sandbox.self = selves[i] = {};
       for (var d in module.dependencies) {
         var dep = module.dependencies[d];
         var name = dep.resourceName;
@@ -286,7 +286,8 @@ var greasemonkeyService = {
         var idx = scripts.indexOf(dep.dependency.script);
         if (idx<0 || !selves[idx])
           continue;
-        sandbox[name] = new selves[idx]();
+        sandbox[name] = {};
+        sandbox[name].__proto__ = selves[idx];
       }
 
       var contents = script.textContent;
@@ -312,12 +313,8 @@ var greasemonkeyService = {
       if (!script.unwrap)
         scriptSrc = "(function(){"+ scriptSrc +"})()";
       if (!this.evalInSandbox(scriptSrc, url, sandbox, script) && script.unwrap)
-        if (!this.evalInSandbox("(function(){"+ scriptSrc +"})()",
-                           url, sandbox, script)) // wrap anyway on early return
-          continue;
-      var self = function() {};
-      self.prototype = sandbox.self;
-      selves[i] = self;
+        this.evalInSandbox("(function(){"+ scriptSrc +"})()",
+                           url, sandbox, script); // wrap anyway on early return
     }
   },
 
